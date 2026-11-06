@@ -14,6 +14,17 @@ var history: Array = []       # {speaker (as shown), name, text, mode, look, cha
 ## Brief item 9: a plain String, or {"title": .., "steps": [{"text": .., "done": <expr>, "live": bool}]}.
 var objective = ""
 var obj_done: Array = []      # indices of latched (completed) steps of the current objective
+## G2b (Daniel 2026-11-06): duties replace the step checklist. Keyed by duty id (chapters.json "duties"),
+## so they survive beat-layout changes. s: DUTY_HIDDEN / KNOWN / ACTIVE / DONE; "known" and "done" list the
+## sub-task ids the keeper has discovered / really done (both latch); "dropped" lists optional sub-tasks
+## that no longer matter (the torch once the lights are on).
+const DUTY_HIDDEN := 0
+const DUTY_KNOWN := 1
+const DUTY_ACTIVE := 2
+const DUTY_DONE := 3
+var duties := {}               # id -> {"s": int, "known": [sub ids], "done": [sub ids], "dropped": [sub ids]}
+var focus_duty := ""           # the duty the HUD is about: the one a beat made active last ("" = none)
+var log_written: Array = []    # station-log entry ids Callum has written tonight, in order (G2b layer C)
 var sim: KeeperSim             # for conditions that read the station
 var play_seconds := 0.0
 ## An autosave inside a beat (3B): the beat had started and these actions were still to run.
@@ -30,9 +41,31 @@ const REMAP := {          # chapter -> {from layout: old index -> index in the n
 
 
 func has_objective() -> bool:
+	if has_active_duty():
+		return true
 	if objective is Dictionary:
 		return not objective.is_empty()
 	return String(objective) != ""
+
+
+## G2b: is any duty active and not yet done?
+func has_active_duty() -> bool:
+	for id in duties:
+		if int(duties[id].get("s", 0)) == DUTY_ACTIVE:
+			return true
+	return false
+
+
+func duty_state(id: String) -> int:
+	return int(duties.get(id, {}).get("s", DUTY_HIDDEN))
+
+
+## For conditions: the duty (or "duty.sub") is done.
+func duty_done(id: String) -> bool:
+	if "." in id:
+		var p := id.split(".", true, 1)
+		return String(p[1]) in duties.get(p[0], {}).get("done", [])
+	return duty_state(id) == DUTY_DONE
 
 
 func flag(name_: String):
@@ -139,7 +172,8 @@ func _val(s: String):
 func to_dict() -> Dictionary:
 	return {"chapter": chapter, "beat": beat, "flags": flags, "clues": clues.keys(), "rel": rel, "rescues": rescues,
 		"convs_done": convs_done.keys(), "history": history.slice(-300), "objective": objective, "obj_done": obj_done, "play_seconds": play_seconds,
-		"layout": LAYOUT, "in_beat": in_beat, "resume": resume}
+		"layout": LAYOUT, "in_beat": in_beat, "resume": resume, "duties": duties, "focus_duty": focus_duty,
+		"log_written": log_written}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -162,6 +196,15 @@ func from_dict(d: Dictionary) -> void:
 	for i in d.get("obj_done", []):
 		obj_done.append(int(i))
 	play_seconds = float(d.get("play_seconds", 0.0))
+	duties = {}
+	var dd: Dictionary = d.get("duties", {})
+	for id in dd:
+		var e: Dictionary = dd[id]
+		duties[String(id)] = {"s": int(e.get("s", DUTY_HIDDEN)), "known": Array(e.get("known", [])).map(func(x): return String(x)),
+			"done": Array(e.get("done", [])).map(func(x): return String(x)),
+			"dropped": Array(e.get("dropped", [])).map(func(x): return String(x))}
+	focus_duty = String(d.get("focus_duty", ""))
+	log_written = Array(d.get("log_written", [])).map(func(x): return String(x))
 
 
 ## A beat index from a save made with an older chapters.json layout, in today's layout.

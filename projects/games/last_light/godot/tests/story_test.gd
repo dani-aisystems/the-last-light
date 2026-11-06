@@ -68,7 +68,7 @@ func _run() -> void:
 		print("ENDINGS reached=%s" % endings)
 		await _autosave_resumes()
 		await _kittiwake_power_out()
-		await _opening_checklist()
+		_opening_duties()
 	await _save_roundtrip()
 	_save_files()
 	print("STORY_RESULT ", JSON.stringify({"failed": fails.size(), "failures": fails}))
@@ -97,6 +97,16 @@ func _check_beat_actions() -> void:
 					texts.append(String(o[k].get("title", "")))
 					for st in o[k].get("steps", []):
 						texts.append(String(st.get("text", "")))
+				if k == "duties" and o[k] is Array:
+					for d in o[k]:
+						texts.append(String(d.get("caption", "")))
+						texts.append(String(d.get("line", "")))
+						for sb in d.get("sub", []):
+							texts.append(String(sb.get("line", "")))
+				if k == "duty" and o[k] is Array:
+					for id in o[k]:
+						if not _duty_ids(data).has(String(id)):
+							fails.append("chapters.json: beat names unknown duty '%s'" % id)
 				if k == "do" and o[k] is Array:
 					for a in o[k]:
 						if String(a[0]) == "objective":
@@ -123,6 +133,14 @@ func _check_beat_actions() -> void:
 		elif o is Array:
 			stack.append_array(o)
 	print("BEAT_ACTIONS checked=%d" % seen)
+
+
+func _duty_ids(data: Dictionary) -> Dictionary:
+	var ids := {}
+	for c in data["chapters"]:
+		for d in c.get("duties", []):
+			ids[String(d["id"])] = true
+	return ids
 
 
 func _walk_all(db: DialogueDB) -> void:
@@ -173,51 +191,159 @@ func _dfs(db: DialogueDB, id: String, st: StoryState, picks: Array, depth: int) 
 	return 1
 
 
-## Brief items 8 and 9: the dark opening's checklist ticks only from real state, in the order the keeper
-## really does things, and the live "lights" step follows the lights both ways.
-func _opening_checklist() -> void:
+## G2b (Daniel 2026-11-06): the opening is two duties, "power" and "light", completed from the real station
+## state in ANY order. Sub-tasks are discovered (the fuel valve by a refused/failed START or the generator
+## gauges), latch once really done, and the optional torch drops once the lights are on. Each duty's
+## station-log line is written exactly once, and a save/load mid-sequence repeats nothing.
+func _opening_duties() -> void:
+	# --- A: the keeper's usual order, probing each step
+	var o := _duty_rig(600.0)
+	var k: KeeperSim = o[0]
+	var dir: StoryDirector = o[1]
+	var logs: Array = o[2]
+	var step: Callable = o[3]
+	step.call(1.0)
+	var p: Dictionary = dir.state.duties.get("power", {})
+	if k.lights_on() or k.battery > 0.0 or dir.state.duty_state("power") != StoryState.DUTY_ACTIVE or dir.state.focus_duty != "power":
+		fails.append("G2b: ch1 does not open dark with the power duty active (lights=%s battery=%.0f duty=%s)" % [k.lights_on(), k.battery, p])
+	if p.get("known", []) != ["torch", "engine"] or not p.get("done", []).is_empty():
+		fails.append("G2b: at the start only the torch and the engine should be known, nothing done: %s" % [p])
+	dir.state.flags["torch_taken"] = 1
+	step.call(0.5)
+	dir.on_sim_events([{"type": "refused", "device": "start", "reason": "The fuel valve is shut."}])
+	step.call(0.5)
+	var fuel_known: bool = "fuel" in dir.state.duties["power"]["known"]
+	k.set_fuel_valve(true)
+	step.call(0.5)
+	k.set_start(true)
+	step.call(2.5)
+	k.set_start(false)
+	var charge_known: bool = "charge" in dir.state.duties["power"]["known"]
+	k.set_charge(true)
+	step.call(1.0)
+	p = dir.state.duties["power"]
+	var v := dir.duty_view()
+	if not fuel_known or not charge_known or p["done"] != ["torch", "fuel", "engine", "charge"] or int(p["s"]) != StoryState.DUTY_DONE:
+		fails.append("G2b A: usual order wrong (fuel known after refusal %s, charge known after start %s): %s" % [fuel_known, charge_known, p])
+	if logs != ["log_1622"] or v.get("done", []).size() != 4 or not v.get("complete", false):
+		fails.append("G2b A: log %s / view %s" % [logs, v])
+	k.set_breaker("lights", false)
+	step.call(0.5)
+	if dir.state.duties["power"]["done"].size() != 4:
+		fails.append("G2b A: a done sub-task un-ticked when the lights went off")
+	print("OPENING_DUTIES A power=%s log=%s" % [dir.state.duties["power"], logs])
+	dir.queue_free()
+
+	# --- B: valve first, never takes the torch: the torch drops when the lights come on
+	o = _duty_rig(600.0)
+	k = o[0]; dir = o[1]; logs = o[2]; step = o[3]
+	step.call(0.5)
+	k.set_fuel_valve(true)
+	step.call(0.5)
+	var b_fuel: bool = "fuel" in dir.state.duties["power"]["done"]
+	k.set_start(true)
+	step.call(2.5)
+	k.set_start(false)
+	k.set_charge(true)
+	step.call(1.0)
+	p = dir.state.duties["power"]
+	var b_steps: Array = dir.duty_view().get("steps", []).map(func(x): return x["id"])
+	if not b_fuel or not ("torch" in p["dropped"]) or "torch" in b_steps or logs != ["log_1622"]:
+		fails.append("G2b B: valve-first / torch skipped wrong: fuel %s, duty %s, view %s, log %s" % [b_fuel, p, b_steps, logs])
+	dir.queue_free()
+
+	# --- C: CHARGE switched on before START: known at once, done only when current flows
+	o = _duty_rig(600.0)
+	k = o[0]; dir = o[1]; logs = o[2]; step = o[3]
+	step.call(0.5)
+	k.set_charge(true)
+	step.call(0.5)
+	p = dir.state.duties["power"]
+	var c_ok: bool = "charge" in p["known"] and not ("charge" in p["done"]) and int(p["s"]) == StoryState.DUTY_ACTIVE
+	k.set_fuel_valve(true)
+	k.set_start(true)
+	step.call(2.5)
+	k.set_start(false)
+	step.call(1.0)
+	if not c_ok or dir.state.duty_state("power") != StoryState.DUTY_DONE or logs != ["log_1622"]:
+		fails.append("G2b C: charge-before-start wrong: %s log %s" % [dir.state.duties["power"], logs])
+	dir.queue_free()
+
+	# --- D: the console set first; the light duty completes (and logs once) when its beat activates it
+	o = _duty_rig(0.05)
+	k = o[0]; dir = o[1]; logs = o[2]; step = o[3]
+	step.call(0.5)
+	k.set_mode(1)
+	k.set_intensity(1)
+	k.set_fuel_valve(true)
+	k.set_start(true)
+	step.call(2.5)
+	k.set_start(false)
+	k.set_charge(true)
+	step.call(40.0)
+	if dir.state.duty_state("light") != StoryState.DUTY_DONE or logs != ["log_1622", "log_1640"] or dir.state.log_written != ["log_1622", "log_1640"]:
+		fails.append("G2b D: console-first wrong: light %s, logs %s, written %s, beat %d" % [dir.state.duties.get("light", {}), logs, dir.state.log_written, dir.state.beat])
+	dir.queue_free()
+
+	# --- E: save mid-sequence (valve open, engine not started) and load: nothing repeats, nothing lost
+	o = _duty_rig(600.0)
+	k = o[0]; dir = o[1]; logs = o[2]; step = o[3]
+	step.call(0.5)
+	dir.state.flags["torch_taken"] = 1
+	k.set_fuel_valve(true)
+	step.call(0.5)
+	var saved_story: Dictionary = JSON.parse_string(JSON.stringify(dir.state.to_dict()))
+	var k2 := KeeperSim.new()
+	k2.setup(KeeperConfig.new(), LayoutData.load_file(), {"ships": [], "faults": []}, 41)
+	k2.story_mode = true
+	k2.fuel_valve = true
+	k2.battery = 0.0
+	var dir2 := StoryDirector.new()
+	root.add_child(dir2)
+	dir2.setup(k2, true)
+	dir2.bot_line_s = 600.0
+	var logs2: Array = []
+	var views: Array = []
+	dir2.duty_logged.connect(func(e): logs2.append(e["id"]))
+	dir2.objective_changed.connect(func(ob): views.append(ob))
+	dir2.state.from_dict(saved_story)
+	dir2.begin(false)
+	var after_load: Dictionary = dir2.state.duties.get("power", {})
+	if after_load.get("done", []) != ["torch", "fuel"] or views.is_empty() or String(views[-1].get("duty", "")) != "power":
+		fails.append("G2b E: load lost the duty state or the HUD view: %s views %s" % [after_load, views])
+	k2.set_start(true)
+	for i in 75:
+		dir2.on_sim_events(k2.step(1.0 / 30.0))
+		dir2._process(1.0 / 30.0)
+	k2.set_start(false)
+	k2.set_charge(true)
+	for i in 30:
+		dir2.on_sim_events(k2.step(1.0 / 30.0))
+		dir2._process(1.0 / 30.0)
+	if logs2 != ["log_1622"] or dir2.state.log_written != ["log_1622"]:
+		fails.append("G2b E: after load the log is %s (written %s)" % [logs2, dir2.state.log_written])
+	print("OPENING_DUTIES B-E ok=%s" % (fails.filter(func(f): return f.begins_with("G2b")).is_empty()))
+	dir.queue_free()
+	dir2.queue_free()
+
+
+## A fresh ch1 director over a fresh sim, for the G2b checks: [sim, director, logged ids, step(secs)].
+func _duty_rig(line_s: float) -> Array:
 	var k := KeeperSim.new()
 	k.setup(KeeperConfig.new(), LayoutData.load_file(), {"ships": [], "faults": []}, 41)
 	k.story_mode = true
 	var dir := StoryDirector.new()
 	root.add_child(dir)
 	dir.setup(k, true)
-	dir.bot_line_s = 600.0        # lines wait: the beats stay put while the checklist is probed
-	var prog := [[]]
-	dir.objective_progress.connect(func(d): prog[0] = d.duplicate())
+	dir.bot_line_s = line_s
+	var logs: Array = []
+	dir.duty_logged.connect(func(e): logs.append(e["id"]))
 	dir.begin(true)
 	var step := func(secs: float):
 		for i in int(secs * 30):
 			dir.on_sim_events(k.step(1.0 / 30.0))
 			dir._process(1.0 / 30.0)
-	step.call(1.0)
-	var obj = dir.state.objective
-	if not (obj is Dictionary) or String(obj.get("title", "")) != "Restore the lights" or k.lights_on() or k.battery > 0.0:
-		fails.append("item 8: ch1 does not open dark with the 'Restore the lights' checklist (lights_on=%s battery=%.0f)" % [k.lights_on(), k.battery])
-	if not prog[0].is_empty():
-		fails.append("item 9: steps ticked before anything was done: %s" % [prog[0]])
-	dir.state.flags["torch_taken"] = 1
-	step.call(0.5)
-	var after_torch: Array = prog[0].duplicate()
-	k.set_fuel_valve(true)
-	step.call(0.5)
-	var after_valve: Array = prog[0].duplicate()
-	k.set_start(true)
-	step.call(2.5)
-	k.set_start(false)
-	var after_start: Array = prog[0].duplicate()
-	k.set_charge(true)
-	step.call(2.0)
-	var after_charge: Array = prog[0].duplicate()
-	k.set_breaker("lights", false)
-	step.call(0.5)
-	var lights_off: Array = prog[0].duplicate()
-	var ok: bool = after_torch == [0] and after_valve == [0, 1] and after_start == [0, 1, 2] \
-		and after_charge == [0, 1, 2, 3, 4] and lights_off == [0, 1, 2, 3]
-	if not ok:
-		fails.append("item 9: opening ticks wrong: torch %s, valve %s, start %s, charge %s, lights off %s" % [after_torch, after_valve, after_start, after_charge, lights_off])
-	print("OPENING_CHECKLIST torch=%s valve=%s start=%s charge=%s lights_off=%s" % [after_torch, after_valve, after_start, after_charge, lights_off])
-	dir.queue_free()
+	return [k, dir, logs, step]
 
 
 ## The generator part of KeeperBot2 only: start it when the battery is low, charge, stop when full.

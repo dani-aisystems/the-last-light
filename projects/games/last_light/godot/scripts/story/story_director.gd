@@ -1,7 +1,13 @@
 class_name StoryDirector
 extends Node
 ## Runs the campaign: chapters from data/story/chapters.json, each a list of beats
-##   {"id", "when": <expr>, "objective": <text>, "hint": [<seconds>, <text>], "do": [[action, args...], ...]}
+##   {"id", "when": <expr>, "objective": <text>, "duty": [<duty id>...], "hint": [<seconds>, <text>(, unless)],
+##    "do": [[action, args...], ...]}
+## G2b duties (chapters.json per chapter "duties"): {id, caption, line, done <expr>, discover [<expr>...],
+##   sub: [{id, line, done <expr>, discover [<expr>...], optional, drop <expr>}], log: {id, time, text}}.
+##   A duty is hidden until a beat activates it ("duty") or a discover expression is true; its sub-tasks
+##   become known when discovered (or at once without "discover") and latch when really done. A duty
+##   completes from real state in any order; its "log" line (canon station-log wording) is written once.
 ## Beats run in order. A beat waits for its `when`, then executes its actions in sequence; "talk"
 ## blocks until the conversation ends, "wait" blocks for seconds. Conversations come from
 ## data/story/*.dlg (DialogueDB). Station/player events become story flags (used_<device>, ...).
@@ -12,6 +18,8 @@ signal choices_shown(item: Dictionary)
 signal dialogue_closed
 signal objective_changed(obj)            # a String or a step objective (item 9)
 signal objective_progress(done: Array)    # item 9: indices of the steps that are done right now
+signal duty_changed(id: String, s: int)  # G2b: a duty became known / active / done
+signal duty_logged(entry: Dictionary)    # G2b: Callum writes a station-log line {id, time, text}
 signal chapter_started(n: int, title: String, subtitle: String)
 signal chapter_finished(n: int)
 signal story_event(name_: String, args: Array)
@@ -25,13 +33,13 @@ signal transition_requested(kind: String, args: Array)
 ## The beat-action contract (Stage 2): actions the director runs itself, and presentation events it
 ## forwards to game_fp._on_story_event. story_test fails on any "do" name outside these two lists, so a
 ## no-op like the retired hint_device cannot creep back in.
-const ACTIONS := ["talk", "wait", "objective", "set", "unset", "add", "clue", "ship", "storm", "clock", "fault",
+const ACTIONS := ["talk", "wait", "objective", "duty", "duty_drop", "set", "unset", "add", "clue", "ship", "storm", "clock", "fault",
 	"battery", "mode", "intensity", "autosave", "end_campaign", "timeskip", "ending_card", "until", "release"]
 const PRESENTATION_EVENTS := ["hint", "sky", "phantom_echo", "door_open", "visitor_enter", "knock",
 	"footsteps", "sfx", "static", "music", "caption"]
 ## Actions that may run while a transition holds the story at its midpoint (the screen is black): they
 ## change the world, not what the player reads. Everything else waits for transition_done().
-const INSTANT_ACTIONS := ["objective", "set", "unset", "add", "clue", "storm", "clock", "battery", "mode",
+const INSTANT_ACTIONS := ["objective", "duty", "duty_drop", "set", "unset", "add", "clue", "storm", "clock", "battery", "mode",
 	"intensity", "sky", "music", "phantom_echo", "autosave"]
 ## The four endings (STAGE3_NARRATIVE_MASTER §15): the dawn report x whether Iona Star came through.
 const ENDINGS := {
@@ -125,7 +133,10 @@ func begin(fresh := true) -> void:
 	if fresh:
 		state.flags.erase("at_door_once")   # item 8: "has been to the door" is per chapter (ch4's door scene)
 	chapter_started.emit(state.chapter, c["title"], c.get("subtitle", ""))
-	if state.has_objective():
+	if state.focus_duty != "":
+		_duty_view_key = ""                # re-send the duty view after a load
+		_emit_duty_view()
+	elif (state.objective is Dictionary and not state.objective.is_empty()) or (state.objective is String and state.objective != ""):
 		objective_changed.emit(state.objective)
 		_obj_last = [-1]                   # re-send the ticks after a load
 	if not fresh and state.in_beat:
@@ -200,6 +211,7 @@ func _check_daytank() -> void:
 
 
 func _set_objective(o) -> void:
+	state.focus_duty = ""                  # G2b: a legacy objective takes the HUD back from a duty
 	state.objective = o
 	state.obj_done = []
 	_obj_last = [-1]
@@ -233,6 +245,138 @@ func _tick_objective(delta: float) -> void:
 	if done != _obj_last:
 		_obj_last = done
 		objective_progress.emit(done)
+
+
+# ------------------------------------------------------------------ duties (G2b)
+
+var _duty_t := 0.0
+var _duty_view_key := ""                # the last duty view sent to the HUD (adapter, no repeats)
+
+
+func duty_def(id: String) -> Dictionary:
+	for c in chapters:
+		for d in c.get("duties", []):
+			if String(d["id"]) == id:
+				return d
+	return {}
+
+
+func _duty_entry(id: String) -> Dictionary:
+	if not state.duties.has(id):
+		state.duties[id] = {"s": StoryState.DUTY_HIDDEN, "known": [], "done": [], "dropped": []}
+	return state.duties[id]
+
+
+## A beat (or the "duty" action) makes these duties active; the last one becomes the HUD's focus.
+func activate_duties(ids: Array) -> void:
+	for raw in ids:
+		var id := String(raw)
+		if duty_def(id).is_empty():
+			push_error("story: unknown duty '%s'" % id)
+			continue
+		var e := _duty_entry(id)
+		if int(e["s"]) < StoryState.DUTY_ACTIVE:
+			e["s"] = StoryState.DUTY_ACTIVE
+			duty_changed.emit(id, StoryState.DUTY_ACTIVE)
+		state.focus_duty = id
+	state.objective = ""
+	state.obj_done = []
+	_duty_view_key = ""
+	_eval_duties()
+	_emit_duty_view()
+
+
+func _any_true(exprs) -> bool:
+	for x in (exprs if exprs is Array else [exprs]):
+		if state.eval(String(x)):
+			return true
+	return false
+
+
+func _tick_duties(delta: float) -> void:
+	_duty_t -= delta
+	if _duty_t > 0.0:
+		return
+	_duty_t = 0.15
+	_eval_duties()
+
+
+## Discovery and completion from the real state, latched, each change emitted once.
+func _eval_duties() -> void:
+	for d in chapter_data(state.chapter).get("duties", []):
+		var id := String(d["id"])
+		var s := state.duty_state(id)
+		if s == StoryState.DUTY_DONE:
+			continue
+		var changed := false
+		if s == StoryState.DUTY_HIDDEN:
+			if not (d.has("discover") and _any_true(d["discover"])):
+				continue
+			_duty_entry(id)["s"] = StoryState.DUTY_KNOWN
+			duty_changed.emit(id, StoryState.DUTY_KNOWN)
+			changed = true
+		var e := _duty_entry(id)
+		for sub in d.get("sub", []):
+			var sid := String(sub["id"])
+			if sid in e["done"] or sid in e["dropped"]:
+				continue
+			var ok := state.eval(String(sub.get("done", "false")))
+			if not (sid in e["known"]) and (ok or not sub.has("discover") or _any_true(sub["discover"])):
+				e["known"].append(sid)
+				changed = true
+			if ok:
+				e["done"].append(sid)
+				changed = true
+			elif sub.has("drop") and state.eval(String(sub["drop"])):
+				e["dropped"].append(sid)
+				changed = true
+		if state.eval(String(d.get("done", "false"))):
+			for sub in d.get("sub", []):            # optional sub-tasks left undone no longer matter
+				var osid := String(sub["id"])
+				if bool(sub.get("optional", false)) and not (osid in e["done"]) and not (osid in e["dropped"]):
+					e["dropped"].append(osid)
+			e["s"] = StoryState.DUTY_DONE
+			duty_changed.emit(id, StoryState.DUTY_DONE)
+			changed = true
+			var lg: Dictionary = d.get("log", {})
+			if not lg.is_empty() and not (String(lg["id"]) in state.log_written):
+				state.log_written.append(String(lg["id"]))
+				duty_logged.emit(lg)
+		if changed and id == state.focus_duty:
+			_emit_duty_view()
+
+
+## What the HUD shows for the focus duty: {title, caption, duty, steps: [{text}]} with the known,
+## not-dropped sub-tasks; the done ones go out as objective_progress indices (until S2's duty HUD,
+## the item 9/20 panel draws this through objective_changed / objective_progress).
+func duty_view() -> Dictionary:
+	var id := state.focus_duty
+	var d := duty_def(id)
+	if id == "" or d.is_empty():
+		return {}
+	var e: Dictionary = state.duties.get(id, {})
+	var steps: Array = []
+	var done: Array = []
+	for sub in d.get("sub", []):
+		var sid := String(sub["id"])
+		if sid in e.get("known", []) and not (sid in e.get("dropped", [])):
+			if sid in e.get("done", []):
+				done.append(steps.size())
+			steps.append({"text": String(sub.get("line", "")), "id": sid})
+	return {"title": String(d.get("line", "")), "caption": String(d.get("caption", "")), "duty": id,
+		"steps": steps, "done": done, "complete": int(e.get("s", 0)) == StoryState.DUTY_DONE}
+
+
+func _emit_duty_view() -> void:
+	var v := duty_view()
+	if v.is_empty():
+		return
+	var shape := {"title": v["title"], "caption": v["caption"], "duty": v["duty"], "steps": v["steps"]}
+	var key := JSON.stringify(shape)
+	if key != _duty_view_key:
+		_duty_view_key = key
+		objective_changed.emit(shape)
+	objective_progress.emit(v["done"])
 
 
 ## Item 32: what the keeper should fix when the story waits on power (radio or light).
@@ -281,6 +425,8 @@ func _enter_beat() -> void:
 	var b: Dictionary = beats[state.beat]
 	if b.has("objective"):
 		_set_objective(b["objective"])
+	if b.has("duty"):
+		activate_duties(b["duty"])
 	if can_autosave() and _hold != 1 and _pending_chapter == 0:
 		beat_autosave.emit()             # entering a beat re-runs it on load, so this is always a clean point
 
@@ -300,6 +446,7 @@ func _process(delta: float) -> void:
 	_check_daytank()
 	_tick_power_hint(delta)
 	_tick_objective(delta)
+	_tick_duties(delta)
 	# conversations
 	if _talking:
 		_dialogue_tick(delta)
@@ -388,6 +535,14 @@ func _do(a: Array) -> void:
 			_wait = float(args[0]) * (bot_wait_mul if bot else 1.0)
 		"objective":
 			_set_objective(args[0])
+		"duty":
+			activate_duties(args)
+		"duty_drop":
+			for id in args:
+				var e := _duty_entry(String(id))
+				if int(e["s"]) != StoryState.DUTY_DONE:
+					e["s"] = StoryState.DUTY_DONE
+					duty_changed.emit(String(id), StoryState.DUTY_DONE)
 		"set", "unset", "add", "clue":
 			state.apply_action(name_, args)
 		"ship":
@@ -512,6 +667,10 @@ func on_sim_events(events: Array) -> void:
 				state.flags["transmitted"] = 1
 			"gen_start":
 				state.flags["gen_started"] = 1
+			"gen_crank_fail":                       # G2b: a failed crank teaches the fuel valve
+				state.flags["crank_failed"] = 1
+			"refused":                              # G2b: a refused control is a discovery too
+				state.flags["refused_" + String(e.get("device", ""))] = 1
 			"charge_switch":
 				if e["on"]:
 					state.flags["charge_on_once"] = 1
@@ -691,6 +850,10 @@ func _switch_chapter() -> void:
 	var c := chapter_data(_pending_chapter)
 	state.chapter = _pending_chapter
 	_pending_chapter = 0
+	for id in state.duties:                # G2b: last chapter's unfinished duties stop being active
+		if int(state.duties[id]["s"]) == StoryState.DUTY_ACTIVE:
+			state.duties[id]["s"] = StoryState.DUTY_KNOWN
+	state.focus_duty = ""
 	state.beat = 0
 	state.resume = []
 	state.in_beat = false

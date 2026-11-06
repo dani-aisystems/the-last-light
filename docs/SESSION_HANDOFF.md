@@ -19,6 +19,14 @@
   2. G2b S1, the duty model; S2 the HUD; S3 the ch1 slice; S4 the logbook; S5 ch2–6.
   3. Then G3, starting with the pipe question.
 - **Still pending with Daniel:** the music pick, the listening pass, the Visitor figure.
+- **G2b S1 (duty model) implemented, uncommitted, awaiting Daniel's OK:**
+  - `StoryState.duties`, `focus_duty` and `log_written` (saved);
+  - the director's `_eval_duties` (discover, latch, optional drop, a log line written once) and `activate_duties`;
+  - the `duty` and `duty_drop` actions; ch1 `duties` "power" and "light" in `chapters.json`;
+  - discovery flags `crank_failed` / `refused_<device>`;
+  - an adapter feeds the old panel.
+  - story_test `_opening_duties`: the usual order, valve first with the torch skipped, CHARGE before START, console first, and save/load mid-sequence.
+  - All suites green.
 
 ## CURRENT STATE (2026-11-06, end of day): one session took over all parallel work; read this first
 - **All parallel sessions have ended.** The character session took over the G2 (brief) and G5 (weather and audio) work. The file-ownership split above is historical. One session can now own everything.
