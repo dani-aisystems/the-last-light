@@ -52,7 +52,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
 | 18 | Binoculars as equipment | Gameplay | P2 | M | 2E / G3 | Planned |
 | 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | Planned |
-| 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Planned |
+| 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Implemented, then **superseded by G2b** (checkpoint 2026-11-06: contrast FAIL 1.1–1.5:1 over lit walls, `g25_panel_crops.png`; Daniel chose the cinematic duty system) |
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |
 | 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Profiles done (`character-refs/`); portrait images paused until Daniel supplies them (2026-11-06) |
 | 23 | Radio interaction restrictions | Bug (interaction) | P0 | S | 2E / G1 | Verified (regress R8, R11) |
@@ -61,7 +61,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 26 | Dialogue overlap | Bug (system) | P0 | M | 2E / G1 | Implemented (regress R11; full-run frame audit still to add) |
 | 27 | Maritime terminology | UX | P1 | S | 3D / G2 | Planned |
 | 28 | Window rain moves upward | Bug (visual) | P1 | XS | 4 / G1 | PARTIAL (shader maths verified; on-glass motion too faint to judge from stills: check in play) |
-| 29 | Distant lightning bolts | Visual | P2 | S | 4 / G5 | Implemented (awaiting capture + checkpoint) |
+| 29 | Distant lightning bolts | Visual | P2 | S | 4 / G5 | Implemented; on-screen check NOT TESTED (the 2026-11-06 capture camera looked through the optic column; `fp_bolt` re-aimed, re-shoot with the G2b S2 captures) |
 | 30 | Storm and cabin SFX | Audio | P2 | M | 5 / G5 | Implemented (awaiting listening + checkpoint) |
 | 31 | Power-failure design brainstorm | Research | — | — | P | Recommendation only (not approved) |
 | 32 | Kittiwake progression softlock | Bug (progression) | P0 | S | 2E / G1 | Verified (story_test power-out scenario) |
@@ -130,6 +130,44 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 **NOT TESTED:**
 - the bolt on screen (needs a Godot window, which needs Daniel's OK);
 - whether anything *sounds* right (Daniel's call). Before and after previews of the full-storm in-room mix, peak-normalised: `renders/last_light/g5_listen_before.wav` and `g5_listen_after.wav`. A spectrogram, `g5_listen_spectrogram.png`, was rendered but not viewed.
+
+## G2 + G5 checkpoint (2026-11-06, night)
+**Baseline at 3796c41, all green:**
+
+| Suite | Result |
+|---|---|
+| story | 0 failures |
+| regress | 202/202 (3 headless skips) |
+| interaction | 159/0 (12 sound warnings) |
+| qa_sweep | 1,924 |
+| sim_v2 | no gate failures |
+| run_tests | 95 |
+| g5 | 44/44 |
+| pytest | 21 |
+
+**Captures** (one silent `tools/godot_bg` run, Daniel's OK): `renders/last_light/g25_t*.png`; sheets `g25_sheet_opening.png`, `g25_sheet_mission.png`, `g25_sheet_g5.png`; crops `g25_panel_crops.png`. Run with `--bot= --story_auto`; the per-shot `STATE` lines show the real sim state.
+
+| Check | Result |
+|---|---|
+| Dark opening; checklist ticking 0 → 1 → 2 → 3 → 5 of 5 | PASS |
+| Pause menu (autosave only) | PASS |
+| Radio-view compact panel, no overlap at text 1.0 or 1.5 | PASS |
+| Mission panel legibility in a lit room | **FAIL** (1.5:1 median / 1.1:1 worst over the cream wall) → **G2b** |
+| Bolt on screen | NOT TESTED (camera occluded) |
+| Visitor oilskin | PASS on colour. The figure is a primitive stand-in (decision pending) |
+
+**Still pending with Daniel:** the music pick (item 33), the listening pass (30), the Visitor figure.
+
+**G2b, cinematic duty system** (Daniel's decisions 2026-11-06; plan `~/.claude/plans/pasted-content-id-bdd5-the-last-twinkling-crab.md`):
+- **Replaces** the item 9/20 checklist with three layers:
+  - a fading top-left duty line;
+  - discovery through the machinery (a failed crank teaches the fuel valve);
+  - pencilled Duties and written log lines in the L logbook.
+- **Adds:**
+  - Guidance Minimal / Standard / Full (Full = the main duty with a checkmark plus dotted one-line sub-tasks);
+  - J/R3 recall;
+  - catch-lights in darkness only.
+- **Supersedes** PROPOSAL_36. It implements the Duties part of PROPOSAL_37.
 
 ## Dependency map
 **Ordering constraints:**

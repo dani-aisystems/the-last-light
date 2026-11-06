@@ -1,5 +1,25 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-06, night): G2 + G5 checkpoint captured, presented, awaiting Daniel
+- **Baseline at 3796c41 re-verified, all green:** story 0 failures; regress 202/202 (3 headless skips); interaction 159/0 (12 sound warnings); qa_sweep 1,924; sim_v2 no gate failures; run_tests 95; g5 44/44; pytest 21.
+- **Two stray Claude sessions (PIDs 19478, 23732) were stopped at Daniel's request.** They had been editing `capture_fp.gd` in parallel.
+- **`capture_fp.gd` (uncommitted):**
+  - new states: `op_valve`, `op_start`, `op_charge`, `op_console`, `bolt`, `visitor`;
+  - new view: `fp_bolt`;
+  - `--story_auto`: with `--bot=`, the story advances but nothing plays the sim;
+  - a `STATE` line printed per shot.
+- **Capture run, with Daniel's OK:** `renders/last_light/g25_t*.png`; sheets `g25_sheet_opening.png`, `g25_sheet_mission.png`, `g25_sheet_g5.png`.
+- **Findings:**
+  - **The mission panel has no backing plate.** Its steps are unreadable over the lit cream wall: contrast 1.5:1 median, 1.1:1 worst (`g25_t076`).
+  - **The bolt shot missed.** The old `fp_bolt` camera looked through the optic column; it is re-aimed but not re-shot.
+  - **The Visitor figure is a primitive mannequin.** The black oilskin reads correctly.
+- **Daniel rejected a checklist reskin and approved G2b, a cinematic duty system** (plan `~/.claude/plans/pasted-content-id-bdd5-the-last-twinkling-crab.md`; decisions in FINDINGS_LOG "G2 + G5 checkpoint").
+- **Order of work:**
+  1. Stage 0: commit the G2 + G5 close-out (with Daniel's OK).
+  2. G2b S1, the duty model; S2 the HUD; S3 the ch1 slice; S4 the logbook; S5 ch2–6.
+  3. Then G3, starting with the pipe question.
+- **Still pending with Daniel:** the music pick, the listening pass, the Visitor figure.
+
 ## CURRENT STATE (2026-11-06, end of day): one session took over all parallel work; read this first
 - **All parallel sessions have ended.** The character session took over the G2 (brief) and G5 (weather and audio) work. The file-ownership split above is historical. One session can now own everything.
 - **Commits** (local `main`, *not pushed* since `7ac1175`):

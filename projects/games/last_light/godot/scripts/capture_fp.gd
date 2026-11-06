@@ -18,8 +18,14 @@ extends Node
 ##     collected from ch6_epilogue for that ending), calls (ch2 with the optional radio calls on offer),
 ##     photo_door (the 1953 photograph inside the stair door), caption (a sound caption), say_phone,
 ##     say_grants (the phone and Grant's thoughts)
+##   G2/G5 checkpoint states (run with --bot= so nothing plays the sim; the opening steps use the real sim
+##     actions and are NOT restored, so they stack in shot order): op_valve (fuel valve open), op_start
+##     (hold START until the engine runs, then release), op_charge (CHARGE on), op_console (MODE AUTO,
+##     LAMP NORMAL); bolt (re-strike until a visible bolt is drawn, saved within its life); visitor (stair
+##     door open, the Visitor figure inside it; restored)
 ##   VIEW pp_<ia id> (Stage 2): the PLAYER stands 1.3 m from that control and looks at it, so the shot
 ##     shows the real crosshair and prompt (e.g. 60@pp_start!gen_off!valve_shut)
+##   --story_auto (with --bot=): dialogue advances and replies are picked, but the sim is left alone.
 ##   --nohud hides the HUD / dialogue layers for room views (kept for "player" and "focus_*" shots).
 ##   --quality applies a preset to the whole run WITHOUT writing user://settings.cfg (presets only
 ##   take effect on scene load, so it cannot change per shot).
@@ -97,6 +103,7 @@ func view(name_: String) -> Array:
 		"fp_gen": return eye(30, 0.8, -140, 3.0, 1.65, 0.9) + [72.0, false, 0.03]
 		"fp_stair": return eye(-10, 1.0, 170, 3.0, 1.65, 1.0) + [72.0, false, 0.03]
 		"fp_window": return eye(180, 0.8, 0, 12.0, 1.65, 0.0) + [60.0, false, 0.03]
+		"fp_bolt": return eye(270, 1.6, 20, 12.0, 1.65, 3.0) + [60.0, false, 0.03]       # G5: towards FLASH_BEARING, 1.4 m clear of the optic column, sky up
 		# --- Stage 0 additions: ceiling + close-ups of the hero pieces ---
 		"fp_ceiling": return eye(200, 0.7, 30, 1.9, 1.6, 3.05) + [80.0, false, 0.03]     # beams, lamps, lineshaft
 		"cu_lamp": return eye(62, 2.0, 62, 3.25, 1.85, 2.05) + [55.0, false, 0.03]       # wall lamp 1 + its shadows
@@ -185,6 +192,8 @@ func _run() -> void:
 		_place(g, vname)
 		for st in states:
 			_force(g, st)
+		if "op_start" in states:
+			await _crank(g)
 		var fps: Array = []
 		for i in 90:
 			await _frames(1)
@@ -200,6 +209,10 @@ func _run() -> void:
 		var dc := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 		var prims := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 		var tag := vname + ("!" + "!".join(states) if not states.is_empty() else "")
+		if g.story_mode:                        # checkpoint evidence: the state each shot shows
+			print("STATE %s@%s ch=%d beat=%d gen=%d valve=%s charge=%s lights=%s mode=%d lamp=%d steps=%s" % [s, tag,
+				g.director.state.chapter, g.director.state.beat, g.sim.gen, g.sim.fuel_valve, g.sim.charge_on,
+				g.sim.lights_on(), g.sim.mode, g.sim.intensity, g.director._obj_last])
 		perf.append({"shot": s + "@" + tag, "fps": fps.max(), "fps_min": fps.min(), "draw_calls": dc, "primitives": prims})
 		var vrid := get_viewport().get_viewport_rid()
 		print("RENDER gpu_ms=%.1f cpu_ms=%.1f" % [RenderingServer.viewport_get_measured_render_time_gpu(vrid), RenderingServer.viewport_get_measured_render_time_cpu(vrid)])
@@ -208,6 +221,8 @@ func _run() -> void:
 			get_viewport().get_visible_rect().size])
 		if "flash" in states:
 			await _flash_peak(g)
+		if "bolt" in states:
+			await _bolt_now(g)
 		_save("%s_t%03d_%s" % [name_, int(target), tag.replace("!", "-")])
 		_unforce(g)
 		_restore(g)
@@ -218,6 +233,8 @@ func _run() -> void:
 func _ensure_game(args: Dictionary) -> void:
 	if main.game == null:
 		main.start_game(args.get("bot", "expert"), args.get("mode", "story") == "story")
+		if args.has("story_auto") and main.game.director:   # --bot= runs: lines advance at reading pace and
+			main.game.director.bot = true                   # replies are picked; nothing plays the sim
 		await _frames(10)
 
 
@@ -243,8 +260,19 @@ func _force(g, st: String) -> void:
 		"valve_shut":               # Stage 2: START refused with a reason
 			_restore_state["fuel_valve"] = g.sim.fuel_valve
 			g.sim.fuel_valve = false
-		"flash":
-			pass                        # triggered right before the save (see _flash_peak)
+		"flash", "bolt", "op_start":
+			pass                        # flash/bolt: right before the save; op_start: _crank, after the forces
+		"op_valve":
+			g._route(g.sim.set_fuel_valve(true))
+		"op_charge":
+			g._route(g.sim.set_charge(true))
+		"op_console":
+			g.sim.mode = 1
+			g.sim.intensity = maxi(g.sim.intensity, 1)
+		"visitor":
+			_restore_state["visitor"] = g.station.door_open
+			g.station.door_open = true
+			g._spawn_visitor()
 		"say_radio", "say_thought", "say_inroom", "say_door", "say_choices", "say_sound", "say_phone", "say_grants":
 			_say(g, st)
 		"timeskip":
@@ -345,6 +373,11 @@ func _unforce(g) -> void:
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
 		g.presenter.hide_ending()
+	if _restore_state.has("visitor"):
+		if g.visitor_fig:
+			g.visitor_fig.queue_free()
+			g.visitor_fig = null
+		g.station.door_open = _restore_state["visitor"]
 	if _restore_state.has("director"):
 		g.director.process_mode = _restore_state["director"]
 	_restore_state.clear()
@@ -423,6 +456,29 @@ func _flash_peak(g) -> void:
 		await _frames(1)
 		if sin(g.outside._t * 47.0) > 0.85:
 			return
+
+
+## G2 checkpoint: hold START (the real sim action) until the engine runs, then let go. Warns after 20 s.
+func _crank(g) -> void:
+	g._route(g.sim.set_start(true))
+	var t0: float = g.sim.t
+	while g.sim.gen != KeeperSim.Gen.RUNNING and g.sim.t - t0 < 20.0:
+		await _frames(1)
+	g._route(g.sim.set_start(false))
+	if g.sim.gen != KeeperSim.Gen.RUNNING:
+		push_warning("capture: op_start - the engine did not catch in 20 s")
+
+
+## G5 / finding 29: only some strikes draw a bolt, so re-strike until one is drawn (the bolt RNG is
+## seeded, so the same strike wins every run), then return at once: the bolt lives 0.15-0.35 s.
+func _bolt_now(g) -> void:
+	var before: int = g.outside.bolts_shown
+	for i in 30:
+		g.outside.on_events([{"type": "lightning", "power": 1.0, "bearing": FLASH_BEARING, "distance": 650.0}])
+		await _frames(2)
+		if g.outside.bolts_shown > before:
+			return
+	push_warning("capture: bolt - no bolt drawn in 30 strikes")
 
 
 # ------------------------------------------------------------------ camera
