@@ -4,6 +4,10 @@
 
 This is being implemented in iteration 3B. Where this document and the `.dlg` / `chapters.json` / `docs.json` files disagree, this document wins until the 3B checkpoint.
 
+**Character references (2026-11-06).** Per-character detail lives in `character-refs/`: start at `README.md`, then `CANON_INDEX.md`, `REVIEW_FLAGS.md` and `<id>/PROFILE.md`.
+- For **looks, wardrobe, personality and voice**, those profiles supersede §4 of this document, by Daniel's instruction.
+- For **plot facts and in-game text**, this document and the shipped `.dlg` and `docs.json` files remain canon.
+
 **What this replaces.**
 - `NARRATIVE.md` stays as the history of the 2026-11-04 direction choice.
 - This document is the canonical story bible and script from now on.
@@ -238,7 +242,7 @@ Items marked *(bible)* support consistency but aren't stated in the game.
 |---|---|
 | Nov 1953 | Ross on Pabbay: nine days, then a crofter finds him. He becomes "Sandy" |
 | **9 Dec 1953** | Callum adds "Reported again 9.12.53. C.M." to the 046 note and files a defect report. His half-confession |
-| 18 Mar 1954 | The Inquiry: master to blame; the wireless message "confused and unreliable". Kenny Bain, below at the time, could say nothing of the light |
+| 17 Mar 1954 | The Inquiry concludes at Inverness: master to blame; the wireless message "confused and unreliable". Kenny Bain, below at the time, could say nothing of the light. The *Stornoway Gazette* reports it on Thursday 18 March |
 | 1955 | Mrs Ross and Elspeth move to Glasgow. Ross is in Govan as Sandy Morrison, a mile away, and never goes to them |
 | 1955–62 | Callum's other postings. The drawer under the old tide tables goes untouched |
 | Christmas 1957 | Iain writes the letter and leaves it unsealed in the bottom drawer. In the Harris Hotel he tells Kenny Bain, "I've written it down for the boy. It's in the desk." |
@@ -250,8 +254,8 @@ Items marked *(bible)* support consistency but aren't stated in the game.
 | Mar 1970 | Ross knocks on Kenny Bain's door in Scalpay. Kenny knows him at once and tells him about the drawer. Afterwards Kenny tells Rory: "There's a boat out in the East Gut on nights like this. She's not finished." |
 | Easter 1971 | Kenny Bain dies |
 | Summer 1971 | Ross's lungs are diagnosed (*bible*: the yards) |
-| Oct 1971 | Ross sends Elspeth the unsigned letter |
 | Sep 1971 | A gale takes the North Point telephone cable on the shore and cracks the second west pane. The relief boat is due "Thurs. if the sea allows" |
+| Oct 1971 | Ross sends Elspeth the unsigned letter |
 
 ### 5.4 Tonight: Sunday 14 to Monday 15 November 1971
 | Clock | Event | Chapter |
@@ -1119,7 +1123,7 @@ MORAG: ...North Point, Stornoway. Received and logged. Every word.
 -> END
 = silence
 ! set kept_lie=1
-[if has_flag("admitted_to_morag")] MORAG: ...Three hours ago you told me the light was out before she struck.
+[if has_flag("admitted_to_morag")] MORAG: ...Hours ago you told me the light was out before she struck.
 [if has_flag("admitted_to_morag")] MORAG: I'll not put that in my log, Callum. You'll have to.
 MORAG: ...Roger, North Point. Nothing to report.
 MORAG: Stornoway out.
@@ -1332,8 +1336,8 @@ Each one plays once, after the document closes, the first time the player reads 
 
 **`log_1971` (EDITED, C10).** Title "Station log, 14 November 1971":
 ```
-14.11.71 Sun.  16.22  SW 6, overcast, rain. Light exhibited. Lamp normal.
-16.40  Engine started. Batteries on charge, 41%.
+14.11.71 Sun.  16.22  SW 6, overcast, rain. Batteries flat. Engine started, on charge.
+16.40  Light exhibited. Lamp normal.
 18.30  Radio check Stornoway CG. Gale warning: SW 7 rising severe gale 9.
 18.50  Kittiwake (SY 37) brought in by North Sound on radio bearings.
 23.25  Stornoway CG on Ch. 16. All well.
@@ -1364,7 +1368,7 @@ GEAR RACE: worn tooth at 046°. Sticks in heavy weather.
 FREE BY HAND: motor OFF, back the handwheel past the tooth, then re-engage.
 Reported to Board 4.3.49. I.M.
 Reported again 9.12.53. C.M.
-Reported again 2.2.61. Engineer says "next refit". C.M.
+Reported again 2.2.63. Engineer says "next refit". C.M.
 ```
 
 **`clipping_1954` (KEPT).** It already names deckhand Kenneth Bain as the sole survivor, below at the time.
@@ -1677,6 +1681,11 @@ Human playtesting is needed. These figures assume a first-time player who reads 
 4. **The Ross assist strength.** With Ross on the wheel the beam tracks the ship fully, which makes "saved" easier and makes trusting him a real advantage. Should it instead be a partial assist (slower slew)? **Recommendation: a full assist.** The player still has to vector her through the Gut.
 
 ---
+
+## 20b. Brief of 2026-11-06 text changes (Daniel)
+- **D8-a, dark opening:** ch1 starts with flat cells and the lights off. `log_1971`'s first two entries now read "16.22 … Batteries flat. Engine started, on charge." and "16.40 Light exhibited. Lamp normal."; `ch1_dusk`, `ch1_charging` and `ch1_lit` are reordered to match (FINDINGS_LOG §8).
+- **character-refs REVIEW_FLAGS D7:** `note_046` "2.2.61" becomes "2.2.63".
+- **character-refs REVIEW_FLAGS D9:** ch6 "Three hours ago" becomes "Hours ago".
 
 ## 21. Approval fixes (Daniel, 2026-11-06)
 Daniel approved the script together with these fixes. They came from checking the script against the code and the approved cabin decisions. The fixes take precedence over the text in §1–§20.

@@ -1,5 +1,7 @@
 # THE LAST LIGHT: narrative audit and story directions
 
+> **Superseded (2026-11-06).** This is the 2026-11-04 audit and the record of the direction choice, kept as history. Several details below are out of date (for example Elspeth as a "ferry mate", Ross's "broken pelvis", and the ch1 clock). For the story, use `STAGE3_NARRATIVE_MASTER.md`. For characters, use `character-refs/README.md`.
+
 ## Audit (2026-11-04)
 | Area | State | Verdict |
 |---|---|---|

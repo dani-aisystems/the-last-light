@@ -31,6 +31,29 @@ The staged-polish session won't edit `build.py` (needed for bevels, smooth shadi
 
 Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (current stage and iteration, decisions, feedback log, next task), and with `docs/PROJECT_STATE.md`.
 
+## Latest status (2026-11-06, parallel G5 session: weather and audio, NOT committed, NOT checkpointed)
+- **This session owns** (Daniel, 2026-11-06):
+  - `audio/*` and `godot/assets/audio/*`;
+  - `audio_director.gd`;
+  - `outside.gd` (lightning);
+  - `shaders/bolt.gdshader`;
+  - the `_weather_step` hunk in `keeper_sim.gd`;
+  - `tests/g5_weather_audio_test.gd` and `tests/test_last_light_audio.py` (workspace root).
+- **Done:**
+  - 29 bolts and 30 SFX are implemented;
+  - for 33, a shortlist is in `audio/MUSIC_SHORTLIST.md`.
+
+  Record and tests: FINDINGS_LOG "G5 implementation record". All suites pass except story, whose 3 failures are G2's.
+- **Waiting on Daniel:**
+  - the music pick (and whether the "released into the public domain by Musopen" wording is acceptable);
+  - the OK for a Godot window capture of the bolt;
+  - a listen (`renders/last_light/g5_listen_{before,after}.wav`);
+  - the checkpoint, then a local commit of the G5 files only.
+- **Gotchas:**
+  - the audio WAVs are in git LFS: `git show HEAD:<wav> | git lfs smudge -- <wav>` recovers the old ones;
+  - new WAVs need `tools/godot --headless --path … --import` before any `-s` test can load them (a test running in between logs missing-stream errors);
+  - `-s` scripts can't compile `outside.gd` in `_init` (the `Settings` autoload isn't registered yet), so load it a frame later.
+
 ## Latest status (2026-11-06, brief G2 committed, NOT checkpointed; continue in a new session)
 - **Daniel: "push it and leave the rest for a new session".** Commits pushed to origin/main (public repo dani-aisystems/claude-blender-dev, a one-time push at his explicit request; the CLAUDE.md "never push" rule still applies otherwise).
 - **G2 state.**
@@ -82,36 +105,35 @@ Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (cur
   - proposals 35–37;
   - item 31.
 
-## Latest status (2026-11-06, Stage 3C started: portrait feasibility probe, paused for Daniel's reference profiles)
-- **Character reference consolidation is in progress** (plan `~/.claude/plans/pasted-content-id-3fd1-the-temporal-seahorse.md`). Everything is in `projects/games/last_light/character-refs/`: start with its `README.md` (precedence, tags), then `CANON_INDEX.md`, `REVIEW_FLAGS.md`, `<id>/PROFILE.md` and `sources/batch-NN.md`, which holds Daniel's text verbatim.
-  - Daniel sends material in batches. Final consolidation waits for **"ALL CHARACTER INFORMATION PROVIDED"**.
-  - Batch 01 (Callum complete, Morag cut at §10 ch4) is drafted.
-  - **Later the same day, at Daniel's instruction**, every conflict was resolved and profiles for all six principals plus Hector were written, using the dossiers as reference. The dossiers decide looks, voice and backstory; shipped game text decides plot facts. The REVIEW_FLAGS §D follow-ups D1–D11 (portraits.py, visitor_figure.gd, note_046, ch6:116, document renders, master and NARRATIVE fixes) are **not applied**.
-  - **No game text is edited** and nothing is committed. Don't generate images: CLAUDE.md forbids it, even though the paste asked for it.
-  - The visual flags F06, F09, F11, F12 and F13 need Daniel's rulings before 3C resumes. The brief's rule is applied: Ross is shown in silhouette only, never as a full portrait.
-- **3C is paused.** Daniel will send reference profiles for the characters. Wait for them before shaping any face, and don't commit any 3C work yet.
-- **Files so far (uncommitted, new):**
-  - `projects/games/last_light/blender/portraits.py`: headless Blender. It loads the CC0 realistic body, cuts it to a bust, applies per-character face fields and expressions, adds hair, brows, beard, clothing, hats and glasses, and renders in a studio rig. Raw output goes to `blender/tex/src/portraits_raw/<id>_<expr>.png`.
-  - `projects/games/last_light/blender/portraits_grade.py`: host-side 1971 print grade into `godot/assets/portraits/`. Not run yet.
-  - Run with: `tools/bl -P projects/games/last_light/blender/portraits.py -- --only callum,morag --expr neutral --samples 48 [--debug]`.
-- **Fixes already made in the probe:**
-  - load the body in body-local coordinates;
-  - place the eyes with `matrix_parent_inverse @ matrix_basis`, because appended objects have no evaluated `matrix_world`;
-  - use the Khronos PBR Neutral view transform (AgX washed out the colours);
-  - fit collars to the measured neck cross-section;
-  - brass buttons on the tunic and jackets.
-- **Probe state** (Callum and Morag only, scratchpad `probe4.png`):
-  - eyes, brows, lip tint, collars and buttons all work;
-  - still mannequin-like;
-  - hair is a lumpy cap (Morag's reads as a cap);
-  - the cloth neckline edge is jagged;
-  - the skin is plasticky.
-- **3C scope still to do** (stage plan r2, §4 3C):
-  - 6 characters × 3 expressions;
-  - a print card in the radio panel, 170×190 with a portrait of about 152×190;
-  - `expr` carried through `dialogue_ui._resolved`, with the portrait key taken from the resolved speaker id only (Ross after `knows_name`);
-  - the documents re-rendered with Courier Prime and Cedarville Cursive;
+## Latest status (2026-11-06, character session: references consolidated; portraits PAUSED by Daniel)
+- **Character references: done as drafts**, in `projects/games/last_light/character-refs/`. Start with `README.md` (precedence, tags), then `CANON_INDEX.md` (single source of truth, document texts verbatim), `REVIEW_FLAGS.md` (every conflict resolved, with the rules used), `<id>/PROFILE.md` (callum, morag, rory, elspeth, ross, iain, plus hector as a secondary profile) and `sources/batch-01.md` (Daniel's text verbatim).
+  - Daniel asked for all conflicts resolved with the AI dossiers as the reference. The dossiers decide looks, voice and backstory; shipped game text decides plot facts.
+  - Still open:
+    - G01: the rest of Morag's bible, which arrived cut off; ask Daniel to resend it.
+    - G03: no Hector reference.
+    - Final consolidation when Daniel says "ALL CHARACTER INFORMATION PROVIDED".
+  - Check and sync: `tools/py projects/games/last_light/character-refs/tools/refs_check.py --sync` (OK, 52 flags).
+  - Committed locally (text only). The dossier PNGs stay untracked: 19 MB, not LFS, and the repo is public.
+  - regress_test after D5: 202 passed, 0 failed, 3 headless skips.
+- **REVIEW_FLAGS §D follow-ups:**
+  - D7 and D9 were done by the G2 session (`7ac1175`, `193fcf3`).
+  - Done here, **uncommitted**: D5 (`visitor_figure.gd` oilskin black, not yet seen in game), D10 (master: character-refs pointer, Inquiry 17 Mar 1954, §5.3 order) and D11 (NARRATIVE.md "superseded" banner).
+  - The master file also carries the G2 session's own uncommitted §20b/D7/D9/log_1971 lines. Commit it whole, with Daniel's OK.
+  - D8 (document renders) belongs to the brief's G4.
+- **Portraits (3C, item 22): PAUSED by Daniel (2026-11-06).** "I can provide images of each one I create … pause portraits for later when I am ready."
+  - Don't resume the busts or build the portrait card until he sends images.
+  - If his images are generated rather than drawn or photographed, the CLAUDE.md "no AI-generated images" rule needs his explicit call before they go into the game.
+  - The probe stays uncommitted: `blender/portraits.py` (CC0 base meshes, surface-following hair curves with clumps, skin with flush, freckles and a lash line, resolved wardrobes, Ross silhouette mode, `--light lowkey`, Metal GPU) and `portraits_grade.py`.
+  - The best result was low-key bible lighting plus the print grade. The faces still look CG and too similar to each other.
+  - Known faults: Ross's face still reads in silhouette; Hector's beard is blob-like; Rory's cap reads as a helmet; Elspeth's hairline is hard.
+  - Run: `tools/bl -P projects/games/last_light/blender/portraits.py -- --only callum --expr neutral --samples 48 --light lowkey --out <dir>` (about 1–1.5 min per portrait on the GPU).
+- **3C scope still to do when portraits resume:**
+  - the print card in the radio panel (170×190);
+  - `expr` through `dialogue_ui._resolved`, with the key taken from the resolved speaker only;
+  - Ross as a silhouette card even after `knows_name` (F12);
   - captures, including the 3B leftovers: the Calls box and the caption.
+
+  `dialogue_ui.gd`, `fp_ui.gd` and `speakers.gd` were released to this session at `193fcf3`.
 
 ## Earlier status (2026-11-06, Stage 3B approved by Daniel and committed locally)
 - **3A** (`dc87818`) and **3B** are approved and committed locally. Never push.

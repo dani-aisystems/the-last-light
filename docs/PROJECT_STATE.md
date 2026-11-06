@@ -60,7 +60,7 @@ North Point Light, Outer Hebrides, the night of 14–15 November 1971. The playe
 | `textures.py` (gauge/label atlas, chart, compass rose, rug), `documents.py` (story documents) | ✅ |
 | `pipeline.sh`: build → validate → export → reimport → sync → Godot import | ✅ |
 | Island, reef rocks and ships as Blender models | ⬜ (procedural stand-ins in Godot) |
-| Character portraits | ⬜ (base meshes downloaded; see the handoff for measurements) |
+| Character portraits | ⏸ paused by Daniel 2026-11-06 until he supplies images. A procedural probe exists (uncommitted). Character references are done as drafts in `character-refs/` |
 
 ## 4. Test and verification status (last run 2026-11-05, cabin pass checkpoint 4)
 All suites below re-run on the cabin-pass build (v035): pytest 18/18, regress 105/105 windowed (no skips) and 101/101 headless, interaction 134/134 (7 warnings: documents, now including the chart, open with no sound), qa_sweep 948/948, run_tests 95/95, sim_v2 no gate failures, story_test 0 failures. The rows below give the commands. **Run every suite under `timeout`**: a GDScript parse error makes a `-s` test hang idle.

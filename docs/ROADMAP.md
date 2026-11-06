@@ -49,7 +49,7 @@ A stage is complete only when Daniel says so. A build that compiles, or Claude's
 | | |
 |---|---|
 | **Stage** | 3, dialogue, characters and story pacing; plus **Daniel's brief of 2026-11-06 (items 1–37)**, mapped onto the existing stages below |
-| **Iteration** | 3B approved (local commit). 3C (portraits) **paused for Daniel's character profiles**. Brief: **Phase A (docs) done 2026-11-06**; **G1 (bugs and input) next** |
+| **Iteration** | 3B approved (local commit). **Character references done as drafts** (`projects/games/last_light/character-refs/`). 3C portraits **paused by Daniel until he supplies images** (2026-11-06). Brief: **Phase A (docs) done 2026-11-06**; **G1 (bugs and input) next** |
 | **Next actionable task** | **G1 checkpoint**: the capture run (beam, rain, door, time card), then Daniel's approval and a local commit. Then G2. Details: `FINDINGS_LOG.md`, "G1 implementation record". Plan: `~/.claude/plans/the-last-light-cosmic-waffle.md` |
 
 ## Stages
@@ -58,7 +58,7 @@ A stage is complete only when Daniel says so. A build that compiles, or Claude's
 | 0 | Critical fixes and regression baseline | ✅ **approved by Daniel 2026-11-04** (iteration 0.2) |
 | 1 | Cabin lighting, materials and architecture | ✅ **approved by Daniel 2026-11-05** (iterations 1.0, 1a, 1b, 2, 3, 3b, 4, 1p). Follow-up: **Cabin pass 2** (brief items 5, 6, 10, 11, 15, 17) |
 | 2 | First-person interactions and gameplay | ✅ **approved by Daniel 2026-11-05** (iterations 2A–2D). Reopened for **iteration 2E** (brief items 7, 8, 9, 12, 13, 14, 16, 18, 19, 20, 23, 24, 25, 26, 32; proposal 36) |
-| 3 | Dialogue, characters and story pacing | 🟡 3A and 3B approved (local commits); 3C paused for Daniel's profiles (brief item 22 merged into it); **3D**: items 21 and 27, plus proposals 35 and 37 |
+| 3 | Dialogue, characters and story pacing | 🟡 3A and 3B approved (local commits); character references consolidated (drafts); 3C portraits paused until Daniel's images (brief item 22 merged into it); **3D**: items 21 and 27, plus proposals 35 and 37 |
 | 4 | Outside world and major story events | ⬜ Brief items 3, 28, 29 added |
 | 5 | Sound and cinematic presentation | ⬜ Brief items 30, 33, 34 added |
 | 6 | Menus, effects and final polish | ⬜ Brief items 1, 2, 4 added (they extend the existing Pause and main-menu bullets) |
@@ -82,7 +82,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 | G2 opening, missions, feedback, saves | 8, 9, 20, 16, 4, 27, 24 (decision) | 2E, 3D, 6 | 🟡 implemented and committed (`193fcf3` + the G2 commit); final suites and captures NOT run; checkpoint pending (see handoff) |
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ⬜ |
 | G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ⬜ |
-| G5 weather and audio | 29, 30, 33 | 4, 5 | ⬜ (needs Daniel's music pick from the CC0 shortlist) |
+| G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented 2026-11-06 in a parallel session (FINDINGS_LOG "G5 implementation record"); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
 | G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | ⬜ (needs links and character profiles) |
 
 **Daniel's decisions (2026-11-06):**
@@ -684,6 +684,54 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
   - nothing is heard: `carrier_click` is not synthesised yet (Stage 5), so the ch1 carrier is caption-only;
   - the photograph on the floor is small (a 12.5 cm print);
   - playtime is still a design estimate.
+
+### Character references and the portrait pause (2026-11-06)
+**Brief:** Daniel's "Character Reference Consolidation" brief. Batch 01 was Callum's bible in full and Morag's, cut off at §10 ch4; there were also six AI-generated dossier images. Then Daniel's instruction: "resolve any conflicting information, preferably begin creating the profiles BASED OFF the AI generated as reference."
+
+**Delivered:** `projects/games/last_light/character-refs/` (drafts):
+- README (precedence, tags, retrieval);
+- CANON_INDEX (identities, timelines, a who-knows-what matrix, the order of discoveries, document texts verbatim, endings, period rules, a resolved-looks table);
+- REVIEW_FLAGS (F01–F21, I01–I14, G01–G06, follow-ups D1–D11);
+- PROFILE.md for Callum, Morag, Rory, Elspeth, Ross and Iain, sections A–J, plus a secondary profile for Hector;
+- `sources/batch-01.md` (Daniel's text verbatim);
+- `tools/refs_check.py` (sync and check; OK).
+
+**Decisions (Daniel 2026-11-06, applied; the per-item rulings are in REVIEW_FLAGS):**
+- **Resolution rules.** Daniel's rules come first. Shipped game text (`.dlg`, `docs.json`, speaker cards) decides plot facts. The dossiers and bible decide looks, wardrobe, personality, voice, and any backstory the game doesn't contradict. Where both can be true, both are kept. Text printed inside the images is illustrative only.
+- **Ross is a silhouette only**, even after `knows_name`. This replaces the 2026-11-05 plan to show "Ross in person after the reveal" (F12).
+- **The six principals** are Callum, Morag, Rory, Elspeth, Ross and Iain. Hector stays in the game as a secondary profile (F13).
+- **Looks follow the dossiers:**
+  - Callum: guernsey over a shirt, no tunic;
+  - Morag: dark brown hair, grey-green eyes, no glasses or pin;
+  - Rory: curly brown hair, wool cap, oilskin; *Kittiwake* stays SY 37;
+  - Elspeth: reefer over a roll-neck, grey eyes;
+  - Ross: black oilskin and a sou'wester tonight.
+- **Plot facts kept from the game:**
+  - Kenny Bain survived (F08);
+  - the Christmas 1957 letter (F04);
+  - Morag joined in 1953 (F01);
+  - Elspeth is the mate and appears in ch3, ch5 and ch6 only (F10);
+  - Ross broke his hip (F11);
+  - the wall photo is from 1952, of both men (F05).
+- **Morag's notebook page** is adopted, with "02.30 Wreckage reported" in place of "01.58 Report of grounding" (F02).
+- **Death count:** eight aboard; seven lost officially, six in truth (F19).
+- **Small canon fixes:**
+  - note_046 1961 → 1963 (D7, done in `7ac1175`);
+  - "Three hours ago" → "Hours ago" (D9, done in `193fcf3`);
+  - the Inquiry concluded on 17 Mar 1954 (D10);
+  - the Visitor's oilskin is black (D5);
+  - NARRATIVE.md is marked superseded (D11).
+- **No image generation** in this workflow (CLAUDE.md), even though the pasted brief asked for it.
+- **Portraits paused** (Daniel: "I can provide images of each one I create … pause portraits for later when I am ready").
+  - The procedural bust probe (`blender/portraits.py`, `portraits_grade.py`) stays **uncommitted**.
+  - Best result: low-key bible lighting plus the print grade. The faces still look CG and too alike.
+  - Before Daniel's images go into the game, confirm how they were made, because of the CLAUDE.md "no AI-generated images" rule.
+
+**Open:**
+- G01: the rest of Morag's bible (to be resent);
+- G03: a Hector reference;
+- final consolidation on "ALL CHARACTER INFORMATION PROVIDED";
+- D8 (document renders) is in the brief's G4.
 
 ## Stage 2 log
 - **Plan (2026-11-05), approved.** The full audit is at `~/.claude/plans/the-last-light-soft-hearth.md`.

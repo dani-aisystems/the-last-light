@@ -54,18 +54,18 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | Planned |
 | 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Planned |
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |
-| 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Blocked (Daniel's profiles) |
+| 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Profiles done (`character-refs/`); portrait images paused until Daniel supplies them (2026-11-06) |
 | 23 | Radio interaction restrictions | Bug (interaction) | P0 | S | 2E / G1 | Verified (regress R8, R11) |
 | 24 | Radio: sit or stand | Design decision | P2 | S | 2E / G2 + G3 | Planned (decision: seated) |
 | 25 | Number-key reply selection | UX | P0 | S | 2E / G1 | Verified (regress R8, R11) |
 | 26 | Dialogue overlap | Bug (system) | P0 | M | 2E / G1 | Implemented (regress R11; full-run frame audit still to add) |
 | 27 | Maritime terminology | UX | P1 | S | 3D / G2 | Planned |
 | 28 | Window rain moves upward | Bug (visual) | P1 | XS | 4 / G1 | PARTIAL (shader maths verified; on-glass motion too faint to judge from stills: check in play) |
-| 29 | Distant lightning bolts | Visual | P2 | S | 4 / G5 | Planned |
-| 30 | Storm and cabin SFX | Audio | P2 | M | 5 / G5 | Planned |
+| 29 | Distant lightning bolts | Visual | P2 | S | 4 / G5 | Implemented (awaiting capture + checkpoint) |
+| 30 | Storm and cabin SFX | Audio | P2 | M | 5 / G5 | Implemented (awaiting listening + checkpoint) |
 | 31 | Power-failure design brainstorm | Research | — | — | P | Recommendation only (not approved) |
 | 32 | Kittiwake progression softlock | Bug (progression) | P0 | S | 2E / G1 | Verified (story_test power-out scenario) |
-| 33 | Menu and loading music | Audio | P2 | S | 5 / G5 | Research Needed (CC0 shortlist) |
+| 33 | Menu and loading music | Audio | P2 | S | 5 / G5 | Shortlist ready (`audio/MUSIC_SHORTLIST.md`); awaiting Daniel's pick |
 | 34 | Cinematic ending panels + rolling credits | Presentation | P1 | L | 5 / G6 | Planned |
 | 35 | Secondary characters and radio encounters | Proposal | — | — | 3D / P | Awaiting approval: `PROPOSAL_35_RADIO_CAST.md` |
 | 36 | Opening tutorial and onboarding | Proposal | — | — | 2E / P | Awaiting approval: `PROPOSAL_36_TUTORIAL.md` |
@@ -105,6 +105,31 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
   - **Door:** white speckles at the base gone.
   - **Clock card:** readable on black.
   - **Rain:** PARTIAL (see table).
+
+## G5 implementation record (2026-11-06; parallel G5 session; awaiting Daniel's checkpoint)
+| ID | What changed | Files |
+|---|---|---|
+| 30 | **Loops:** every constant layer is now ≥ 20 s: rain 48 s, wind 41 s, gust 33 s, glass 37 s, sea 28.5 s, hum 22.5 s, static 21 s, generator, clockwork and motor 20 s. The tonal loops are cut to whole cycles, so their crossfade stays in phase. **Rain:** a 48 s roof and gallery rain, plus an `amb_rain_glass` patter (drops and the odd running trickle) on 3 emitters at the window bays, desynced. **Wind:** a steady bed plus an `amb_gust` layer on a runtime gust envelope; storm sets its depth and rate, and it rises faster than it falls. **Muffling:** a new `Exterior` bus (sends to Ambient, so the slider still works) with a 2.4 kHz 12 dB/oct low-pass in game, opening to 20 kHz in the attract menu, where the camera is outside. Wind, gust, roof rain, sea, thunder and horns go through it; the glass layer stays bright. **Thunder:** 6 seeded variants; near (0–2) has a crack and 5–6 s of rumble, far (3–5) is darker with 8.6–9.7 s of rolling rumble. The variant is chosen by strike distance (< 650 m = near), and the level falls about 3.5 dB at 900 m. **Defects fixed:** `set_menu(false)` now fades the music out and re-muffles; `_dev()` finds the IA_ node, so the generator, hum and static come from their devices; `_player2d(loop=false)` no longer loops; `carrier_click` is synthesised and played on Dialogue (`chapters.json` ch1 already called it). Each sound now has its own seed (crc32 of its name), so a change to one never alters another. **One-time side effect:** every WAV was regenerated, with the same spectra and envelopes but new noise. `click_button` DC and `horn_fishing` LOUD (both flagged before) are fixed | `audio/synth.py`, `godot/assets/audio/*` (6 new files), `audio_director.gd` |
+| 30 | `analyze.py` gains SHORT (a loop < 20 s) and `--strict`. SEAM is now relative to the file's own sample steps; bright noise steps more than 0.05 between neighbours anyway, and `loopify` joins samples that were neighbours in the source | `audio/analyze.py` |
+| 29 | **Bolts:** on about 44 % of strikes (`0.35 + 0.3 × storm`; the rest stay in-cloud), a branching bolt is built by midpoint displacement: a camera-facing quad strip with 2–4 branches, unshaded, additive and `fog_disabled`. It runs from the cloud base (260–360 m) to just under the sea, 400–900 m out on the strike bearing. **Timing:** visible 0.15–0.35 s, with 1–2 restrikes on the existing flash-flicker period (2π/47 s). **Reduce-flashing:** no bolt at all. **Sim:** the strike event gains `distance` (400–900 m) and `thunder_delay = distance / 343`, taken from the same single RNG draw, so the sim's sequence is unchanged | `fp/outside.gd`, `shaders/bolt.gdshader` (new), `core/keeper_sim.gd` (`_weather_step` only) |
+| 33 | Research only. `audio/MUSIC_SHORTLIST.md` lists 10 Musopen solo-piano recordings on Wikimedia Commons, with licences quoted from each page; the top 2 were re-checked by hand. No CC0 Scottish air or cello recording was found. **Nothing downloaded; awaiting Daniel's pick** | `audio/MUSIC_SHORTLIST.md` |
+
+**Tests (headless, background priority):**
+
+| Suite | Result |
+|---|---|
+| g5_weather_audio (new, 44 checks: buses, routing, loop lengths, `_dev`, menu fade, carrier_click, strike distance and delay, thunder variant by distance, bolt geometry, rate, life, restrikes, reduce-flashing) | PASS 44/44 |
+| pytest (new `test_last_light_audio.py`: committed WAVs byte-identical to `synth.py` output, all gates pass, referenced sounds exist) | PASS 21/21 |
+| regress | PASS 202/202 |
+| interaction | PASS 159, 0 failed, 12 sound warnings (unchanged from G1) |
+| qa_sweep | PASS 1,924/1,924 |
+| sim_v2 | PASS, no gate failures |
+| run_tests | PASS 95/95 |
+| story | FAIL, 3 failures, all in G2 code: the item 9 opening ticks and the ch1 beat remap. They reproduce on the committed `7ac1175` with no story, data or test edits from this session; story_test uses only KeeperSim and StoryDirector, and story code never reads lightning. The brief session is fixing them |
+
+**NOT TESTED:**
+- the bolt on screen (needs a Godot window, which needs Daniel's OK);
+- whether anything *sounds* right (Daniel's call). Before and after previews of the full-storm in-room mix, peak-normalised: `renders/last_light/g5_listen_before.wav` and `g5_listen_after.wav`. A spectrogram, `g5_listen_spectrogram.png`, was rendered but not viewed.
 
 ## Dependency map
 **Ordering constraints:**

@@ -10,7 +10,7 @@ func _ready() -> void:
 	_body = Node3D.new()
 	add_child(_body)
 	var oil := StandardMaterial3D.new()
-	oil.albedo_color = Color(0.32, 0.27, 0.12)
+	oil.albedo_color = Color(0.05, 0.052, 0.056)   # old black oilskin, wet (character-refs F11)
 	oil.roughness = 0.22
 	oil.metallic_specular = 0.8
 	var dark := StandardMaterial3D.new()
