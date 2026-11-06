@@ -1,6 +1,71 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
-## ⚠ Parallel sessions and file ownership (Daniel, 2026-11-04)
+## CURRENT STATE (2026-11-06, end of day): one session took over all parallel work; read this first
+- **All parallel sessions have ended.** The character session took over the G2 (brief) and G5 (weather and audio) work. The file-ownership split above is historical. One session can now own everything.
+- **Commits** (local `main`, *not pushed* since `7ac1175`):
+  - `af7019c`: character references;
+  - `a1ed964`: G2 story_test fix;
+  - `0b3e750`: G5 weather and audio.
+
+  The tracked tree is clean.
+- **Suites on `0b3e750`, all green (headless, `taskpolicy -b`):**
+
+  | Suite | Result |
+  |---|---|
+  | story | 0 failures |
+  | regress | 202/202 (3 headless skips) |
+  | interaction | 159 checks, 0 failed (12 sound warnings, unchanged) |
+  | qa_sweep | 1,924/1,924 |
+  | run_tests | 95/95 |
+  | sim_v2 | no gate failures |
+  | g5_weather_audio | 44/44 |
+  | pytest | 21/21 |
+- **Waiting on Daniel:**
+  1. **G2 + G5 checkpoint.** One batched silent `tools/godot_bg` capture run (needs his OK) covering:
+     - the dark opening (torch → valve → START → CHARGE → lights → console);
+     - the mission panel in free walk and in the radio view, at text 1.0 and 1.5;
+     - the pause menu;
+     - a lightning bolt;
+     - the Visitor at the door (D5 black oilskin).
+  2. His listening pass: `renders/last_light/g5_listen_before.wav` and `g5_listen_after.wav`. Never play audio ourselves.
+  3. His music pick from `projects/games/last_light/audio/MUSIC_SHORTLIST.md` (item 33; nothing downloaded).
+  4. Then the four-part checkpoint and his approval.
+- **Parked by Daniel ("delay that for further notice"):**
+  - character references: the rest of Morag's bible (G01), a Hector reference (G03), final consolidation on "ALL CHARACTER INFORMATION PROVIDED";
+  - portraits (3C / item 22) until he supplies images. Confirm how they were made, because of the CLAUDE.md "no AI images" rule.
+- **Untracked by design** (don't commit, delete or ignore without asking Daniel):
+  - CC0 texture sources under `assets/textures/` and `assets/models/human_base_meshes/`;
+  - `.blend` v028–v030, v032–v034, v036;
+  - `cabin-photos/`;
+  - the six dossier PNGs in `character-refs/` (19 MB, not LFS, public repo);
+  - the paused portrait probe: `blender/portraits*.py`, `blender/tex/src/portraits_raw/`.
+- **Gotchas:**
+  - Background jobs die when a session restarts, so run long suites in the foreground, one or two at a time (each takes 1–4 min).
+  - The scratchpad is wiped on restart. The suite runner is a 10-line bash loop over `tools/godot --headless --path projects/games/last_light/godot -s res://tests/<t>.gd` under `timeout` and `taskpolicy -b` (sim_v2 takes `-- --seeds=1-5`). The test file is `g5_weather_audio_test.gd`.
+  - zsh doesn't word-split `$G`, so use bash or full paths.
+
+### Next phases (proposed order)
+1. **G2 + G5 checkpoint** (above).
+2. **G3, body and equipment** (items 13 visible body, 14 hand animations, 12 compass pickup, 18 binoculars, 19 pipe).
+   - **Decide first:** whose pipe is item 19? Callum's profile has no pipe (Iain, Ross and Hector have one). Ask Daniel before giving Callum a new trait.
+   - The body's wardrobe follows `character-refs/callum/PROFILE.md` §G: a guernsey over a shirt.
+3. **G4, cabin assets** (6 coat stand and pocket note, 10 shelf items, 11 console note, 15 photograph realism, 17 prop audit), plus character-refs D8:
+   - the document re-render in Callum's hand to the F15 specification;
+   - the log_1953 signature row in his hand (I02);
+   - the photo captions (I08, I09).
+
+   Use the document wording in `character-refs/CANON_INDEX.md` §6, Iain's likeness from the Iain dossier, and the `pipeline_nodocs` caution (the unseeded paper grain churns the doc PNGs).
+4. **G6:**
+   - 34: ending panels and rolling credits (the credits still mention fonts "until Stage 3C");
+   - 1: main menu (needs Daniel's links);
+   - 22 stays paused.
+5. **Stage 3D:** Daniel's decisions on proposals 35–37 and item 31; the narrative QA pass against `character-refs`.
+6. **Stages 4–6:** the remaining items in ROADMAP; the timed playthrough is in Stage 6.
+
+**Each group:** Inspect → Plan → Implement → Test (every suite) → Review (captures, with OK) → the four-part checkpoint → Daniel's approval → a local commit. Never push without his explicit word.
+
+
+## Parallel sessions and file ownership (Daniel, 2026-11-04; HISTORICAL: all parallel sessions ended 2026-11-06)
 **Update (1b checkpoint): Daniel handed `build.py` (all geometry) to the staged-polish session.** The geometry session's open items (optic drive, generator, stair door, storage, windows) are folded into Stage 1 iterations 2–3. Its Iteration A was **committed with Daniel's OK** in `5f22e63` (iteration 2 checkpoint).
 
 Two sessions worked on the cabin in parallel. **Daniel decided to split the work by layer.**
@@ -31,7 +96,7 @@ The staged-polish session won't edit `build.py` (needed for bevels, smooth shadi
 
 Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (current stage and iteration, decisions, feedback log, next task), and with `docs/PROJECT_STATE.md`.
 
-## Latest status (2026-11-06, parallel G5 session: weather and audio, NOT committed, NOT checkpointed)
+## Earlier status (2026-11-06, parallel G5 session: weather and audio; since committed as `0b3e750`, NOT checkpointed)
 - **This session owns** (Daniel, 2026-11-06):
   - `audio/*` and `godot/assets/audio/*`;
   - `audio_director.gd`;
@@ -54,7 +119,7 @@ Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (cur
   - new WAVs need `tools/godot --headless --path … --import` before any `-s` test can load them (a test running in between logs missing-stream errors);
   - `-s` scripts can't compile `outside.gd` in `_init` (the `Settings` autoload isn't registered yet), so load it a frame later.
 
-## Latest status (2026-11-06, brief G2 committed, NOT checkpointed; continue in a new session)
+## Earlier status (2026-11-06, brief G2 committed, NOT checkpointed; continue in a new session)
 - **Daniel: "push it and leave the rest for a new session".** Commits pushed to origin/main (public repo dani-aisystems/claude-blender-dev, a one-time push at his explicit request; the CLAUDE.md "never push" rule still applies otherwise).
 - **G2 state.**
   - **Done:** items 4, 16 and 27 (commit `193fcf3`), then 8 and 9/20 (this commit):
@@ -80,7 +145,7 @@ Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (cur
 - **Open decisions:** item 1 links; proposals 35–37; item 31.
 - **Gotcha:** the scratchpad was wiped when the session restarted. The suite runner is a small bash loop over `tools/godot --headless -s res://tests/<t>.gd` under `timeout` and `taskpolicy -b`.
 
-## Latest status (2026-11-06, Daniel's 38-point brief: Phase A docs done)
+## Earlier status (2026-11-06, Daniel's 38-point brief: Phase A docs done)
 - **Daniel sent a large brief.** It has 34 improvements, proposals 35–37, roadmap and log instructions, and a findings-log brief that arrived **truncated at its §4**. The plan was approved: `~/.claude/plans/the-last-light-cosmic-waffle.md`.
 - **Daniel's decisions:**
   - documentation first, then work groups G1–G6, each checkpointed;
@@ -105,7 +170,7 @@ Read this with `docs/ROADMAP.md`, which is now the **living stage tracker** (cur
   - proposals 35–37;
   - item 31.
 
-## Latest status (2026-11-06, character session: references consolidated; portraits PAUSED by Daniel)
+## Earlier status (2026-11-06, character session: references consolidated; portraits PAUSED by Daniel)
 - **Character references: done as drafts**, in `projects/games/last_light/character-refs/`. Start with `README.md` (precedence, tags), then `CANON_INDEX.md` (single source of truth, document texts verbatim), `REVIEW_FLAGS.md` (every conflict resolved, with the rules used), `<id>/PROFILE.md` (callum, morag, rory, elspeth, ross, iain, plus hector as a secondary profile) and `sources/batch-01.md` (Daniel's text verbatim).
   - Daniel asked for all conflicts resolved with the AI dossiers as the reference. The dossiers decide looks, voice and backstory; shipped game text decides plot facts.
   - Still open:

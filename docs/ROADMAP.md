@@ -50,7 +50,7 @@ A stage is complete only when Daniel says so. A build that compiles, or Claude's
 |---|---|
 | **Stage** | 3, dialogue, characters and story pacing; plus **Daniel's brief of 2026-11-06 (items 1–37)**, mapped onto the existing stages below |
 | **Iteration** | 3B approved (local commit). **Character references done as drafts** (`projects/games/last_light/character-refs/`). 3C portraits **paused by Daniel until he supplies images** (2026-11-06). Brief: **Phase A (docs) done 2026-11-06**; **G1 (bugs and input) next** |
-| **Next actionable task** | **G1 checkpoint**: the capture run (beam, rain, door, time card), then Daniel's approval and a local commit. Then G2. Details: `FINDINGS_LOG.md`, "G1 implementation record". Plan: `~/.claude/plans/the-last-light-cosmic-waffle.md` |
+| **Next actionable task** | **G2 + G5 checkpoint** (2026-11-06 evening). The code is committed locally (`7ac1175`, `a1ed964`, `0b3e750`) and **every suite is green on the combined tree**. Still needed: one batched silent `tools/godot_bg` capture run (G2: dark opening, mission panel at 1.0 and 1.5, pause menu; G5: a lightning bolt), which needs Daniel's OK; Daniel's listening pass (`renders/last_light/g5_listen_before.wav` and `g5_listen_after.wav`); Daniel's music pick (`audio/MUSIC_SHORTLIST.md`). Then G3. Restart prompt: the handoff, "Next session" |
 
 ## Stages
 | # | Stage | Status |
@@ -79,11 +79,11 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 |---|---|---|---|
 | A (docs) | Findings log, proposals 35–37, this section, PROJECT_STATE, handoff | — | ✅ done 2026-11-06 (awaiting Daniel's read) |
 | G1 progression, input and correctness bugs | 32, 7, 25, 23, 26, 21, 28, 3, 5 | 2E, 3D, 4, Cabin pass 2 | ✅ approved by Daniel 2026-11-06 (`cfa55b1`) |
-| G2 opening, missions, feedback, saves | 8, 9, 20, 16, 4, 27, 24 (decision) | 2E, 3D, 6 | 🟡 implemented and committed (`193fcf3` + the G2 commit); final suites and captures NOT run; checkpoint pending (see handoff) |
+| G2 opening, missions, feedback, saves | 8, 9, 20, 16, 4, 27, 24 (decision) | 2E, 3D, 6 | 🟡 implemented and committed (`193fcf3`, `7ac1175`, test fix `a1ed964`); **all suites green 2026-11-06**; captures and checkpoint pending |
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ⬜ |
 | G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ⬜ |
-| G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented 2026-11-06 in a parallel session (FINDINGS_LOG "G5 implementation record"); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
-| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | ⬜ (needs links and character profiles) |
+| G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented and committed locally (`0b3e750`, all suites green); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
+| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | ⬜ (1 needs Daniel's links; 22 paused until Daniel's portrait images; 34 can start) |
 
 **Daniel's decisions (2026-11-06):**
 - Docs first, then G1 to G6.

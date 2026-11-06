@@ -106,7 +106,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
   - **Clock card:** readable on black.
   - **Rain:** PARTIAL (see table).
 
-## G5 implementation record (2026-11-06; parallel G5 session; awaiting Daniel's checkpoint)
+## G5 implementation record (2026-11-06; parallel G5 session; committed locally `0b3e750`; awaiting Daniel's checkpoint)
 | ID | What changed | Files |
 |---|---|---|
 | 30 | **Loops:** every constant layer is now ≥ 20 s: rain 48 s, wind 41 s, gust 33 s, glass 37 s, sea 28.5 s, hum 22.5 s, static 21 s, generator, clockwork and motor 20 s. The tonal loops are cut to whole cycles, so their crossfade stays in phase. **Rain:** a 48 s roof and gallery rain, plus an `amb_rain_glass` patter (drops and the odd running trickle) on 3 emitters at the window bays, desynced. **Wind:** a steady bed plus an `amb_gust` layer on a runtime gust envelope; storm sets its depth and rate, and it rises faster than it falls. **Muffling:** a new `Exterior` bus (sends to Ambient, so the slider still works) with a 2.4 kHz 12 dB/oct low-pass in game, opening to 20 kHz in the attract menu, where the camera is outside. Wind, gust, roof rain, sea, thunder and horns go through it; the glass layer stays bright. **Thunder:** 6 seeded variants; near (0–2) has a crack and 5–6 s of rumble, far (3–5) is darker with 8.6–9.7 s of rolling rumble. The variant is chosen by strike distance (< 650 m = near), and the level falls about 3.5 dB at 900 m. **Defects fixed:** `set_menu(false)` now fades the music out and re-muffles; `_dev()` finds the IA_ node, so the generator, hum and static come from their devices; `_player2d(loop=false)` no longer loops; `carrier_click` is synthesised and played on Dialogue (`chapters.json` ch1 already called it). Each sound now has its own seed (crc32 of its name), so a change to one never alters another. **One-time side effect:** every WAV was regenerated, with the same spectra and envelopes but new noise. `click_button` DC and `horn_fishing` LOUD (both flagged before) are fixed | `audio/synth.py`, `godot/assets/audio/*` (6 new files), `audio_director.gd` |
@@ -125,7 +125,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | qa_sweep | PASS 1,924/1,924 |
 | sim_v2 | PASS, no gate failures |
 | run_tests | PASS 95/95 |
-| story | FAIL, 3 failures, all in G2 code: the item 9 opening ticks and the ch1 beat remap. They reproduce on the committed `7ac1175` with no story, data or test edits from this session; story_test uses only KeeperSim and StoryDirector, and story code never reads lightning. The brief session is fixing them |
+| story | Was FAIL (3, all in G2 code: the item 9 opening ticks and the ch1 beat remap). **Fixed:** the G2 session's story_test expectation update, committed as `a1ed964`. Re-run 2026-11-06 on the G2 + G5 tree: **0 failures** |
 
 **NOT TESTED:**
 - the bolt on screen (needs a Godot window, which needs Daniel's OK);
