@@ -371,7 +371,7 @@ func _emit_duty_view() -> void:
 	var v := duty_view()
 	if v.is_empty():
 		return
-	var shape := {"title": v["title"], "caption": v["caption"], "duty": v["duty"], "steps": v["steps"]}
+	var shape := {"title": v["title"], "caption": v["caption"], "duty": v["duty"], "steps": v["steps"], "complete": v["complete"]}
 	var key := JSON.stringify(shape)
 	if key != _duty_view_key:
 		_duty_view_key = key

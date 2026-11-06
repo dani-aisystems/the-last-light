@@ -227,6 +227,9 @@ func _opening_duties() -> void:
 		fails.append("G2b A: usual order wrong (fuel known after refusal %s, charge known after start %s): %s" % [fuel_known, charge_known, p])
 	if logs != ["log_1622"] or v.get("done", []).size() != 4 or not v.get("complete", false):
 		fails.append("G2b A: log %s / view %s" % [logs, v])
+	var hud_view: Dictionary = dir.get_meta("sent")[0]
+	if not bool(hud_view.get("complete", false)) or String(hud_view.get("duty", "")) != "power":
+		fails.append("G2b A: the HUD never heard the duty was complete (Full's checkbox): %s" % [hud_view])
 	k.set_breaker("lights", false)
 	step.call(0.5)
 	if dir.state.duties["power"]["done"].size() != 4:
@@ -338,6 +341,9 @@ func _duty_rig(line_s: float) -> Array:
 	dir.bot_line_s = line_s
 	var logs: Array = []
 	dir.duty_logged.connect(func(e): logs.append(e["id"]))
+	var sent: Array = [{}]                       # the last duty view the HUD received
+	dir.objective_changed.connect(func(ob): sent[0] = ob)
+	dir.set_meta("sent", sent)
 	dir.begin(true)
 	var step := func(secs: float):
 		for i in int(secs * 30):

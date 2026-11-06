@@ -19,7 +19,15 @@
   2. G2b S1, the duty model; S2 the HUD; S3 the ch1 slice; S4 the logbook; S5 ch2–6.
   3. Then G3, starting with the pipe question.
 - **Still pending with Daniel:** the music pick, the listening pass, the Visitor figure.
-- **G2b S1 (duty model) implemented, uncommitted, awaiting Daniel's OK:**
+- **G2b S1 committed** (`b37cdfc`).
+- **G2b S2 (duty HUD) implemented, uncommitted, awaiting Daniel's checkpoint approval:**
+  - new `scripts/ui/duty_hud.gd`: top-left below the notices' band, a dark soft-edged plate;
+  - Standard / Full / Minimal (`Settings.guidance`) and `duty_hold_s`;
+  - J / R3 recall (hold for the hint); a tick on finished duties;
+  - the old panel removed; regress R9 adapted, R13 added (207 pass).
+- **Capture fixes:** the bolt strike bearing is now in radians (the flash shots keep raw 20 rad for comparability); new states guidance_min/full, recall, refuse_start; HUDRECT lines.
+- **Evidence:** `renders/last_light/g2b_*.png`, `g2b2_*.png`, sheet `g2b_s2_sheet.png`. HUD text contrast 12–18:1 on every shot (was 1.1–1.5:1). The bolt is visible (item 29 verified).
+- **Previous step (S1), for reference:**
   - `StoryState.duties`, `focus_duty` and `log_written` (saved);
   - the director's `_eval_duties` (discover, latch, optional drop, a log line written once) and `activate_duties`;
   - the `duty` and `duty_drop` actions; ch1 `duties` "power" and "light" in `chapters.json`;

@@ -42,6 +42,8 @@ var _left_door := false                    # item 8: has the keeper walked away 
 # while a story line or reply is up, then plays in order; every heard line also goes to the transcript.
 var _comms_queue: Array = []               # [{from, text, outgoing, kind, ship}] deferred sim radio lines
 var _comms_gap := 0.0                      # seconds before the next deferred line may show
+var _duty_hold_t := -1.0                   # G2b: seconds J / R3 has been held (-1 = not held)
+const DUTY_HOLD_HINT_S := 0.4
 const COMMS_GAP_S := 1.6
 
 
@@ -169,7 +171,7 @@ func _on_story_event(name_: String, args: Array) -> void:
 		"sim_events":
 			_route(args[0])
 		"hint":
-			presenter.show_hint(args[0])
+			presenter.show_hint(args[0], true)
 		"timeskip":
 			pass                                  # 3B: the presenter runs it as a transition (transition_requested)
 		"caption":
@@ -409,6 +411,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		refresh_mouse()
 		get_viewport().set_input_as_handled()
 		return
+	if event.is_action_pressed("duty") and story_mode and presenter and not presenter.is_document_open():
+		presenter.recall_duty(false)          # G2b: J / R3 tap shows the duty; holding adds the hint
+		_duty_hold_t = 0.0
+		get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("history") and story_mode and presenter and not presenter.is_document_open() and not ui.logbook.visible:
 		open_backlog(false)                   # H / View: the dialogue history (Stage 3A)
 		get_viewport().set_input_as_handled()
@@ -514,7 +521,15 @@ func _physics_process(delta: float) -> void:
 
 
 func _track_player(delta: float) -> void:
-	presenter.set_compact(player.focused != "")    # item 20: title only while a device view is open
+	presenter.set_compact(player.focused != "")    # G2b: the duty line steps aside in a device view
+	if _duty_hold_t >= 0.0:                        # G2b: J / R3 held past DUTY_HOLD_HINT_S adds the hint
+		if not Input.is_action_pressed("duty"):
+			_duty_hold_t = -1.0
+		else:
+			_duty_hold_t += delta
+			if _duty_hold_t >= DUTY_HOLD_HINT_S:
+				presenter.recall_duty(true)
+				_duty_hold_t = -1.0
 	_update_door_prompt()
 	_update_story_props()
 	if bot_mode != "":

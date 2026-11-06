@@ -23,6 +23,8 @@ extends Node
 ##     (hold START until the engine runs, then release), op_charge (CHARGE on), op_console (MODE AUTO,
 ##     LAMP NORMAL); bolt (re-strike until a visible bolt is drawn, saved within its life); visitor (stair
 ##     door open, the Visitor figure inside it; restored)
+##   G2b duty HUD states: guidance_min / guidance_full (the Guidance option, restored), recall (J / R3
+##     held: the duty and the latest hint), refuse_start (START pressed with the fuel valve shut)
 ##   VIEW pp_<ia id> (Stage 2): the PLAYER stands 1.3 m from that control and looks at it, so the shot
 ##     shows the real crosshair and prompt (e.g. 60@pp_start!gen_off!valve_shut)
 ##   --story_auto (with --bot=): dialogue advances and replies are picked, but the sim is left alone.
@@ -210,9 +212,15 @@ func _run() -> void:
 		var prims := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 		var tag := vname + ("!" + "!".join(states) if not states.is_empty() else "")
 		if g.story_mode:                        # checkpoint evidence: the state each shot shows
-			print("STATE %s@%s ch=%d beat=%d gen=%d valve=%s charge=%s lights=%s mode=%d lamp=%d steps=%s" % [s, tag,
+			var fd: String = g.director.state.focus_duty
+			print("STATE %s@%s ch=%d beat=%d gen=%d valve=%s charge=%s lights=%s mode=%d lamp=%d duty=%s %s log=%s hud=%.2f" % [s, tag,
 				g.director.state.chapter, g.director.state.beat, g.sim.gen, g.sim.fuel_valve, g.sim.charge_on,
-				g.sim.lights_on(), g.sim.mode, g.sim.intensity, g.director._obj_last])
+				g.sim.lights_on(), g.sim.mode, g.sim.intensity, fd, g.director.state.duties.get(fd, {}),
+				g.director.state.log_written, g.presenter.duty_hud.plate.modulate.a])
+			var hr: Rect2 = g.presenter.duty_hud.plate.get_global_rect()
+			var vs: Vector2 = get_viewport().get_visible_rect().size
+			print("HUDRECT %s %.4f %.4f %.4f %.4f %.2f" % [tag.replace("!", "-"), hr.position.x / vs.x, hr.position.y / vs.y,
+				hr.size.x / vs.x, hr.size.y / vs.y, g.presenter.duty_hud.plate.modulate.a])
 		perf.append({"shot": s + "@" + tag, "fps": fps.max(), "fps_min": fps.min(), "draw_calls": dc, "primitives": prims})
 		var vrid := get_viewport().get_viewport_rid()
 		print("RENDER gpu_ms=%.1f cpu_ms=%.1f" % [RenderingServer.viewport_get_measured_render_time_gpu(vrid), RenderingServer.viewport_get_measured_render_time_cpu(vrid)])
@@ -269,6 +277,15 @@ func _force(g, st: String) -> void:
 		"op_console":
 			g.sim.mode = 1
 			g.sim.intensity = maxi(g.sim.intensity, 1)
+		"guidance_min", "guidance_full":         # G2b: the Guidance option, in memory only
+			if not _restore_state.has("guidance"):
+				_restore_state["guidance"] = Settings.v["guidance"]
+			Settings.v["guidance"] = 0 if st == "guidance_min" else 2
+			g.presenter.duty_hud._rebuild()
+		"recall":                                # G2b: the player held J / R3 (duty + latest hint)
+			g.presenter.recall_duty(true)
+		"refuse_start":                          # G2b: START pressed with the valve shut (refused, S1-S2)
+			g._route([{"type": "refused", "device": "start", "reason": "The fuel valve is shut."}])
 		"visitor":
 			_restore_state["visitor"] = g.station.door_open
 			g.station.door_open = true
@@ -373,6 +390,9 @@ func _unforce(g) -> void:
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
 		g.presenter.hide_ending()
+	if _restore_state.has("guidance"):
+		Settings.v["guidance"] = _restore_state["guidance"]
+		g.presenter.duty_hud._rebuild()
 	if _restore_state.has("visitor"):
 		if g.visitor_fig:
 			g.visitor_fig.queue_free()
@@ -474,9 +494,17 @@ func _crank(g) -> void:
 func _bolt_now(g) -> void:
 	var before: int = g.outside.bolts_shown
 	for i in 30:
-		g.outside.on_events([{"type": "lightning", "power": 1.0, "bearing": FLASH_BEARING, "distance": 650.0}])
+		# sim bearings are radians (keeper_sim: randf_range(-0.6 PI, 0.6 PI)); FLASH_BEARING has always been
+		# passed raw to the flash shots (20 rad, ~66 deg), kept for their comparability; the bolt aims for real
+		g.outside.on_events([{"type": "lightning", "power": 1.0, "bearing": deg_to_rad(FLASH_BEARING), "distance": 650.0}])
 		await _frames(2)
 		if g.outside.bolts_shown > before:
+			var c := get_viewport().get_camera_3d()
+			var bb: AABB = g.outside.bolt.get_aabb()
+			var mid: Vector3 = g.outside.bolt.global_transform * bb.get_center()
+			print("BOLT visible=%s mid=%s size=%s cam=%s fwd=%s in_frustum=%s" % [g.outside.bolt.visible, mid, bb.size,
+				c.global_position if c else Vector3.ZERO, -c.global_basis.z if c else Vector3.ZERO,
+				c.is_position_in_frustum(mid) if c else false])
 			return
 	push_warning("capture: bolt - no bolt drawn in 30 strikes")
 

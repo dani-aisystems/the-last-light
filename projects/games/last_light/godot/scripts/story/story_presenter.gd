@@ -20,10 +20,8 @@ var doc_title: Label
 var docs := {}
 var caption: Label                       # 3B: sound captions outside conversations ("[Footsteps on the stair]")
 var thought: Label                       # brief item 16: Callum's short, non-blocking thought when checking a device
-var obj_box: VBoxContainer                # item 20: the mission panel (title, steps, hint), top-right
-var obj_steps: VBoxContainer
-var _obj_done: Array = []
-var _compact := false
+var duty_hud: DutyHUD                     # G2b layer A: the duty line top-left (replaced the item 20 panel)
+var _last_hint := ""                     # G2b: the last story hint, for the J / R3 recall
 var _thought_tw: Tween
 var _caption_tw: Tween
 ## 3B ending card (§15.5): warm black, the ending's title, the epilogue lines one at a time.
@@ -67,31 +65,12 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
-	# Brief items 9 and 20 (2026-11-06): the mission panel, top-right. The mission title, then its steps,
-	# each with a box that ticks when the step is really done; the hint sits under them (one column, so
-	# nothing overlaps at any text size). About 27 % of a 1920-wide screen. Clear of the radio panel
-	# (centre-right) because in device views it compacts to the title (set_compact).
-	var top := VBoxContainer.new()
-	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	top.offset_left = -560
-	top.offset_right = -36
-	top.offset_top = 28
-	top.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	top.add_theme_constant_override("separation", 5)
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(top)
-	obj_box = top
-	objective = UIStyle.label("", 20, UIStyle.AMBER, UIStyle.serif())
-	objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	top.add_child(objective)
-	obj_steps = VBoxContainer.new()
-	obj_steps.add_theme_constant_override("separation", 3)
-	obj_steps.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_child(obj_steps)
-	hint = UIStyle.label("", 17, UIStyle.DIM, UIStyle.sans())
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	top.add_child(hint)
+	# G2b (Daniel 2026-11-06): the duty HUD, top-left, replaces the item 9/20 checklist panel. objective
+	# and hint keep their names for the rest of the game: they are the HUD's duty line and hint row.
+	duty_hud = DutyHUD.new()
+	root.add_child(duty_hud)
+	objective = duty_hud.line
+	hint = duty_hud.hint
 	dialogue = preload("res://scripts/ui/dialogue_ui.gd").new()
 	root.add_child(dialogue)
 	# chapter card
@@ -206,85 +185,39 @@ func bind(d: StoryDirector) -> void:
 	d.transition_requested.connect(_on_transition)
 
 
-## Objectives carry the same {interact} {move} ... tokens as hints (Stage 3A: ch1 hard-coded "WASD").
-## Item 9: a step objective shows its title and one row per step; a plain string shows as the title.
+## G2b: the director's duty view (or a legacy objective: a string, or {title, steps}) goes to the duty HUD.
+## Text keeps the {interact} {move} ... tokens; the HUD resolves them for the current device.
 func set_objective(o) -> void:
-	for c in obj_steps.get_children():
-		obj_steps.remove_child(c)
-		c.queue_free()
-	_obj_done = []
 	hint.text = ""
+	_hint_next = ""
 	if o is Dictionary:
-		objective.text = InputSetup.resolve(String(o.get("title", "")))
-		for st in o.get("steps", []):
-			obj_steps.add_child(_step_row(InputSetup.resolve(String(st.get("text", "")))))
+		duty_hud.set_view(o)
+	elif String(o) == "":
+		duty_hud.set_view({})
 	else:
-		objective.text = InputSetup.resolve(String(o))
-	_apply_compact()
+		duty_hud.set_view({"title": String(o), "caption": "", "steps": []})
 
 
-func _step_row(text: String) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var box := Control.new()
-	box.custom_minimum_size = Vector2(UIStyle.px(15), UIStyle.px(15))
-	box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	box.set_meta("done", false)
-	box.draw.connect(func():
-		var s := box.size
-		var y0 := UIStyle.px(5)
-		var r := Rect2(0, y0, s.x, s.x)
-		box.draw_rect(r, Color(UIStyle.INK, 0.7), false, 1.5)
-		if box.get_meta("done"):
-			box.draw_polyline(PackedVector2Array([Vector2(s.x * 0.18, y0 + s.x * 0.52), Vector2(s.x * 0.42, y0 + s.x * 0.78),
-				Vector2(s.x * 0.86, y0 + s.x * 0.2)]), UIStyle.AMBER, 2.2, true))
-	row.add_child(box)
-	var l := RichTextLabel.new()
-	l.bbcode_enabled = true
-	l.fit_content = true
-	l.scroll_active = false
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.add_theme_font_override("normal_font", UIStyle.serif())
-	l.add_theme_color_override("default_color", UIStyle.INK)
-	UIStyle.track(l, 18)
-	l.set_meta("plain", text)
-	l.text = text.replace("[", "[lb]")
-	row.add_child(l)
-	return row
-
-
-## Item 9/20: tick the steps that are done (a done step is ticked, dimmed and struck through).
 func set_progress(done: Array) -> void:
-	_obj_done = done
-	for i in obj_steps.get_child_count():
-		var row := obj_steps.get_child(i)
-		var box: Control = row.get_child(0)
-		var l: RichTextLabel = row.get_child(1)
-		var d := i in done
-		box.set_meta("done", d)
-		box.queue_redraw()
-		var plain: String = String(l.get_meta("plain")).replace("[", "[lb]")
-		l.text = ("[s]" + plain + "[/s]") if d else plain
-		row.modulate.a = 0.55 if d else 1.0
+	duty_hud.set_done(done)
 
 
 func is_step_done(i: int) -> bool:
-	return i in _obj_done
+	return duty_hud.is_step_done(i)
 
 
-## Item 20: in device views (the radio panel sits centre-right) the panel shows only the mission title.
+## A device view is open (radio, console...): the duty line steps aside unless Full or recalled.
 func set_compact(on: bool) -> void:
-	if on != _compact:
-		_compact = on
-		_apply_compact()
+	duty_hud.compact = on
 
 
-func _apply_compact() -> void:
-	obj_steps.visible = not _compact
-	hint.visible = not _compact
+## G2b: J / R3. Tap: the current duty for a few seconds. Hold: the latest hint as well.
+func recall_duty(with_hint := false) -> void:
+	duty_hud.recall()
+	if with_hint and _last_hint != "" and hint.text != _last_hint:
+		show_hint(_last_hint)
+	elif with_hint and _last_hint != "":
+		_hint_t = 14.0
 
 
 ## True while the screen is (partly) black or the ending card is up: dialogue must not type out unseen.
@@ -293,7 +226,9 @@ func is_screen_held() -> bool:
 
 
 ## Item 26: a hint stays up at least HINT_MIN_S before a different one replaces it; one more can queue.
-func show_hint(t: String) -> void:
+func show_hint(t: String, remember := false) -> void:
+	if remember:
+		_last_hint = t                     # G2b: a story hint the player can call back with J / R3
 	var txt := InputSetup.resolve(t)      # {interact} {move} ... -> keyboard or pad glyphs (Stage 2C)
 	if _hint_t > 0.0 and hint.text != "" and hint.text != txt and 14.0 - _hint_t < HINT_MIN_S:
 		_hint_next = txt
@@ -632,6 +567,7 @@ func _process(delta: float) -> void:
 	if _hint_t > 0.0:
 		_hint_t -= delta
 		hint.modulate.a = clampf(_hint_t, 0.0, 1.0)
+	duty_hud.tick(delta, is_screen_held())
 	if _hint_next != "" and 14.0 - _hint_t >= HINT_MIN_S:
 		hint.text = _hint_next
 		_hint_next = ""

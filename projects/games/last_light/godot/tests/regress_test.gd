@@ -988,22 +988,15 @@ Ross said: not a speaker line
 	g.player.enabled = true
 	g.refresh_mouse()
 	dlg.close()
-	# --- objective tokens and one text scale
+	# --- duty line tokens and one text scale (G2b: the HUD layout itself is R13 in _r12_brief_g2)
 	g.presenter.set_objective("Get your bearings. Walk with {move}; look around with {look}.")
-	_check(not g.presenter.objective.text.contains("{"), "objective tokens resolve (%s)" % g.presenter.objective.text)
-	g.presenter.show_hint("The console stands under the east window. Look at the MODE knob and press {interact}, then turn it to AUTO and wait.")
-	g.presenter.objective.text = "▸ " + "Lighting-up time. Turn the MODE selector to AUTO at the light console under the east window, then the LAMP selector up to NORMAL, and write it in the log."
+	_check(not g.presenter.objective.text.contains("{"), "duty line tokens resolve (%s)" % g.presenter.objective.text)
 	for sc in [0.8, 1.0, 1.5]:
 		st_node.v["subtitle_size"] = sc
 		st_node.apply()
 		await _frames(3)
-		var o: Rect2 = g.presenter.objective.get_global_rect()
-		var hr: Rect2 = g.presenter.hint.get_global_rect()
-		_check(not o.intersects(hr) and hr.position.y >= o.end.y - 0.5, "x%.1f objective and hint never overlap (%s / %s)" % [sc, o, hr])
-		_check(g.presenter.objective.get_theme_font_size("font_size") == UIStyle.px(20) and g.presenter.card_title.get_theme_font_size("font_size") == UIStyle.px(64)
-			and g.ui.notice.get_theme_font_size("font_size") == UIStyle.px(24), "x%.1f objective, chapter card and notices follow the text size" % sc)
-		var vp := g.get_viewport().get_visible_rect()
-		_check(vp.encloses(o) and vp.encloses(hr), "x%.1f objective and hint on screen" % sc)
+		_check(g.presenter.objective.get_theme_font_size("font_size") == UIStyle.px(21) and g.presenter.card_title.get_theme_font_size("font_size") == UIStyle.px(64)
+			and g.ui.notice.get_theme_font_size("font_size") == UIStyle.px(24), "x%.1f duty line, chapter card and notices follow the text size" % sc)
 	st_node.v["subtitle_size"] = 1.0
 	st_node.apply()
 	g.presenter.set_objective("")
@@ -1366,39 +1359,110 @@ func _r12_brief_g2() -> void:
 	_check(g.station.inspect_line("battery").begins_with("Flat"), "a flat battery is called flat")
 	g.sim.battery = 80.0
 	g.director.process_mode = Node.PROCESS_MODE_DISABLED
-	# c) the step objective panel: title, one row per step, ticks, compact in device views
-	var obj := {"title": "Restore the lights", "steps": [{"text": "Find the torch", "done": "false"}, {"text": "Open the fuel valve", "done": "false"}]}
-	g.presenter.set_objective(obj)
+	await _r13_duty_hud()
+
+
+## G2b (Daniel 2026-11-06) R13: the duty HUD replaces the item 9/20 panel. Top-left in the safe margin,
+## on a dark plate; Standard fades the line in and out, Full keeps it with the steps, Minimal only on
+## J / R3; a device view hides the line (not the hints); never over the radio panel or a notice; fits at
+## every text size and window size.
+func _r13_duty_hud() -> void:
+	print("R13 G2b duty HUD")
+	var settings: Node = root.get_node("Settings")
+	var hud = g.presenter.duty_hud            # untyped: a -s script must not compile UI classes early
+	var wait := func(secs: float): await create_timer(secs).timeout
+	settings.v["guidance"] = 1
+	settings.v["duty_hold_s"] = 1.0
+	var view := {"title": "Get the engine running. Then CHARGE the cells.", "caption": "The Watch", "duty": "r13_a",
+		"steps": [{"text": "The torch, top shelf by the stair door", "id": "torch"}, {"text": "FUEL VALVE open", "id": "fuel"}]}
+	g.presenter.set_objective(view)
 	g.presenter.set_progress([0])
-	await _frames(2)
-	var rows: int = g.presenter.obj_steps.get_child_count()
-	_check(g.presenter.objective.text == "Restore the lights" and rows == 2, "the mission title and its two steps show")
-	var r0: RichTextLabel = g.presenter.obj_steps.get_child(0).get_child(1)
-	var r1: RichTextLabel = g.presenter.obj_steps.get_child(1).get_child(1)
-	_check(r0.text.begins_with("[s]") and not r1.text.begins_with("[s]") and g.presenter.is_step_done(0) and not g.presenter.is_step_done(1),
-		"only the done step is ticked and struck through")
+	await wait.call(0.8)
 	var vp: Rect2 = g.get_viewport().get_visible_rect()
-	_check(g.presenter.obj_box.get_global_rect().position.x > vp.size.x * 0.5, "the mission panel sits top-right")
-	# game_fp sets the compact state every physics frame from the real view, so enter one (the radio)
+	var pr: Rect2 = hud.plate.get_global_rect()
+	_check(hud.duty_visible() and hud.caption.text == "THE WATCH" and g.presenter.objective.text == view["title"],
+		"Standard: a new duty fades in with its caption and line (%s)" % hud.caption.text)
+	_check(not hud.subs.visible and not hud.check.visible, "Standard: no checkboxes or step list")
+	g.presenter.set_objective({"title": view["title"], "caption": "The Watch", "duty": "r13_a", "steps": view["steps"], "complete": true})
+	await _frames(2)
+	_check(hud.check.visible and not hud.subs.visible, "Standard: a finished duty shows its tick (no step list)")
+	g.presenter.set_objective(view)
+	_check(pr.position.x < vp.size.x * 0.06 and pr.position.y < vp.size.y * 0.1 and vp.encloses(pr) and pr.size.x <= vp.size.x * 0.30 + 60,
+		"the duty line sits top-left inside the safe margin (%s)" % pr)
+	var sb: StyleBoxFlat = hud.plate.get_theme_stylebox("panel")
+	_check(sb.bg_color.a >= 0.65 and sb.bg_color.get_luminance() < 0.08, "the plate is dark enough to carry the text on a lit wall (a=%.2f)" % sb.bg_color.a)
+	await wait.call(2.6)
+	_check(not hud.duty_visible(), "Standard: the line fades out after its hold time")
+	g.presenter.recall_duty()
+	await wait.call(0.8)
+	_check(hud.duty_visible(), "J / R3 brings the duty back")
+	# a device view: the line steps aside, hints still show, nothing over the radio panel
+	await wait.call(2.6)
 	g.player.enter_focus("radio")
 	await _settle_focus()
-	await _frames(3)
-	_check(not g.presenter.obj_steps.visible and g.presenter.objective.visible, "in a device view only the title shows")
-	var settings: Node = root.get_node("Settings")
+	g.presenter.set_objective({"title": "MODE to AUTO, LAMP to NORMAL.", "caption": "Lighting-up time", "duty": "r13_b", "steps": []})
+	g.presenter.show_hint("The light console stands under the east window. Look at the MODE knob and press {interact}.", true)
+	await wait.call(0.8)
+	_check(not hud.duty_visible() and hud.hint.visible, "Standard in a device view: no duty line, the hint still shows")
 	for sc in [1.0, 1.5]:
 		settings.v["subtitle_size"] = sc
 		settings.apply()
-		await _frames(3)
+		g.presenter.recall_duty(true)
 		g.ui.radio_panel.visible = true
-		await _frames(2)
-		var ob: Rect2 = g.presenter.obj_box.get_global_rect()
+		await wait.call(0.8)
+		var pl: Rect2 = hud.plate.get_global_rect()
 		var rp: Rect2 = g.ui.radio_panel.get_global_rect()
-		_check(not ob.intersects(rp), "x%.1f the compact mission panel clears the radio panel (%s / %s)" % [sc, ob, rp])
+		_check(hud.duty_visible() and not pl.intersects(rp), "x%.1f recalled in the radio view, clear of the radio panel (%s / %s)" % [sc, pl, rp])
 		g.ui.radio_panel.visible = false
-	settings.v["subtitle_size"] = 1.0
-	settings.apply()
 	g.player.leave_focus()
 	await _settle_focus()
-	await _frames(3)
-	_check(g.presenter.obj_steps.visible, "back in free walk the steps show again")
+	# Full: the duty with a checkbox and its steps as one-liners; done steps dimmed, not struck through
+	settings.v["guidance"] = 2
+	g.presenter.set_objective(view)
+	g.presenter.set_progress([0])
+	await wait.call(0.8)
+	var rows: Array = hud.subs.get_children()
+	_check(hud.duty_visible() and hud.check.visible and rows.size() == 2 and String(rows[0].text).begins_with("•"),
+		"Full: checkbox, and the steps as dotted one-liners (%d rows)" % rows.size())
+	_check(rows.size() == 2 and rows[0].modulate.a < 0.7 and rows[1].modulate.a > 0.95 and g.presenter.is_step_done(0) and not g.presenter.is_step_done(1),
+		"Full: the done step is dimmed, the open one is not")
+	await wait.call(2.6)
+	_check(hud.duty_visible(), "Full: the duty stays on screen")
+	for sc in [0.8, 1.0, 1.5]:
+		settings.v["subtitle_size"] = sc
+		settings.apply()
+		g.ui.show_notice("Let go too soon: hold START until the engine catches.", 3.0)
+		await wait.call(0.3)
+		var pl2: Rect2 = hud.plate.get_global_rect()
+		var nf: Font = g.ui.notice.get_theme_font("font")
+		var nw: float = nf.get_string_size(g.ui.notice.text, HORIZONTAL_ALIGNMENT_LEFT, -1, g.ui.notice.get_theme_font_size("font_size")).x
+		var nr: Rect2 = g.ui.notice.get_global_rect()
+		var ntext := Rect2(nr.get_center().x - nw * 0.5, nr.position.y, nw, nr.size.y)
+		_check(vp.encloses(pl2) and not pl2.intersects(ntext), "x%.1f Full: on screen and clear of a long notice (%s / %s)" % [sc, pl2, ntext])
+	settings.v["subtitle_size"] = 1.0
+	settings.apply()
+	# Minimal: nothing until the player asks
+	settings.v["guidance"] = 0
+	g.presenter.set_objective({"title": "Find Kittiwake.", "caption": "", "duty": "r13_c", "steps": []})
+	await wait.call(1.6)                        # the Full line before it fades out (1.2 s) first
+	_check(not hud.duty_visible(), "Minimal: a new duty does not announce itself")
+	g.presenter.recall_duty()
+	await wait.call(0.8)
+	_check(hud.duty_visible(), "Minimal: J / R3 still shows it")
+	# other window sizes: the plate stays top-left and inside the screen
+	var win := g.get_window()
+	var size0: Vector2i = win.size
+	var sizes: Array = [Vector2i(1280, 720), Vector2i(2560, 1440), Vector2i(3440, 1440)]
+	if DisplayServer.get_name() == "headless":
+		skips.append("R13 window sizes (headless)")
+		sizes = []
+	for sz in sizes:
+		win.size = sz
+		await _frames(4)
+		var vpz: Rect2 = g.get_viewport().get_visible_rect()
+		var plz: Rect2 = hud.plate.get_global_rect()
+		_check(vpz.encloses(plz) and plz.position.x < vpz.size.x * 0.06, "%dx%d: the duty line fits top-left (%s in %s)" % [sz.x, sz.y, plz, vpz])
+	win.size = size0
+	settings.v["guidance"] = 1
+	settings.v["duty_hold_s"] = 6.0
 	g.presenter.set_objective("")

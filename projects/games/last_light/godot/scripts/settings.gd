@@ -26,6 +26,10 @@ var v := {
 	# accessibility
 	"subtitles": true, "subtitle_size": 1.0, "text_speed": 42.0, "reduce_flashing": false,
 	"hold_to_crank": true,       # START button: hold (true) or press-to-toggle cranking (false)
+	# G2b (Daniel 2026-11-06): how much the game tells the keeper. 0 Minimal (the world and the logbook),
+	# 1 Standard (a short duty line, then hints when stuck), 2 Full (the duty and its steps always shown)
+	"guidance": 1,
+	"duty_hold_s": 6.0,          # seconds the duty line stays up when a duty begins or is recalled
 	"settings_rev": 2,           # 2: Medium became the default preset (Stage 1 iteration 1p, Daniel 2026-11-05)
 	# Stage 2: how often the player has used a control that has a one-time tip (tab, wheel, back);
 	# a tip retires once its control has been used TIP_RETIRE times

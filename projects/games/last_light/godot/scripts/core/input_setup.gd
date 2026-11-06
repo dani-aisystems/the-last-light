@@ -20,6 +20,7 @@ const BINDINGS := {          # keyboard (physical keycodes)
 	"transcript": [KEY_T],
 	"torch": [KEY_F],          # cabin pass: switch the carried torch on / off
 	"history": [KEY_H],        # Stage 3A: the dialogue history (backlog)
+	"duty": [KEY_J],           # G2b: show the current duty (hold: the latest hint)
 	"dialogue_next": [KEY_SPACE],   # brief item 7: finish / advance a dialogue line (E is interaction only)
 	"back": [],               # keyboard "back" is Esc / right click (handled with pause / mouse)
 	"turn_prev": [],          # keyboard: right click / wheel
@@ -39,6 +40,7 @@ const PAD_FP := {
 	"torch": ["axis", JOY_AXIS_TRIGGER_LEFT, 1.0],     # LT (the d-pad belongs to replies and the handwheel)
 	"pause": ["button", JOY_BUTTON_START],
 	"history": ["button", JOY_BUTTON_BACK],            # Stage 3A: View / Share opens the dialogue history
+	"duty": ["button", JOY_BUTTON_RIGHT_STICK],        # G2b: R3 shows the current duty
 	"dialogue_next": ["axis", JOY_AXIS_TRIGGER_RIGHT, 1.0],   # item 7: RT advances lines (A stays interaction)
 	"move_left": ["axis", JOY_AXIS_LEFT_X, -1.0],
 	"move_right": ["axis", JOY_AXIS_LEFT_X, 1.0],
@@ -160,6 +162,8 @@ static func glyph(what: String) -> String:
 				return "L2" if ps else "LT"
 			"history":
 				return "Share" if ps else "View"
+			"duty":
+				return "R3"
 			"wheel", "handwheel":
 				return "Left stick"
 			"move":
@@ -190,6 +194,8 @@ static func glyph(what: String) -> String:
 			return "F"
 		"history":
 			return "H"
+		"duty":
+			return "J"
 		"wheel", "handwheel":
 			return "A / D"
 		"move":
@@ -206,6 +212,6 @@ static func key(what: String) -> String:
 
 ## Hint text with {interact} {move} {look} {turn_back} {wheel} tokens resolved for the current device.
 static func resolve(text: String) -> String:
-	for t in ["interact", "move", "look", "turn_back", "wheel", "back", "logbook", "torch", "transcript", "turn", "next_vessel", "history"]:
+	for t in ["interact", "move", "look", "turn_back", "wheel", "back", "logbook", "torch", "transcript", "turn", "next_vessel", "history", "duty"]:
 		text = text.replace("{%s}" % t, glyph(t))
 	return text

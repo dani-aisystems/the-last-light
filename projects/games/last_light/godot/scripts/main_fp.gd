@@ -403,7 +403,7 @@ func _open_options() -> void:
 	for b in [["", "Keyboard and mouse", "Gamepad"], ["Walk", "W A S D / arrows", "Left stick"], ["Look", "Mouse", "Right stick"],
 			["Use", "E · left click", "A"], ["Continue dialogue", "Space", "RT"],
 			["Choose a reply", "1 – 4 (click in a device view)", "D-pad + A"],
-			["Walk faster", "Shift", "Left stick click"], ["Station log", "L", "Y"], ["Step back", "Esc · right click", "B"],
+			["Walk faster", "Shift", "Left stick click"], ["Station log", "L", "Y"], ["Current duty (hold: latest hint)", "J", "Right stick click"], ["Step back", "Esc · right click", "B"],
 			["Pause", "Esc", "Start"], ["Selector knobs", "Wheel · right click", "LB / RB"],
 			["Turn handwheel (console)", "A / D", "Left stick · D-pad"], ["Device views: point and click", "Mouse", "Right stick + A"],
 			["Radio: next vessel / send", "Tab / 1 – 6", "RB / point + A"], ["Document transcription", "T", "X"], ["Fullscreen", "F11", "—"]]:
@@ -421,6 +421,10 @@ func _open_options() -> void:
 	_opt_slider(ac, "Text size (dialogue and interface)", "subtitle_size", 0.8, 1.5, 0.05)
 	_opt_slider(ac, "Text speed (characters / s)", "text_speed", 15.0, 120.0, 1.0)
 	_opt_toggle(ac, "Reduce flashing (lightning)", "reduce_flashing")
+	_opt_choice(ac, "Guidance", "guidance", [["Minimal: the room and the logbook", 0],
+		["Standard: a short duty line, hints when stuck", 1], ["Full: the duty and its steps always shown", 2]],
+		"J (gamepad: right stick click) shows the current duty at any time; hold it for the latest hint.")
+	_opt_slider(ac, "Duty line time on screen (s)", "duty_hold_s", 3.0, 12.0, 0.5)
 
 
 func _tab(tabs: TabContainer, name_: String) -> VBoxContainer:
