@@ -182,6 +182,7 @@ func _opening_checklist() -> void:
 	var dir := StoryDirector.new()
 	root.add_child(dir)
 	dir.setup(k, true)
+	dir.bot_line_s = 600.0        # lines wait: the beats stay put while the checklist is probed
 	var prog := [[]]
 	dir.objective_progress.connect(func(d): prog[0] = d.duplicate())
 	dir.begin(true)
@@ -474,11 +475,16 @@ func _gd_files(dir_path: String) -> Array:
 
 ## Saves are by beat index: an old (layout 1) ch1 / ch6 save lands on the same story moment.
 func _check_remap() -> void:
-	var cases := [[1, 0, 0], [1, 3, 1], [1, 5, 2], [1, 6, 3], [1, 9, 5], [1, 13, 9], [1, 14, 10], [6, 1, 4], [6, 2, 5], [2, 5, 5]]
+	# layout-1 saves chain through layout 2 to 3 (brief item 8: ch1 dusk, engine, charge, light, radio_check ...)
+	var cases := [[1, 0, 0], [1, 3, 1], [1, 5, 1], [1, 6, 2], [1, 9, 5], [1, 13, 9], [1, 14, 10], [6, 1, 4], [6, 2, 5], [2, 5, 5]]
 	for c in cases:
 		var got := StoryState.remap_beat(c[0], c[1], 1)
 		if got != c[2]:
 			fails.append("remap ch%d beat %d -> %d, expected %d" % [c[0], c[1], got, c[2]])
+	for c in [[1, 0, 0], [1, 1, 1], [1, 2, 1], [1, 3, 2], [1, 4, 4], [1, 7, 7], [2, 3, 3]]:     # layout 2 -> 3
+		var got2 := StoryState.remap_beat(c[0], c[1], 2)
+		if got2 != c[2]:
+			fails.append("remap (layout 2) ch%d beat %d -> %d, expected %d" % [c[0], c[1], got2, c[2]])
 	var st := StoryState.new()
 	st.from_dict({"chapter": 1, "beat": 8})            # a pre-3B save has no "layout"
 	if st.beat != 5:
