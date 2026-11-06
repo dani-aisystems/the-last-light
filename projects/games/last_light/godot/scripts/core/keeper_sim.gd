@@ -580,7 +580,10 @@ func _weather_step(ev: Array) -> void:
 	if t >= _next_lightning:
 		var interval := lerpf(cfg.lightning_interval_calm, cfg.lightning_interval_storm, storm)
 		_next_lightning = t + interval * rng.randf_range(0.7, 1.3)
-		ev.append({"type": "lightning", "power": 0.5 + 0.5 * storm, "thunder_delay": rng.randf_range(0.5, 2.5),
+		# G5 / finding 29: the strike sits 400-900 m out and its thunder arrives at 343 m/s. The distance
+		# comes from the same single draw the old random delay used, so the sim's RNG sequence is unchanged.
+		var dist := lerpf(400.0, 900.0, (rng.randf_range(0.5, 2.5) - 0.5) / 2.0)
+		ev.append({"type": "lightning", "power": 0.5 + 0.5 * storm, "thunder_delay": dist / 343.0, "distance": dist,
 			"bearing": rng.randf_range(-PI * 0.6, PI * 0.6)})
 
 

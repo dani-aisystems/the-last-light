@@ -5,8 +5,23 @@ extends Node
 ##  radio static (desk speaker), motor grind (ceiling gear).  Events: thunder (delayed after the flash),
 ##  switches, breaker, crank, horns, squelch/typewriter blips, and the visitor's approach:
 ##  steps on the jetty -> the base door far below -> iron steps up the stair -> three knocks.
+##
+## G5 / finding 30 (2026-11-06):
+##  - exterior sounds (wind, gusts, roof rain, sea, thunder, horns) go through an "Exterior" bus that
+##    sends into Ambient (so the Ambient slider still governs them) and carries a low-pass: in the
+##    game the keeper hears the storm through stone and glass; in the attract menu (camera outside)
+##    it opens up;
+##  - the close rain on the glass (amb_rain_glass) is unmuffled and placed at the window bays;
+##  - gusts: amb_gust follows a runtime gust envelope whose depth and rate follow the storm value;
+##  - thunder: near strikes (< 650 m) use thunder_0..2, far ones thunder_3..5; the delay is the
+##    strike distance / 343 m/s (KeeperSim), and the level falls with distance.
 
 const A := "res://assets/audio/%s.wav"
+const EXT_BUS := "Exterior"
+const MUFFLE_HZ := 2400.0          # indoors: the storm heard through the lantern glass and stone
+const OPEN_HZ := 20000.0           # attract menu: the camera is outside
+const NEAR_STRIKE_M := 650.0
+const GLASS_LAYERS := 3            # amb_rain_glass emitters, spread round the window bays
 
 var sim: KeeperSim
 var station: Node3D
@@ -17,13 +32,24 @@ var _pending: Array = []        # [time, callable]
 var _t := 0.0
 var _static_t := 0.0
 var _music: AudioStreamPlayer
+var _lp: AudioEffectLowPassFilter
+var _cutoff := MUFFLE_HZ
+var _glass: Array = []          # amb_rain_glass players at the windows
+var _rng := RandomNumberGenerator.new()
+var _gust := 0.0
+var _gust_target := 0.0
+var _gust_next := 0.0
+var _music_fade := 0.0          # > 0: fading the music out (set_menu(false))
 
 
 func setup(k: KeeperSim, st: Node3D) -> void:
 	sim = k
 	station = st
-	for n in ["amb_wind", "amb_rain", "amb_sea"]:
-		loops[n] = _player2d(n, "Ambient", -8.0)
+	_rng.seed = 30
+	_ensure_exterior_bus()
+	for n in ["amb_wind", "amb_gust", "amb_rain", "amb_sea"]:
+		loops[n] = _player2d(n, EXT_BUS, -8.0)
+	_make_glass_layers()
 	_music = _player2d("music_menu", "Music", -6.0, false)
 	loops["gen_idle"] = _player3d("gen_idle", _dev("IA_gen_panel", Vector3(-2.2, 20.6, 1.7)), 4.0)
 	loops["hum"] = _player3d("hum", _dev("IA_power_panel", Vector3(-2.9, 21.2, 0.5)), 2.0)
@@ -33,11 +59,54 @@ func setup(k: KeeperSim, st: Node3D) -> void:
 	for n in ["gen_idle", "hum", "clockwork", "static", "motor_grind"]:
 		loops[n].volume_db = -80.0
 		loops[n].play()
-	for n in ["amb_wind", "amb_rain", "amb_sea"]:
+	for n in ["amb_wind", "amb_gust", "amb_rain", "amb_sea"]:
 		loops[n].play()
 
 
-func _dev(_name: String, fallback: Vector3) -> Vector3:
+## The Exterior bus: created once (it survives scene reloads), sending into Ambient.
+func _ensure_exterior_bus() -> void:
+	var i := AudioServer.get_bus_index(EXT_BUS)
+	if i == -1:
+		AudioServer.add_bus()
+		i = AudioServer.bus_count - 1
+		AudioServer.set_bus_name(i, EXT_BUS)
+		AudioServer.set_bus_send(i, "Ambient")
+		var lp := AudioEffectLowPassFilter.new()
+		lp.resonance = 0.5
+		lp.db = AudioEffectFilter.FILTER_12DB
+		AudioServer.add_bus_effect(i, lp)
+	_lp = AudioServer.get_bus_effect(i, 0) as AudioEffectLowPassFilter
+	_cutoff = OPEN_HZ if _menu else MUFFLE_HZ
+	if _lp:
+		_lp.cutoff_hz = _cutoff
+
+
+## Rain on the glass, at up to GLASS_LAYERS window bays, each started at a different offset so the
+## emitters never repeat together. Falls back to one 2D player if the room has no windows.
+func _make_glass_layers() -> void:
+	var wins: Array = []
+	var room: Node3D = station.get("room") if station else null
+	if room:
+		for mi in room.find_children("GLS_window*", "MeshInstance3D", true, false):
+			wins.append((mi.global_transform * (mi as MeshInstance3D).get_aabb()).get_center())
+	if wins.is_empty():
+		_glass.append(_player2d("amb_rain_glass", "Ambient", -12.0))
+	else:
+		var n := mini(GLASS_LAYERS, wins.size())
+		for k in n:
+			_glass.append(_player3d("amb_rain_glass", wins[(k * wins.size()) / n], 2.5, "Ambient"))
+	var length: float = _stream("amb_rain_glass").get_length()
+	for k in _glass.size():
+		_glass[k].play(length * float(k) / float(_glass.size()))
+
+
+## Where a device sits in the room (its IA_ node), so its loop comes from the right place.
+func _dev(name_: String, fallback: Vector3) -> Vector3:
+	var room: Node3D = station.get("room") if station else null
+	if room:
+		var n := room.find_child(name_, true, false)
+		if n is Node3D:
+			return (n as Node3D).global_position
 	return fallback
 
 
@@ -58,7 +127,7 @@ func _looped(n: String) -> AudioStream:
 
 func _player2d(n: String, bus: String, db: float, loop := true) -> AudioStreamPlayer:
 	var p := AudioStreamPlayer.new()
-	p.stream = _looped(n) if loop else _looped(n)
+	p.stream = _looped(n) if loop else _stream(n)
 	p.bus = bus
 	p.volume_db = db
 	add_child(p)
@@ -76,11 +145,19 @@ func _player3d(n: String, pos: Vector3, unit: float, bus := "SFX") -> AudioStrea
 	return p
 
 
+## on: the attract menu (menu pad, storm heard from outside). off: fade the pad out and muffle again.
 func set_menu(on: bool) -> void:
 	_menu = on
-	_music.stream = _looped("music_menu")
-	_music.volume_db = -8.0
-	_music.play()
+	_cutoff = OPEN_HZ if on else MUFFLE_HZ
+	if on:
+		if _lp:
+			_lp.cutoff_hz = _cutoff
+		_music_fade = 0.0
+		_music.stream = _looped("music_menu")
+		_music.volume_db = -8.0
+		_music.play()
+	elif _music.playing:
+		_music_fade = 2.0
 
 
 ## One-shot (2D unless pos given).
@@ -116,9 +193,12 @@ func on_events(events: Array) -> void:
 	for e in events:
 		match e["type"]:
 			"lightning":
-				var k := randi() % 3
 				var p: float = e.get("power", 0.7)
-				_later(e.get("thunder_delay", 1.0), func(): sfx("thunder_%d" % k, lerpf(-10.0, 0.0, p), "Ambient"))
+				var delay: float = e.get("thunder_delay", 1.0)
+				var d: float = e.get("distance", delay * 343.0)
+				var k := (0 if d < NEAR_STRIKE_M else 3) + int(d) % 3
+				var db := lerpf(-10.0, 0.0, p) - 10.0 * log(d / 400.0) / log(10.0)   # about -3.5 dB at 900 m
+				_later(delay, func(): sfx("thunder_%d" % k, db, EXT_BUS))
 			"click":
 				var dev: String = e["device"]
 				sfx("click_knob" if dev in ["mode", "intensity"] else ("click_button" if dev == "start" else "click_switch"), -4.0)
@@ -131,7 +211,7 @@ func on_events(events: Array) -> void:
 			"ship_spawned":
 				var s := sim.find_ship(e["ship"])
 				if s and not s.unlit:
-					_later(1.5, func(): sfx("horn_ship" if s.kind == "steamer" else "horn_fishing", -14.0, "Ambient"))
+					_later(1.5, func(): sfx("horn_ship" if s.kind == "steamer" else "horn_fishing", -14.0, EXT_BUS))
 			"radio", "tx":
 				_static_t = 2.5
 				sfx("squelch", -8.0, "Dialogue")
@@ -162,12 +242,16 @@ func story_cue(name_: String, args: Array) -> void:
 					_duck = 1.0
 				"paper_slide":
 					sfx_at("paper_slide", station.door_position(), -2.0, 2.0)
+				"carrier_click":
+					sfx("carrier_click", -6.0, "Dialogue")
+					_static_t = maxf(_static_t, 1.0)
 				_:
 					if ResourceLoader.exists(A % n):
 						sfx(n)
 		"static":
 			_static_t = 0.0 if (args.size() > 0 and args[0] == "fade") else (6.0 if args.size() > 0 and args[0] == "heavy" else 3.5)
 		"music":
+			_music_fade = 0.0
 			_music.stream = _looped("music_tension" if args[0] == "tension" else "music_menu")
 			_music.volume_db = -12.0
 			_music.play()
@@ -207,13 +291,24 @@ func _process(delta: float) -> void:
 		else:
 			keep.append(p)
 	_pending = keep
+	if _music_fade > 0.0:
+		_music_fade = maxf(0.0, _music_fade - delta)
+		_music.volume_db = lerpf(-60.0, -8.0, _music_fade / 2.0)
+		if _music_fade == 0.0:
+			_music.stop()
+	if _lp:
+		_lp.cutoff_hz = lerpf(_lp.cutoff_hz, _cutoff, minf(1.0, delta * 2.0))
 	if sim == null:
 		return
 	var storm := sim.storm
 	_duck = maxf(0.0, _duck - delta * 0.12)
 	var duck_db := -24.0 * _duck
-	loops["amb_wind"].volume_db = lerpf(-18.0, -4.0, storm) + duck_db
+	_step_gust(delta, storm)
+	loops["amb_wind"].volume_db = lerpf(-18.0, -4.0, storm) + 2.0 * _gust + duck_db
+	loops["amb_gust"].volume_db = linear_to_db(maxf(0.0005, _gust * lerpf(0.15, 1.0, storm))) - 6.0 + duck_db
 	loops["amb_rain"].volume_db = lerpf(-20.0, -6.0, storm) + duck_db
+	for g in _glass:
+		g.volume_db = lerpf(-26.0, -8.0, storm) + duck_db
 	loops["amb_sea"].volume_db = lerpf(-16.0, -6.0, storm) + duck_db
 	loops["gen_idle"].volume_db = (-2.0 if sim.gen == KeeperSim.Gen.RUNNING else -80.0)
 	loops["hum"].volume_db = -10.0 if sim.powered() else -80.0
@@ -221,3 +316,11 @@ func _process(delta: float) -> void:
 	loops["motor_grind"].volume_db = -2.0 if sim.jammed and sim.motor_on() else -80.0
 	_static_t = maxf(0.0, _static_t - delta)
 	loops["static"].volume_db = lerpf(-80.0, -16.0 + 6.0 * storm, clampf(_static_t, 0.0, 1.0)) if sim.radio_on() else -80.0
+
+
+## Gusts: a new target every few seconds (more often in a full storm), rising faster than they fall.
+func _step_gust(delta: float, storm: float) -> void:
+	if _t >= _gust_next:
+		_gust_next = _t + _rng.randf_range(1.5, 5.0) * lerpf(1.6, 0.7, storm)
+		_gust_target = pow(_rng.randf(), 1.5)
+	_gust = move_toward(_gust, _gust_target, delta * (1.2 if _gust_target > _gust else 0.5))

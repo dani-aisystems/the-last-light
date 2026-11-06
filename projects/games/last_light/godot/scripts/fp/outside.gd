@@ -42,6 +42,17 @@ var flash_now := 0.0      # the flicker-shaped flash actually shown this frame (
 var _t := 0.0
 var _flash_dir := Vector2(0, -1)
 var _noise_tex: NoiseTexture2D
+## G5 / finding 29: distant bolts. Only some strikes show one; the rest stay in-cloud (flash only).
+const BOLT_FLICKER_S := 2.0 * PI / 47.0     # the flash flicker period (sin(_t * 47) below): restrikes land on it
+var bolt: MeshInstance3D
+var bolt_mat: ShaderMaterial
+var bolts_shown := 0                         # counters for tests and QA
+var bolts_skipped := 0
+var _bolt_age := -1.0
+var _bolt_life := 0.0
+var _bolt_power := 0.0
+var _bolt_strokes: Array = []
+var _bolt_rng := RandomNumberGenerator.new()
 
 
 func setup(k: KeeperSim) -> void:
@@ -55,9 +66,118 @@ func setup(k: KeeperSim) -> void:
 	_lighthouse()
 	_beam()
 	_rain()
+	_bolt_setup()
 
 
 # ------------------------------------------------------------------ build
+
+func _bolt_setup() -> void:
+	_bolt_rng.seed = 29
+	bolt_mat = ShaderMaterial.new()
+	bolt_mat.shader = load("res://shaders/bolt.gdshader")
+	bolt = MeshInstance3D.new()
+	bolt.name = "LightningBolt"
+	bolt.material_override = bolt_mat
+	bolt.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bolt.visible = false
+	add_child(bolt)
+
+
+## A strike event: maybe show a bolt 400-900 m out along the strike bearing, from the cloud base down
+## to the sea. With reduce-flashing on, no bolt is drawn at all.
+func _strike_bolt(e: Dictionary) -> void:
+	var chance := 0.35 + 0.3 * (sim.storm if sim else 0.5)
+	if Settings.v["reduce_flashing"] or _bolt_rng.randf() > chance:
+		bolts_skipped += 1
+		return
+	var d: float = e.get("distance", 650.0)
+	var dir2 := Geo.dir(e.get("bearing", 0.0))
+	var out := Vector3(dir2.x, 0.0, dir2.y)
+	var side := Vector3(-out.z, 0.0, out.x)
+	var cam_node := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var cam := cam_node.global_position if cam_node else Vector3(0, 21.0, 0)
+	var foot := out * d + Vector3(0, -1.5, 0)          # ends just under the sea surface (far skirt y -0.6)
+	var top := out * d + side * _bolt_rng.randf_range(-60.0, 60.0) + Vector3(0, _bolt_rng.randf_range(260.0, 360.0), 0)
+	var w := d * 0.007                                  # about 3-6 px wide on Medium's render scale
+	var st := {"v": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
+	var main := _bolt_path(top, foot, side, out, 6, 0.22)
+	_bolt_strip(st, main, cam, w, 0.5, 1.0)
+	for _b in _bolt_rng.randi_range(2, 4):
+		var k := _bolt_rng.randi_range(int(main.size() * 0.1), int(main.size() * 0.65))
+		var s: Vector3 = main[k]
+		var drop := (s.y + 1.5) * _bolt_rng.randf_range(0.2, 0.4)
+		var lat := drop * _bolt_rng.randf_range(0.3, 0.8) * (1.0 if _bolt_rng.randf() < 0.5 else -1.0)
+		_bolt_strip(st, _bolt_path(s, s + Vector3(0, -drop, 0) + side * lat, side, out, 4, 0.3), cam, w * 0.5, 0.2, 0.45)
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = st["v"]
+	arr[Mesh.ARRAY_TEX_UV] = st["uv"]
+	arr[Mesh.ARRAY_COLOR] = st["c"]
+	arr[Mesh.ARRAY_INDEX] = st["i"]
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	bolt.mesh = m
+	# visible 0.15-0.35 s; the first stroke plus 1-2 restrikes on the flicker peaks
+	_bolt_life = _bolt_rng.randf_range(0.15, 0.35)
+	_bolt_strokes = [0.0]
+	var n := 1
+	while n * BOLT_FLICKER_S < _bolt_life and n <= 2:
+		_bolt_strokes.append(n * BOLT_FLICKER_S)
+		n += 1
+	_bolt_power = e.get("power", 0.7)
+	_bolt_age = 0.0
+	bolt.visible = true
+	bolts_shown += 1
+
+
+## Midpoint displacement from a to b: jagged sideways (and a little in depth) at every scale.
+func _bolt_path(a: Vector3, b: Vector3, side: Vector3, out: Vector3, depth: int, rough: float) -> PackedVector3Array:
+	var pts := PackedVector3Array([a, b])
+	for _level in depth:
+		var nxt := PackedVector3Array()
+		for i in pts.size() - 1:
+			var p := pts[i]
+			var q := pts[i + 1]
+			var L := (q - p).length()
+			nxt.append(p)
+			nxt.append((p + q) * 0.5 + side * _bolt_rng.randf_range(-1.0, 1.0) * L * rough
+				+ out * _bolt_rng.randf_range(-1.0, 1.0) * L * rough * 0.5)
+		nxt.append(pts[pts.size() - 1])
+		pts = nxt
+	return pts
+
+
+## A camera-facing quad strip along pts, tapering from width w to w * taper.
+func _bolt_strip(st: Dictionary, pts: PackedVector3Array, cam: Vector3, w: float, taper: float, alpha: float) -> void:
+	var n := pts.size()
+	var base: int = st["v"].size()
+	for i in n:
+		var tg := (pts[mini(i + 1, n - 1)] - pts[maxi(i - 1, 0)]).normalized()
+		var off := tg.cross((pts[i] - cam).normalized()).normalized() * w * 0.5 * lerpf(1.0, taper, float(i) / float(n - 1))
+		st["v"].append(pts[i] - off)
+		st["v"].append(pts[i] + off)
+		st["uv"].append(Vector2(0, 0))
+		st["uv"].append(Vector2(1, 0))
+		st["c"].append(Color(1, 1, 1, alpha))
+		st["c"].append(Color(1, 1, 1, alpha))
+	for i in n - 1:
+		var a := base + i * 2
+		st["i"].append_array(PackedInt32Array([a, a + 1, a + 2, a + 1, a + 3, a + 2]))
+
+
+func _bolt_step(delta: float) -> void:
+	if _bolt_age < 0.0:
+		return
+	_bolt_age += delta
+	var e := 0.0
+	for s in _bolt_strokes:
+		if _bolt_age >= s:
+			e = maxf(e, exp(-(_bolt_age - s) / 0.05))
+	e = maxf(e, 0.2) if _bolt_age < _bolt_life else 0.2 * maxf(0.0, 1.0 - (_bolt_age - _bolt_life) / 0.08)
+	bolt_mat.set_shader_parameter("intensity", e * (0.55 + 0.45 * sin(_t * 47.0)) * _bolt_power)
+	if _bolt_age > _bolt_life + 0.08:
+		_bolt_age = -1.0
+		bolt.visible = false
 
 func _noise(size: int, freq: float, normal: bool, seamless := true) -> NoiseTexture2D:
 	var n := FastNoiseLite.new()
@@ -447,6 +567,7 @@ func on_events(events: Array) -> void:
 				flash = e["power"]
 				_flash_dir = Geo.dir(e["bearing"])
 				bolt_light.rotation = Vector3(deg_to_rad(-40), Geo.yaw_for(e["bearing"]) + PI, 0)
+				_strike_bolt(e)
 			"ship_spawned":
 				var s := sim.find_ship(e["ship"])
 				var v := SHIP_VIEW.new()
@@ -480,6 +601,7 @@ func _process_body(delta: float) -> void:
 	if Settings.v["reduce_flashing"]:
 		f *= 0.3
 	flash_now = f
+	_bolt_step(delta)
 	bolt_light.light_energy = f * 2.6
 	sky_mat.set_shader_parameter("storm", storm)
 	sky_mat.set_shader_parameter("flash", f)

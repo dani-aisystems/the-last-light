@@ -16,9 +16,13 @@ Per file it reports:
 Flags:
 - CLIP: peak >= -0.3 dBFS, or any sample at full scale
 - DC: |mean| > 0.005
-- SEAM: loop jump > 0.05 full scale
+- SEAM: loop jump > 0.05 full scale AND larger than the file's own 99.9th-percentile sample step
+  (bright noise steps more than 0.05 between neighbouring samples anyway; that is not a click)
 - QUIET: RMS < -45 dBFS, on a file that isn't meant to be silent
 - LOUD: RMS > -10 dBFS (a ceiling check on overall level)
+- SHORT: a constant looping layer shorter than 20 s, whose repeat is easy to hear (finding 30)
+
+`--strict` exits 1 when any file is flagged (used by tests/test_last_light_audio.py).
 """
 
 import argparse
@@ -32,6 +36,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 AUDIO = HERE.parent / "godot" / "assets" / "audio"
 LOOP_PREFIXES = ("amb_", "gen_idle", "gen_run", "hum", "clockwork", "static", "motor", "music_")
+MIN_LOOP_S = 20.0
 
 
 def read_wav(path: Path) -> tuple[np.ndarray, int]:
@@ -63,24 +68,28 @@ def analyse(path: Path) -> dict:
     rms = float(np.sqrt(np.mean(mono ** 2)))
     is_loop = path.stem.startswith(LOOP_PREFIXES)
     seam = float(np.abs(x[0] - x[-1]).max()) if is_loop and len(x) > 1 else None
+    step999 = float(np.percentile(np.abs(np.diff(mono)), 99.9)) if is_loop and len(x) > 1 else None
     r = {
         "file": path.name, "seconds": round(len(x) / sr, 2), "rate": sr, "channels": x.shape[1],
         "peak_dbfs": round(db(peak), 1), "rms_dbfs": round(db(rms), 1),
         "crest_db": round(db(peak) - db(rms), 1), "dc": round(float(mono.mean()), 4),
         "clipped": int(np.sum(np.abs(x) >= 0.9999)), "loop": is_loop,
         "seam_jump": round(seam, 3) if seam is not None else None,
+        "step_p999": round(step999, 3) if step999 is not None else None,
     }
     flags = []
     if r["peak_dbfs"] >= -0.3 or r["clipped"]:
         flags.append("CLIP")
     if abs(r["dc"]) > 0.005:
         flags.append("DC")
-    if seam is not None and seam > 0.05:
+    if seam is not None and seam > 0.05 and seam > step999:
         flags.append("SEAM")
     if r["rms_dbfs"] < -45:
         flags.append("QUIET")
     if r["rms_dbfs"] > -10:
         flags.append("LOUD")
+    if is_loop and r["seconds"] < MIN_LOOP_S:
+        flags.append("SHORT")
     r["flags"] = flags
     return r
 
@@ -89,6 +98,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=str(AUDIO))
     ap.add_argument("--json", default="")
+    ap.add_argument("--strict", action="store_true", help="exit 1 if any file is flagged")
     a = ap.parse_args()
     files = sorted(Path(a.dir).glob("*.wav"))
     if not files:
@@ -105,7 +115,7 @@ def main() -> int:
           + " ".join(f"{r['file']}:{'+'.join(r['flags'])}" for r in flagged))
     if a.json:
         Path(a.json).write_text(json.dumps(rows, indent=1))
-    return 0
+    return 1 if (a.strict and flagged) else 0
 
 
 if __name__ == "__main__":
