@@ -29,7 +29,19 @@
   - All suites green. **Evidence:** `renders/last_light/g2b6_*.png`.
   - **Approved and committed** (`95ee6a8`); G2b is complete.
 - **Daniel, 2026-11-07: no pipe for Callum.** Item 19 is dropped; Iain's pipe as a cabin object is an option for G4.
-- **Next:** G3 (13 body, 14 hands, 12 compass, 18 binoculars, 24 seated at the radio), inspect and plan first.
+- **G3 staging (Daniel, 2026-11-07):**
+  - G3a: the equipment system, with compass and binoculars as held items and procedural sway;
+  - G3b: arms and hands;
+  - G3c: the full body and sitting at the radio.
+  - Keys: G compass, B binoculars.
+  - Both lie on the desk from the start; optional duty steps in the ch1 Kittiwake duties point them out.
+- **G3a plan (awaiting Daniel's go):**
+  1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
+  2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).
+  3. `equipment.gd` (new): one held item per hand. Torch: right hand, F. Compass: left hand, G; the needle follows world north. Binoculars: both hands, B; FOV 72° to 10° over 0.35 s, look sensitivity scaled, an eyepiece mask, walking slowed, the torch put away while they're up. E lowers the binoculars first. State is saved.
+  4. Held meshes are instanced from the GLB parts, attached to the camera with procedural walk sway (real arms come in G3b).
+  5. ch1 duties: optional steps "Take the hand compass" (kittiwake) and "Take the binoculars" (kittiwake_home), with nudges.
+  6. Tests: regress R15 (key separation, pickup gating, needle to north within 1°, FOV and state restore after focus, pause and load), story pickup steps. One capture run with Daniel's OK.
 - **G2b S4 (logbook + completion), for reference:**
   - `chapters.json` `station_log` holds tonight's five canon rows (verbatim `log_1971`); duties log by id, beats with the `["log", id]` action (18.30, 18.50, 23.25);
   - `blender/log_strips.py` (seeded, reproducible) renders the blank page, row strips, slips (paper + ink), the pencil Duties page and duty strips into `godot/assets/docs/log/` with a manifest;
