@@ -51,7 +51,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 16 | Generator / battery feedback | Bug (UX) | P0 | S | 2E / G2 | Planned |
 | 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
 | 18 | Binoculars as equipment | Gameplay | P2 | M | 2E / G3 | Planned |
-| 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | Planned |
+| 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | **Dropped** (Daniel 2026-11-07: no pipe for Callum; his profile has none). Option for G4: Iain's pipe as a cabin object, not smoked |
 | 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Implemented, then **superseded by G2b** (checkpoint 2026-11-06: contrast FAIL 1.1–1.5:1 over lit walls, `g25_panel_crops.png`; Daniel chose the cinematic duty system) |
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |
 | 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Profiles done (`character-refs/`); portrait images paused until Daniel supplies them (2026-11-06) |

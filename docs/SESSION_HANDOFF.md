@@ -27,7 +27,9 @@
   - 19 duties across ch1–6 (no `objective` key left);
   - `"duty": []` ends a duty; duties without steps escalate; the Duties page is per chapter; the write-up counts only at the desk (`game_fp._at_desk`).
   - All suites green. **Evidence:** `renders/last_light/g2b6_*.png`.
-  - **Next, after approval:** commit, then G3, starting with the pipe question (item 19).
+  - **Approved and committed** (`95ee6a8`); G2b is complete.
+- **Daniel, 2026-11-07: no pipe for Callum.** Item 19 is dropped; Iain's pipe as a cabin object is an option for G4.
+- **Next:** G3 (13 body, 14 hands, 12 compass, 18 binoculars, 24 seated at the radio), inspect and plan first.
 - **G2b S4 (logbook + completion), for reference:**
   - `chapters.json` `station_log` holds tonight's five canon rows (verbatim `log_1971`); duties log by id, beats with the `["log", id]` action (18.30, 18.50, 23.25);
   - `blender/log_strips.py` (seeded, reproducible) renders the blank page, row strips, slips (paper + ink), the pencil Duties page and duty strips into `godot/assets/docs/log/` with a manifest;
