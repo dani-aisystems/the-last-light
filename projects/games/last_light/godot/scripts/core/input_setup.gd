@@ -21,6 +21,8 @@ const BINDINGS := {          # keyboard (physical keycodes)
 	"torch": [KEY_F],          # cabin pass: switch the carried torch on / off
 	"history": [KEY_H],        # Stage 3A: the dialogue history (backlog)
 	"duty": [KEY_J],           # G2b: show the current duty (hold: the latest hint)
+	"compass": [KEY_G],        # G3a: take out / put away the hand compass
+	"binoculars": [KEY_B],     # G3a: raise / lower the binoculars
 	"dialogue_next": [KEY_SPACE],   # brief item 7: finish / advance a dialogue line (E is interaction only)
 	"back": [],               # keyboard "back" is Esc / right click (handled with pause / mouse)
 	"turn_prev": [],          # keyboard: right click / wheel
@@ -196,6 +198,10 @@ static func glyph(what: String) -> String:
 			return "H"
 		"duty":
 			return "J"
+		"compass":
+			return "G"
+		"binoculars":
+			return "B"
 		"wheel", "handwheel":
 			return "A / D"
 		"move":
@@ -212,6 +218,6 @@ static func key(what: String) -> String:
 
 ## Hint text with {interact} {move} {look} {turn_back} {wheel} tokens resolved for the current device.
 static func resolve(text: String) -> String:
-	for t in ["interact", "move", "look", "turn_back", "wheel", "back", "logbook", "torch", "transcript", "turn", "next_vessel", "history", "duty"]:
+	for t in ["interact", "move", "look", "turn_back", "wheel", "back", "logbook", "torch", "transcript", "turn", "next_vessel", "history", "duty", "compass", "binoculars"]:
 		text = text.replace("{%s}" % t, glyph(t))
 	return text

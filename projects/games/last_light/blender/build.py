@@ -1104,6 +1104,27 @@ def build_desk_detail(B):
         cyl(B.bm("M_LL_Iron", "SM_Props"), hinge + dv * 0.92, 0.0012, 0.0002, dv.length * 0.16, 8, basis_z(dv))
     cyl(B.bm("M_LL_Brass", "SM_Props"), hinge + cb3.col[2] * 0.001, 0.0085, 0.0085, 0.006, 20, cb3)
     seg_cyl(B.bm("M_LL_Brass", "SM_Props"), hinge, CP(0.373, 0.178, 0.004), 0.0028, 8)
+    # ---- G3a (Daniel 2026-11-07): the keeper's hand compass, a pickup (IA_compass). Its own buckets
+    #      (PROP_compass_*), so the game can hide it when taken and show a copy in the keeper's hand. A brass
+    #      bowl (a ring: nothing covers the card), the rose card (T_LL_Rose) under glass; the needle is its
+    #      own part (PT_compass_needle) so the game turns it to north.
+    kc = CP(-0.27, -0.14, 0.0)          # front-left, clear of the rule, pencil and dividers (not under the radio)
+    lathe(B.bm("M_LL_Brass", "PROP_compass"), kc, cb3,
+          [(0.0, 0.0), (0.040, 0.0), (0.0425, 0.004), (0.0425, 0.0175), (0.0445, 0.0195), (0.0445, 0.0225),
+           (0.0372, 0.0225), (0.0372, 0.0105), (0.0, 0.0105)], 40)
+    kcard = B.bm("M_LL_Rose", "PROP_compass")
+    disc_uv(kcard, B.uv(kcard), kc + cb3.col[2] * 0.0108, cb3, 0.0368, 40, None)
+    cyl(B.bm("M_LL_Glass", "PROP_compass"), kc + cb3.col[2] * 0.0205, 0.0372, 0.0372, 0.0008, 40, cb3)
+    cyl(B.bm("M_LL_Brass", "PROP_compass"), kc + cb3.col[2] * 0.0245, 0.0045, 0.0055, 0.004, 12, cb3)   # bow / ring post
+
+    def needle(bm, uvl):
+        tip, tail, half = 0.031, 0.026, 0.0034
+        vs = [bm.verts.new(Vector(p)) for p in ((0, tip, 0.0), (half, 0, 0.0), (0, -tail, 0.0), (-half, 0, 0.0),
+                                                 (0, 0, 0.0016))]
+        for f in ((0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4), (0, 3, 2, 1)):
+            bm.faces.new([vs[i] for i in f])
+    B.part("PT_compass_needle", "M_LL_Iron", kc + cb3.col[2] * 0.0145, cb3, needle)
+    B.empty("IA_compass", kc + cb3.col[2] * 0.015, (0.055, 0.055, 0.03), cb3)
     # a green pencil stub left on the chart (the bearing work)
     s0, s1 = CP(0.27, -0.215, 0.0042), CP(0.355, -0.19, 0.0042)     # beside the rule
     pencil(B, s0, s1 - s0, (s1 - s0).length, "pencil_green")
@@ -1261,22 +1282,24 @@ def build_desk_detail(B):
         sb3 = basis(kb.col[0], kb.col[2], -kb.col[1])
         quad_uv(pm, B.uv(pm), Pb(0.0, -bd / 2 - 0.0003, hgt / 2), sb3, t, hgt, region_rect("spines", k / 4, 0.0, (k + 1) / 4, 1.0))
         x_r = cx + t / 2 if not lean else x_r
-    # ---- 7x50 binoculars lying on the desk, strap trailing
+    # ---- 7x50 binoculars lying on the desk, strap trailing. G3a: own buckets (PROP_binoculars_*), a pickup
+    #      (IA_binoculars): the game hides them when taken and shows a copy in the keeper's hands.
     nb3 = bs @ rot_about((0, 0, 1), 25.0)
     nc = D(0.88, 0.0, back - 0.31)
     Np = lambda x, y, z: nc + nb3 @ Vector((x, y, z))
     yb3 = basis_z(nb3.col[1])
     for s in (-1, 1):
-        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.058, 0.035, 0.031), 0.031, 0.031, 0.085, 24, yb3))
-        solid(B, "hammertone", lambda bm, s=s: box(bm, Np(s * 0.045, -0.025, 0.031), (0.05, 0.045, 0.056), nb3, bevel=0.008))
-        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.034, -0.068, 0.034), 0.019, 0.019, 0.04, 20, yb3))
-        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.034, -0.094, 0.034), 0.0205, 0.0195, 0.012, 20, yb3))
-        cyl(B.bm("M_LL_Iron", "SM_Props"), Np(s * 0.058, 0.079, 0.031), 0.0318, 0.0318, 0.006, 24, yb3)
-        cyl(B.bm("M_LL_Glass", "SM_PropsGlass"), Np(s * 0.058, 0.0815, 0.031), 0.026, 0.026, 0.001, 24, yb3)
-    solid(B, "hammertone", lambda bm: cyl(bm, Np(0.0, -0.032, 0.05), 0.009, 0.009, 0.075, 14, yb3))
-    cyl(B.bm("M_LL_Iron", "SM_Props"), Np(0.0, -0.052, 0.058), 0.012, 0.012, 0.016, 18, basis_z(nb3.col[0]))
+        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.058, 0.035, 0.031), 0.031, 0.031, 0.085, 24, yb3), "PROP_binoculars")
+        solid(B, "hammertone", lambda bm, s=s: box(bm, Np(s * 0.045, -0.025, 0.031), (0.05, 0.045, 0.056), nb3, bevel=0.008), "PROP_binoculars")
+        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.034, -0.068, 0.034), 0.019, 0.019, 0.04, 20, yb3), "PROP_binoculars")
+        solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.034, -0.094, 0.034), 0.0205, 0.0195, 0.012, 20, yb3), "PROP_binoculars")
+        cyl(B.bm("M_LL_Iron", "PROP_binoculars"), Np(s * 0.058, 0.079, 0.031), 0.0318, 0.0318, 0.006, 24, yb3)
+        cyl(B.bm("M_LL_Glass", "PROP_binoculars"), Np(s * 0.058, 0.0815, 0.031), 0.026, 0.026, 0.001, 24, yb3)
+    solid(B, "hammertone", lambda bm: cyl(bm, Np(0.0, -0.032, 0.05), 0.009, 0.009, 0.075, 14, yb3), "PROP_binoculars")
+    cyl(B.bm("M_LL_Iron", "PROP_binoculars"), Np(0.0, -0.052, 0.058), 0.012, 0.012, 0.016, 18, basis_z(nb3.col[0]))
     strap = bezier(Np(-0.06, -0.075, 0.04), Np(-0.15, -0.14, 0.0016), Np(0.07, -0.25, 0.0016), Np(0.062, -0.075, 0.04), 18)
-    solid(B, "flex_brown", lambda bm: sweep(bm, strap, 0.0014, 6, ry=0.007, n0=(0, 0, 1)))
+    solid(B, "flex_brown", lambda bm: sweep(bm, strap, 0.0014, 6, ry=0.007, n0=(0, 0, 1)), "PROP_binoculars")
+    B.empty("IA_binoculars", Np(0.0, 0.0, 0.035), (0.11, 0.1, 0.05), nb3)
     # ---- teleprinter forecast: torn top edge, the roll's curl lifting it (IA_forecast unchanged)
     fw, fh = 0.22, 0.198
     fb = rot_about(u, -14.0) @ bs

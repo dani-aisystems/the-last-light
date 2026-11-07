@@ -215,6 +215,8 @@ func on_events(events: Array) -> void:
 				sfx_at("gen_catch", loops["gen_idle"].global_position, -1.0)      # G2b: she catches
 			"torch":
 				sfx("torch_click", -12.0)                                          # G2b: the torch switch
+			"equip":
+				sfx("torch_click", -16.0)                                          # G3a: compass / glasses in hand
 			"gen_stop", "gen_overheat":
 				sfx_at("gen_stop", loops["gen_idle"].global_position, -2.0)
 			"ship_spawned":

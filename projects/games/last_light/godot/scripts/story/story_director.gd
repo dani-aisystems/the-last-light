@@ -421,6 +421,7 @@ const HINT_S := 60.0
 var _esc_key := ""
 var _esc_t := 0.0
 var _esc_level := 0
+var _nudged_opt := {}                     # G3a: "duty.sub" optional steps already nudged once
 
 
 func current_step() -> Dictionary:
@@ -435,6 +436,9 @@ func current_step() -> Dictionary:
 	for sub in d.get("sub", []):              # required steps first: a keeper at the cage is not nagged
 		var sid := String(sub["id"])          # about the torch he chose to do without
 		if sid in e.get("known", []) and not (sid in e.get("done", [])) and not (sid in e.get("dropped", [])):
+			# G3a: an optional "nudge_first" step (a pickup worth pointing out) gets ONE nudge before the task
+			if bool(sub.get("nudge_first", false)) and not _nudged_opt.has(id + "." + sid):
+				return sub
 			if not bool(sub.get("optional", false)):
 				return sub
 			if optional_left.is_empty():
@@ -460,6 +464,8 @@ func _tick_escalation(delta: float) -> void:
 	if _esc_level == 0 and _esc_t >= NUDGE_S:
 		_esc_level = 1
 		story_event.emit("duty_nudge", [1, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+		if bool(sub.get("optional", false)):   # once is enough: the required step takes over
+			_nudged_opt[state.focus_duty + "." + String(sub["id"])] = true
 	elif _esc_level >= 1 and _esc_t >= HINT_S * _esc_level:      # the hint at 60 s, then every 60 s
 		_esc_level += 1
 		story_event.emit("duty_nudge", [2, String(sub.get("nudge", "")), String(sub.get("hint", ""))])

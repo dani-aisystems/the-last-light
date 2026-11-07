@@ -44,13 +44,13 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 9 | Missions with sub-objectives | Gameplay + UI | P0 | M | 2E / G2 | Planned |
 | 10 | Shelf items, per object | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
 | 11 | Console note texture and writing | Visual | P2 | S | Cabin pass 2 / G4 | Planned |
-| 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Planned |
+| 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (a new brass hand compass on the chart; the old one no longer existed; G; the needle points north within 1°; regress R15; captures `g3a*`). Held without arms until G3b |
 | 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Planned |
 | 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Planned |
 | 15 | Photograph realism | Visual | P3 | S | Cabin pass 2 / G4 | Planned |
 | 16 | Generator / battery feedback | Bug (UX) | P0 | S | 2E / G2 | Planned |
 | 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
-| 18 | Binoculars as equipment | Gameplay | P2 | M | 2E / G3 | Planned |
+| 18 | Binoculars as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (B; FOV 72° to 10°, look sensitivity scaled, eyepiece mask, slow walk, torch out while up, E lowers first; R15; capture `g3a_t133`) |
 | 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | **Dropped** (Daniel 2026-11-07: no pipe for Callum; his profile has none). Option for G4: Iain's pipe as a cabin object, not smoked |
 | 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Implemented, then **superseded by G2b** (checkpoint 2026-11-06: contrast FAIL 1.1–1.5:1 over lit walls, `g25_panel_crops.png`; Daniel chose the cinematic duty system) |
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |

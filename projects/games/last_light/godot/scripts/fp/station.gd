@@ -71,6 +71,8 @@ var DEVICES := {
 	"radar": {"kind": "info", "prompt": "Watch the radar", "part_of": "radio"},   # item 23: its own target, never opens the radio view; ignored inside it
 	"chart": {"kind": "doc", "prompt": "Study the chart"},          # cabin pass: full-screen inspection
 	"torch": {"kind": "pickup", "prompt": "Pick up the torch", "idle": "The torch, for when the power fails"},
+	"compass": {"kind": "pickup", "prompt": "Take the hand compass", "idle": "The hand compass"},        # G3a
+	"binoculars": {"kind": "pickup", "prompt": "Take the binoculars", "idle": "The binoculars"},         # G3a
 	"logbook": {"kind": "doc", "prompt": "Write up the station log"},
 	"gen_panel": {"kind": "info", "prompt": "Check the generator"},
 	"battery": {"kind": "info", "prompt": "Check the battery"},
@@ -95,6 +97,8 @@ var docs_enabled := true
 var door_usable := true
 ## The storage-shelf torch (cabin pass): PROP_torch* meshes and its IA body, hidden once the keeper takes it.
 var torch_taken := false
+var items_taken := {}                    # G3a: "compass" / "binoculars" -> true once in the keeper's pocket
+var _item_nodes := {}                    # G3a: pickup id -> the desk prop's nodes (hidden once taken)
 var _torch_nodes: Array = []
 var _ia_bodies := {}                    # id -> StaticBody3D (so a taken item stops being targetable)
 ## Stage 3B: props that exist only once the story puts them there (the 1953 photograph under the door or
@@ -136,6 +140,9 @@ func _bind(root: Node) -> void:
 				_no_shadow(n)
 		elif nm.begins_with("PROP_torch"):
 			_torch_nodes.append(n)
+		elif nm.begins_with("PROP_compass") or nm.begins_with("PROP_binoculars"):     # G3a pickups
+			var key := "compass" if nm.begins_with("PROP_compass") else "binoculars"
+			_item_nodes[key] = _item_nodes.get(key, []) + [n]
 		elif nm.begins_with("PROP_photo53"):
 			_story_props["photo53desk" if nm.begins_with("PROP_photo53desk") else "photo53"].append(n)
 		elif nm.begins_with("LMP_"):
@@ -601,7 +608,9 @@ func availability(id: String) -> Dictionary:
 			if not door_usable:
 				return {"ok": false, "reason": ""}
 		"pickup":                         # Daniel: the torch is for the blackout (taken once, kept)
-			if torch_taken or sim.lights_on():
+			if id == "torch" and (torch_taken or sim.lights_on()):
+				return {"ok": false, "reason": ""}
+			if id != "torch" and items_taken.get(id, false):        # G3a: compass / binoculars, any time
 				return {"ok": false, "reason": ""}
 	return {"ok": true, "reason": ""}
 
@@ -689,6 +698,18 @@ func set_torch_taken(v: bool) -> void:
 		(n as Node3D).visible = not v
 	if _ia_bodies.has("torch"):
 		(_ia_bodies["torch"] as StaticBody3D).collision_layer = 0 if v else 1 << (INTERACT_LAYER - 1)
+
+
+## G3a: the compass or binoculars has been taken (or put back by a load): hide the desk prop (and the
+## compass's needle), and stop it being a target.
+func set_item_taken(id: String, v: bool) -> void:
+	items_taken[id] = v
+	for n in _item_nodes.get(id, []):
+		(n as Node3D).visible = not v
+	if id == "compass" and parts.has("PT_compass_needle"):
+		(parts["PT_compass_needle"]["node"] as Node3D).visible = not v
+	if _ia_bodies.has(id):
+		(_ia_bodies[id] as StaticBody3D).collision_layer = 0 if v else 1 << (INTERACT_LAYER - 1)
 
 
 ## Show or hide a story prop and make it (un)targetable (3B).

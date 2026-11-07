@@ -35,7 +35,17 @@
   - G3c: the full body and sitting at the radio.
   - Keys: G compass, B binoculars.
   - Both lie on the desk from the start; optional duty steps in the ch1 Kittiwake duties point them out.
-- **G3a plan (awaiting Daniel's go):**
+- **G3a implemented, uncommitted, awaiting Daniel's checkpoint:**
+  - `pipeline.sh --docs` is opt-in;
+  - `build.py`: a new brass hand compass on the chart (near-left corner; `PROP_compass_*`, `PT_compass_needle`, `IA_compass`) and the binoculars split into `PROP_binoculars_*` + `IA_binoculars`; build v040, GLB `watch_room_v038` (0 FAIL, reimport OK);
+  - `equipment.gd` (held copies, needle to north, 7× binoculars with mask);
+  - station pickups; the player's G/B keys; a pick rule so a pickup on a document wins;
+  - ch1 optional `nudge_first` steps;
+  - regress R15. All suites green.
+  - **Evidence:** `renders/last_light/g3a_*.png`, `g3a2_*`, `g3a3_*`.
+  - **Pad:** G/B left unbound for now (Daniel 2026-11-07; a later controls pass).
+  - **Approved by Daniel; committed.** Next: G3b (arms and hands), inspect and plan first.
+- **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).
   3. `equipment.gd` (new): one held item per hand. Torch: right hand, F. Compass: left hand, G; the needle follows world north. Binoculars: both hands, B; FOV 72° to 10° over 0.35 s, look sensitivity scaled, an eyepiece mask, walking slowed, the torch put away while they're up. E lowers the binoculars first. State is saved.

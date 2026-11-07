@@ -1368,6 +1368,96 @@ func _r12_brief_g2() -> void:
 	g.director.process_mode = Node.PROCESS_MODE_DISABLED
 	await _r13_duty_hud()
 	await _r14_logbook()
+	await _r15_equipment()
+
+
+## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
+## another key, the compass needle on north within 1 degree at any yaw, the binoculars' 7x view (FOV,
+## look sensitivity, mask, the torch out while up and back after), E lowers them first, a device view
+## puts everything away, and a save restores what the keeper carries and what's left on the desk.
+func _r15_equipment() -> void:
+	print("R15 G3a equipment")
+	var eq = g.player.equipment
+	var st = g.station
+	_check(eq != null and eq.compass_node.get_child_count() >= 3 and eq.bino_node.get_child_count() >= 3 and eq.needle != null,
+		"the held compass and binoculars are built from the desk props (%d / %d meshes)" % [eq.compass_node.get_child_count(), eq.bino_node.get_child_count()])
+	var keys := {}
+	var dup := false
+	for a in InputSetup.BINDINGS:
+		for k in InputSetup.BINDINGS[a]:
+			if k in [KEY_G, KEY_B]:
+				dup = dup or keys.has(k)
+				keys[k] = a
+	_check(not dup and keys.get(KEY_G, "") == "compass" and keys.get(KEY_B, "") == "binoculars", "G and B belong to the compass and binoculars only")
+	g.player.leave_focus()
+	await _settle_focus()
+	for id in ["compass", "binoculars"]:
+		eq.has[id] = false
+		st.set_item_taken(id, false)
+	var r: Dictionary = eq.toggle("compass")
+	_check(not r["ok"] and r["reason"].contains("chart") and eq.held == "", "no compass before it is taken from the chart (%s)" % r["reason"])
+	var cia: Node3D = st._ia_bodies["compass"]          # aimed at the compass on the chart, the compass wins
+	var org: Vector3 = cia.global_position + Vector3(0.0, 0.9, 0.6)
+	var hit: String = g.player.pick(g.player.get_world_3d().direct_space_state, org, (cia.global_position - org).normalized(), 2.5)
+	var seen: Array = []
+	var ex: Array[RID] = []
+	for i in 6:
+		var q := PhysicsRayQueryParameters3D.create(org, org + (cia.global_position - org).normalized() * 2.5, 1 << 1, ex)
+		var h: Dictionary = g.player.get_world_3d().direct_space_state.intersect_ray(q)
+		if h.is_empty():
+			break
+		ex.append(h["rid"])
+		seen.append("%s@%.2f(L%d)" % [h["collider"].get_meta("ia", "?"), org.distance_to(h["position"]), h["collider"].collision_layer])
+	_check(hit == "compass", "looking at the compass on the chart targets the compass, not the chart (%s; ray: %s; compass layer %d)" % [hit, seen, cia.collision_layer])
+	g._route([{"type": "pickup", "item": "compass"}, {"type": "pickup", "item": "binoculars"}])
+	await _frames(2)
+	var props_hidden: bool = st._item_nodes.get("compass", []).all(func(n): return not n.visible) \
+		and st._item_nodes.get("binoculars", []).all(func(n): return not n.visible)
+	_check(eq.has["compass"] and eq.has["binoculars"] and props_hidden and st._ia_bodies["compass"].collision_layer == 0
+		and g.director.state.has_flag("took_compass"), "taking them hides the desk props and marks them taken")
+	eq.toggle("compass")
+	await create_timer(0.4).timeout
+	var worst := 0.0
+	for yaw in [0.0, 0.7, 1.9, 3.1, -2.4, -0.9]:
+		g.player._yaw = yaw
+		g.player._apply_look()
+		await _frames(2)
+		worst = maxf(worst, eq.point_needle(eq.needle))
+	_check(eq.compass_node.visible and worst < 1.0, "the compass is in hand and its needle points north within 1 deg at every yaw (worst %.2f)" % worst)
+	var desk_err: float = eq.point_needle(st.parts["PT_compass_needle"]["node"])
+	_check(desk_err < 1.0, "the desk compass's needle points north too (%.2f deg)" % desk_err)
+	# binoculars: torch on first, so we can see it go out and come back
+	g.player.give_torch(true)
+	eq.toggle("binoculars")
+	await create_timer(0.6).timeout
+	var cam: Camera3D = g.player.camera
+	_check(eq.held == "binoculars" and absf(cam.fov - Equipment.BINO_FOV) < 0.6 and eq.mask.visible and not g.player.torch_light.visible
+		and absf(eq.look_scale() - Equipment.BINO_FOV / float(root.get_node("Settings").v["fov"])) < 0.01,
+		"binoculars up: FOV %.1f, mask on, torch out, look x%.3f" % [cam.fov, eq.look_scale()])
+	var ev := InputEventAction.new()
+	ev.action = "interact"
+	ev.pressed = true
+	g.player._unhandled_input(ev)
+	await create_timer(0.6).timeout
+	_check(eq.held == "" and absf(cam.fov - float(root.get_node("Settings").v["fov"])) < 0.6 and not eq.mask.visible and g.player.torch_light.visible,
+		"E lowers the binoculars first; the view, mask and torch are back (FOV %.1f)" % cam.fov)
+	eq.toggle("compass")
+	g.player.enter_focus("radio")
+	await _settle_focus()
+	_check(eq.held == "", "a device view puts the compass away")
+	g.player.leave_focus()
+	await _settle_focus()
+	eq.toggle("compass")
+	var d: Dictionary = g.save_dict()
+	eq.has = {"compass": false, "binoculars": false}
+	eq.held = ""
+	st.set_item_taken("compass", false)
+	st.set_item_taken("binoculars", false)
+	g._apply_save(d)
+	await _frames(2)
+	_check(eq.has["compass"] and eq.has["binoculars"] and eq.held == "compass" and st.items_taken.get("compass", false)
+		and st._item_nodes.get("binoculars", []).all(func(n): return not n.visible), "a save restores the kit in hand and the empty desk")
+	eq.put_away_now()
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

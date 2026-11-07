@@ -51,6 +51,7 @@ var vessel_cycle_fn: Callable                # fp_ui.cycle_vessel: LB / RB in th
 ## A warm incandescent spot on the camera, a little right of and below the eye, converging on the
 ## crosshair at about 3 m. F / LT switches it.
 var torch_held := false
+var equipment: Equipment                   # G3a: compass and binoculars (game_fp creates it under the camera)
 var torch_light: SpotLight3D
 var _pos_prev := Vector3.ZERO
 var _pos_cur := Vector3.ZERO
@@ -111,12 +112,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		if focused != "" and event.relative.length() > 0.5 and not InputSetup.pad_forced:
 			virtual_cursor = Vector2.INF       # the real mouse moved: it drives the device-view cursor again
 		if focused == "" and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			var sens: float = MOUSE_SENS * float(Settings.v["mouse_sens"])
+			var sens: float = MOUSE_SENS * float(Settings.v["mouse_sens"]) * (equipment.look_scale() if equipment else 1.0)
 			var inv := -1.0 if Settings.v["invert_y"] else 1.0
 			var d: Vector2 = event.screen_relative / maxf(DisplayServer.screen_get_scale(), 1.0)
 			_yaw -= d.x * sens
 			_pitch = clampf(_pitch - d.y * sens * inv, -1.45, 1.45)
 			_apply_look()
+	elif equipment and equipment.held == "binoculars" and event.is_action_pressed("interact"):
+		equipment.toggle("binoculars")         # G3a: E with the glasses up lowers them first
+		events.emit([{"type": "equip", "item": "binoculars", "held": ""}])
 	elif event.is_action_pressed("interact") or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		_press(event)
 	elif event.is_action_released("interact") or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed):
@@ -125,6 +129,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		if torch_held:
 			set_torch(not torch_light.visible)
 			events.emit([{"type": "torch", "on": torch_light.visible}])   # G2b: the switch is heard
+	elif equipment and focused == "" and (event.is_action_pressed("compass") or event.is_action_pressed("binoculars")):
+		var id := "compass" if event.is_action_pressed("compass") else "binoculars"
+		var r: Dictionary = equipment.toggle(id)          # G3a: G / B
+		if r["ok"]:
+			events.emit([{"type": "equip", "item": id, "held": equipment.held}])
+		else:
+			events.emit([{"type": "refused", "device": id, "reason": r["reason"]}])
 	elif event.is_action_pressed("back"):     # pad B (keyboard: Esc and right click, below / in game_fp)
 		if focused != "":
 			leave_focus()
@@ -240,6 +251,8 @@ func enter_focus(id: String) -> void:
 		if focused == "console":
 			station.sim.set_wheel(0.0)
 	focused = id
+	if equipment:
+		equipment.put_away_now()             # G3a: hands free for the device
 	_focus_from = camera.global_transform
 	var eye: Vector3 = f["eye"]
 	var at: Vector3 = f.get("at", eye + Vector3.FORWARD)
@@ -303,7 +316,7 @@ func _process(delta: float) -> void:
 	if focused == "":
 		var s := InputSetup.stick("look_left", "look_right", "look_up", "look_down")
 		if s != Vector2.ZERO:
-			var k: float = InputSetup.LOOK_SPEED * float(Settings.v.get("stick_sens", 1.0)) * delta
+			var k: float = InputSetup.LOOK_SPEED * float(Settings.v.get("stick_sens", 1.0)) * delta * (equipment.look_scale() if equipment else 1.0)
 			var inv := -1.0 if Settings.v["invert_y"] else 1.0
 			_yaw -= s.x * k
 			_pitch = clampf(_pitch - s.y * k * 0.7 * inv, -1.45, 1.45)
@@ -343,6 +356,8 @@ func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var dir := (transform.basis * Vector3(input.x, 0, input.y)).normalized()
 	var spd := SPRINT if Input.is_action_pressed("sprint") else WALK
+	if equipment and equipment.held == "binoculars":     # G3a: slow and careful with the glasses up
+		spd = WALK * equipment.move_scale()
 	var target := dir * spd
 	velocity.x = move_toward(velocity.x, target.x, 9.0 * delta)
 	velocity.z = move_toward(velocity.z, target.z, 9.0 * delta)
@@ -400,9 +415,16 @@ func pick(space: PhysicsDirectSpaceState3D, origin: Vector3, dir: Vector3, lengt
 	if hits.is_empty():
 		return ""
 	var best: Dictionary = hits[0]
+	var bi := 0
 	if best["kind"] in CONTAINER_KINDS:
-		for h in hits.slice(1):
-			if not (h["kind"] in CONTAINER_KINDS) and h["dist"] - best["dist"] <= CONTAINER_DEPTH:
+		for i in range(1, hits.size()):
+			if not (hits[i]["kind"] in CONTAINER_KINDS) and hits[i]["dist"] - best["dist"] <= CONTAINER_DEPTH:
+				best = hits[i]
+				bi = i
+				break
+	if best["kind"] == "doc":                   # G3a: a thing lying on a document (the compass on the chart) wins
+		for h in hits.slice(bi + 1):
+			if h["kind"] == "pickup" and h["dist"] - best["dist"] <= CONTAINER_DEPTH:
 				best = h
 				break
 	if _occluded(space, origin, dir, best["dist"]):

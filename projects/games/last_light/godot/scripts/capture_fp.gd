@@ -23,6 +23,8 @@ extends Node
 ##     (hold START until the engine runs, then release), op_charge (CHARGE on), op_console (MODE AUTO,
 ##     LAMP NORMAL); bolt (re-strike until a visible bolt is drawn, saved within its life); visitor (stair
 ##     door open, the Visitor figure inside it; restored)
+##   G3a equipment states: take_kit (compass and binoculars picked up), compass / binoculars (held),
+##     face_north / face_east (the keeper turns level to that bearing; use after a pp_ view)
 ##   G2b duty HUD states: guidance_min / guidance_full (the Guidance option, restored), recall (J / R3
 ##     held: the duty and the latest hint), crank_fail (START held with the fuel valve shut: it fails)
 ##   VIEW pp_<ia id> (Stage 2): the PLAYER stands 1.3 m from that control and looks at it, so the shot
@@ -282,6 +284,16 @@ func _force(g, st: String) -> void:
 				_restore_state["guidance"] = Settings.v["guidance"]
 			Settings.v["guidance"] = 0 if st == "guidance_min" else 2
 			g.presenter.duty_hud._rebuild()
+		"take_kit":                              # G3a: the compass and binoculars taken from the desk (kept)
+			g._route([{"type": "pickup", "item": "compass"}, {"type": "pickup", "item": "binoculars"}])
+		"compass", "binoculars":                 # G3a: in hand / at the eyes (put away afterwards)
+			if g.player.equipment.held != st:
+				g.player.equipment.toggle(st)
+			_restore_state["equip"] = true
+		"face_north", "face_east":               # G3a: the keeper looks north (bearing 0) or east, level
+			g.player._yaw = 0.0 if st == "face_north" else -PI / 2.0
+			g.player._pitch = -0.05
+			g.player._apply_look()
 		"recall":                                # G2b: the player held J / R3 (duty + latest hint)
 			g.presenter.recall_duty(true)
 		"visitor":
@@ -388,6 +400,8 @@ func _unforce(g) -> void:
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
 		g.presenter.hide_ending()
+	if _restore_state.has("equip"):
+		g.player.equipment.put_away_now()
 	if _restore_state.has("guidance"):
 		Settings.v["guidance"] = _restore_state["guidance"]
 		g.presenter.duty_hud._rebuild()

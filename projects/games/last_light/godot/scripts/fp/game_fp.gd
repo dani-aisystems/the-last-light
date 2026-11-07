@@ -87,6 +87,10 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 	player.station = station
 	add_child(player)
 	player.place(station.spawn, Vector3.ZERO)
+	var eq := Equipment.new()                  # G3a: compass and binoculars, placed at the camera every frame
+	add_child(eq)
+	player.equipment = eq
+	eq.setup(player, station)
 	ui = preload("res://scripts/fp/fp_ui.gd").new()
 	ui.sim = sim
 	add_child(ui)
@@ -352,7 +356,8 @@ func save_dict() -> Dictionary:
 	return {"story": director.state.to_dict(), "sim": sim.to_dict(), "chapter_title": c.get("title", ""),
 		"clock": sim.clock_text(),
 		"player": {"pos": [player.global_position.x, player.global_position.y, player.global_position.z], "yaw": player._yaw, "pitch": player._pitch,
-			"torch": player.torch_held, "torch_on": player.torch_light != null and player.torch_light.visible},
+			"torch": player.torch_held, "torch_on": player.torch_light != null and player.torch_light.visible,
+			"equip": player.equipment.to_dict() if player.equipment else {}},
 		"station": {"door_open": station.door_open, "visitor": visitor_fig != null}}
 
 
@@ -375,6 +380,10 @@ func _apply_save(d: Dictionary) -> void:
 	if bool(p.get("torch", false)):               # cabin pass: the torch stays with the keeper
 		player.give_torch(bool(p.get("torch_on", false)))
 		station.set_torch_taken(true)
+	if player.equipment and p.has("equip"):        # G3a: what the keeper carries, and what's still on the desk
+		player.equipment.from_dict(p["equip"])
+		for id in Equipment.ITEMS:
+			station.set_item_taken(id, bool(player.equipment.has.get(id, false)))
 	var st: Dictionary = d.get("station", {})
 	station.door_open = bool(st.get("door_open", false))
 	if bool(st.get("visitor", false)):
@@ -534,6 +543,8 @@ func _physics_process(delta: float) -> void:
 
 
 func _track_player(delta: float) -> void:
+	if presenter == null or not is_instance_valid(presenter):   # shutting down: the presenter is already gone
+		return
 	presenter.set_compact(player.focused != "")    # G2b: the duty line steps aside in a device view
 	if _duty_hold_t >= 0.0:                        # G2b: J / R3 held past DUTY_HOLD_HINT_S adds the hint
 		if not Input.is_action_pressed("duty"):
@@ -577,6 +588,18 @@ func _track_player(delta: float) -> void:
 
 
 ## The keeper takes the torch from the storage shelf (only during a blackout: station.availability).
+## G3a: the hand compass or the binoculars, from the desk into the keeper's pocket.
+func _take_item(id: String) -> void:
+	player.equipment.give(id)
+	station.set_item_taken(id, true)
+	if director:
+		director.on_player_event("took_" + id)
+	if ui and Settings.tip_wanted(id):
+		ui.show_notice(("The hand compass.  %s takes it out and puts it away." if id == "compass" else
+			"The binoculars.  %s raises and lowers them.") % InputSetup.key(id), 5.0)
+		Settings.tip_used(id)
+
+
 func _take_torch(on: bool) -> void:
 	player.give_torch(on)
 	station.set_torch_taken(true)
@@ -626,6 +649,8 @@ func _route(events: Array) -> void:
 	for e in events:
 		if e["type"] == "pickup" and e.get("item", "") == "torch":
 			_take_torch(true)
+		elif e["type"] == "pickup" and String(e.get("item", "")) in Equipment.ITEMS:
+			_take_item(String(e["item"]))
 	station.on_events(events)
 	outside.on_events(events)
 	if audio:

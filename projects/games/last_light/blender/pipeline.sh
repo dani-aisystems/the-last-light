@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # THE LAST LIGHT asset pipeline: build -> validate (gltf) -> export -> reimport check -> sync into Godot.
-#   projects/games/last_light/blender/pipeline.sh [collections...]   (default: watch_room lighthouse)
+#   projects/games/last_light/blender/pipeline.sh [--docs] [collections...]   (default: watch_room lighthouse)
 # Stops on any validation FAIL or failed reimport. Outputs: versioned .blend, exports/last_light/gltf/*.glb,
 # renders/last_light/validation_*.json, godot/assets/models/*.glb (generated; DECISIONS Q10).
 set -euo pipefail
 WS="$(cd "$(dirname "$0")/../../../.." && pwd)"
 cd "$WS"
-COLS=("${@:-watch_room lighthouse}")
-[[ $# -eq 0 ]] && COLS=(watch_room lighthouse)
+# G2b/G3a: documents.py only runs with --docs. Its paper grain is unseeded, so every run rewrote all the
+# document PNGs; it is needed only when a document's text or look changes.
+DOCS=0
+ARGS=()
+for a in "$@"; do [[ "$a" == "--docs" ]] && DOCS=1 || ARGS+=("$a"); done
+COLS=("${ARGS[@]:-watch_room lighthouse}")
+[[ ${#ARGS[@]} -eq 0 ]] && COLS=(watch_room lighthouse)
 tools/py projects/games/last_light/blender/textures.py >/dev/null
 # story documents + the in-world photo/logbook textures they feed (T_LL_Photo, T_LL_Logbook). The raw photo
 # render (photo_render.py, Cycles, ~10 min) is NOT rerun here: it only changes when the photo scene changes.
-tools/py projects/games/last_light/blender/documents.py >/dev/null
+if [[ $DOCS -eq 1 ]]; then tools/py projects/games/last_light/blender/documents.py >/dev/null; fi
 OUT=$(tools/bl -P projects/games/last_light/blender/build.py -- --new --save 2>&1 | grep BUILD_RESULT)
 echo "$OUT" | cut -c1-220
 BLEND=$(echo "$OUT" | sed -E 's/.*"saved": "([^"]+)".*/\1/')

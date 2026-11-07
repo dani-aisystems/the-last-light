@@ -403,7 +403,7 @@ func _open_options() -> void:
 	for b in [["", "Keyboard and mouse", "Gamepad"], ["Walk", "W A S D / arrows", "Left stick"], ["Look", "Mouse", "Right stick"],
 			["Use", "E · left click", "A"], ["Continue dialogue", "Space", "RT"],
 			["Choose a reply", "1 – 4 (click in a device view)", "D-pad + A"],
-			["Walk faster", "Shift", "Left stick click"], ["Station log", "L", "Y"], ["Current duty (hold: latest hint)", "J", "Right stick click"], ["Step back", "Esc · right click", "B"],
+			["Walk faster", "Shift", "Left stick click"], ["Station log", "L", "Y"], ["Current duty (hold: latest hint)", "J", "Right stick click"], ["Hand compass", "G", "—"], ["Binoculars", "B", "—"], ["Step back", "Esc · right click", "B"],
 			["Pause", "Esc", "Start"], ["Selector knobs", "Wheel · right click", "LB / RB"],
 			["Turn handwheel (console)", "A / D", "Left stick · D-pad"], ["Device views: point and click", "Mouse", "Right stick + A"],
 			["Radio: next vessel / send", "Tab / 1 – 6", "RB / point + A"], ["Document transcription", "T", "X"], ["Fullscreen", "F11", "—"]]:
