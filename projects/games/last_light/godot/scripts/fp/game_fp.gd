@@ -279,10 +279,20 @@ func _on_doc(id: String) -> void:
 		director.state.flags["seen_" + doc] = 1
 
 
+## G2b: the keeper is at the desk, by the open logbook (within about two metres of it).
+func _at_desk() -> bool:
+	var b: Node3D = station._ia_bodies.get("logbook")
+	if b == null or player == null:
+		return true
+	var d := Vector2(player.global_position.x - b.global_position.x, player.global_position.z - b.global_position.z)
+	return d.length() < 2.2
+
+
 func _on_doc_closed(doc: String) -> void:
 	match doc:
 		"log_1971":
-			director.on_player_event("read_log_1971")
+			if _at_desk():                     # G2b: L opens the book anywhere; writing up is done at the desk
+				director.on_player_event("read_log_1971")
 		"log_1953":
 			director.on_player_event("read_log_1953")
 			director.state.clues["log_1953"] = true

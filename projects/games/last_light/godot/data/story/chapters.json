@@ -1,5 +1,5 @@
 {
- "station_log": {"_doc": "G2b layer C: tonight's station-log lines, verbatim from CANON_INDEX \u00a76 log_1971 (the rows documents.py draws). Written once each, by a duty's \"log\" or a beat's [\"log\", id] action; blender/log_strips.py renders each row in Callum's hand.", "1971-11-14": [
+ "station_log": {"_doc": "G2b layer C: tonight's station-log lines, verbatim from CANON_INDEX §6 log_1971 (the rows documents.py draws). Written once each, by a duty's \"log\" or a beat's [\"log\", id] action; blender/log_strips.py renders each row in Callum's hand.", "1971-11-14": [
   {"id": "log_1622", "date": "14.11", "time": "16.22", "wind": "SW 6", "weather": "Overcast, rain", "text": "Batteries flat. Engine started, on charge."},
   {"id": "log_1640", "date": "", "time": "16.40", "wind": "SW 6", "weather": "Rain", "text": "Light exhibited. Lamp normal."},
   {"id": "log_1830", "date": "", "time": "18.30", "wind": "SW 7", "weather": "Heavy rain", "text": "Radio check Stornoway CG. Gale warning, severe gale 9."},
@@ -12,102 +12,108 @@
    "start": {"clock": 980, "clock_rate": 0.0, "storm": 0.12, "battery": 0, "fuel": 46},
    "duties": [
      {"id": "power", "caption": "The Watch", "line": "Get the engine running. Then CHARGE the cells.", "done": "sim.charge_flow > 0.0", "sub": [{"id": "torch", "line": "The torch, top shelf by the stair door", "done": "has_flag(\"torch_taken\")", "optional": true, "drop": "sim.lights_on()", "nudge": "Torch. Top shelf, by the stair door.", "hint": "The torch is on the top storage shelf by the stair door: look at it and press {interact}."}, {"id": "fuel", "line": "FUEL VALVE open", "done": "sim.fuel_valve or sim.gen == 2", "discover": ["has_flag(\"crank_failed\")", "has_flag(\"used_gen_panel\")"], "nudge": "She'll not start dry. The FUEL VALVE, in the cage.", "hint": "In the generator cage: turn the red FUEL VALVE handle ({interact}), then hold {interact} on START."}, {"id": "engine", "line": "Hold START till she catches", "done": "sim.gen == 2", "nudge": "The engine first. START, in the cage.", "hint": "The generator cage stands by the south-west wall. Hold {interact} on the black START button until she catches."}, {"id": "charge", "line": "CHARGE on at the charger", "done": "sim.charge_flow > 0.0", "discover": ["sim.gen == 2", "sim.charge_on"], "nudge": "Now the charge. The lever on the charger.", "hint": "The CHARGE lever is on the charger cabinet, below the small meter."}], "log": "log_1622"},
-     {"id": "light", "caption": "Lighting-up time", "line": "MODE to AUTO, LAMP to NORMAL.", "done": "sim.mode == 1 and sim.intensity >= 1", "sub": [{"id": "mode", "line": "MODE to AUTO", "done": "sim.mode == 1", "nudge": "Lighting-up time. The console, under the east window.", "hint": "The light console stands under the east window. Look at the MODE knob and press {interact} until it reads AUTO."}, {"id": "lamp", "line": "LAMP to NORMAL", "done": "sim.intensity >= 1", "nudge": "LAMP to NORMAL, beside the MODE knob.", "hint": "The LAMP knob is beside MODE on the light console: press {interact} to turn it to NORMAL."}], "log": "log_1640"}
+     {"id": "light", "caption": "Lighting-up time", "line": "MODE to AUTO, LAMP to NORMAL.", "done": "sim.mode == 1 and sim.intensity >= 1", "sub": [{"id": "mode", "line": "MODE to AUTO", "done": "sim.mode == 1", "nudge": "Lighting-up time. The console, under the east window.", "hint": "The light console stands under the east window. Look at the MODE knob and press {interact} until it reads AUTO."}, {"id": "lamp", "line": "LAMP to NORMAL", "done": "sim.intensity >= 1", "nudge": "LAMP to NORMAL, beside the MODE knob.", "hint": "The LAMP knob is beside MODE on the light console: press {interact} to turn it to NORMAL."}], "log": "log_1640"},
+     {"id": "kittiwake", "caption": "Kittiwake", "line": "Fix Kittiwake's position on the radio.", "done": "has_flag(\"position_Kittiwake\")", "sub": [{"id": "confirm", "line": "CONFIRM POSITION to Kittiwake", "done": "flag(\"tx_confirm\") >= 1", "nudge": "The radio. The boy'll want his position checked.", "hint": "Sit at the radio on the desk (look at it, press {interact}), select Kittiwake and choose Confirm position."}, {"id": "report", "line": "Her position report", "done": "has_flag(\"position_Kittiwake\")", "nudge": "Give the boy a moment to answer.", "hint": "Wait at the radio for Kittiwake to report her position on Channel 16.", "discover": ["flag(\"tx_confirm\") >= 1"]}]},
+     {"id": "kittiwake_in", "caption": "Kittiwake", "line": "Bring her in on the 000° line.", "done": "piloting(\"Kittiwake\") or saved(\"Kittiwake\")", "sub": [{"id": "line", "line": "TURN PORT onto 000°, then MAINTAIN", "done": "piloting(\"Kittiwake\") or saved(\"Kittiwake\")", "nudge": "She's east of the line. Bring her round to port.", "hint": "On the radar she sits to the right of the dashed 000° line. Order TURN PORT (her left) once or twice, then MAINTAIN when she points down the line. The chart's transcription ({transcript}) explains the terms."}]},
+     {"id": "kittiwake_home", "caption": "Kittiwake", "line": "Watch her into the Sound.", "done": "saved(\"Kittiwake\")", "nudge": "Steady. She's on the line.", "hint": "Kittiwake follows the North Sound line in by herself now. Watch her on the radar."},
+     {"id": "write_up", "caption": "The log", "line": "Write up the evening at the desk.", "done": "has_flag(\"read_log_1971\")", "sub": [{"id": "log", "line": "The station log, open on the desk", "done": "has_flag(\"read_log_1971\")", "nudge": "The log's waiting on the desk.", "hint": "The logbook lies open on the desk, left of the chart: look at it and press {interact}."}]}
    ],
    "beats": [
     {"id": "dusk", "duty": ["power"], "do": [["sky", "dusk"], ["mode", 0], ["intensity", 0], ["sfx", "door_heavy"], ["wait", 2], ["talk", "ch1_dusk"]]},
     {"id": "engine", "when": "sim.gen == 2", "hint": [[40, "Move with {move}. Look around with {look}.", "has_flag(\"moved\")"]], "do": [["talk", "ch1_gen"]]},
     {"id": "charge", "when": "sim.charge_flow > 0.0", "do": [["talk", "ch1_charging"], ["wait", 3], ["sfx", "carrier_click"], ["talk", "ch1_carrier"], ["autosave"]]},
     {"id": "light", "duty": ["light"], "when": "sim.mode == 1 and sim.intensity >= 1", "do": [["talk", "ch1_lit"]]},
-    {"id": "radio_check", "objective": "", "when": "true", "do": [["timeskip", 1110, "18:30"], ["clock", 1110, 0.12], ["wait", 2], ["talk", "ch1_radio_check"], ["log", "log_1830"]]},
-    {"id": "kittiwake", "needs_power": true, "when": "true",
-     "hint": [45, "Sit at the radio on the desk (look at it, press {interact}), select Kittiwake and choose Confirm position."],
-     "do": [["wait", 4], ["ship", {"name": "Kittiwake", "kind": "fishing", "bearing": 14, "aim": 24, "speed_mul": 0.85, "hold": true, "protected": true}],
-      ["talk", "ch1_rory_call"], ["objective", {"title": "Find Kittiwake", "steps": [{"text": "At the radio (desk), select Kittiwake and choose CONFIRM POSITION", "done": "flag(\"tx_confirm\") >= 1"}, {"text": "Wait for her position report", "done": "has_flag(\"position_Kittiwake\")"}]}],
-      ["until", "flag(\"tx_confirm\") >= 1"], ["until", "has_flag(\"position_Kittiwake\") or not sim.radio_on()"], ["wait", 3], ["talk", "ch1_bearings"]]},
-    {"id": "vector", "needs_power": true, "objective": {"title": "Bring Kittiwake in", "steps": [{"text": "Turn her onto the North Sound leading line: due north, 000° (the dashed line on the radar)", "done": "piloting(\"Kittiwake\") or saved(\"Kittiwake\")"}]}, "when": "piloting(\"Kittiwake\")",
-     "hint": [90, "On the radar she sits to the right of the dashed 000° line. Order TURN PORT (her left) once or twice, then MAINTAIN when she points down the line. The chart's transcription ({transcript}) explains the terms."], "do": [["wait", 4], ["talk", "ch1_rory_in"]]},
-    {"id": "kittiwake_home", "objective": "Watch Kittiwake into the Sound", "when": "saved(\"Kittiwake\")", "do": [["log", "log_1850"], ["autosave"]]},
-    {"id": "late", "objective": "", "when": "true", "do": [["timeskip", 1405, "23:25"], ["clock", 1405, 0.15], ["storm", 0.25], ["wait", 2], ["talk", "ch1_morag_late"], ["log", "log_2325"]]},
-    {"id": "log", "objective": {"title": "Write up the evening", "steps": [{"text": "Open the station log on the desk", "done": "has_flag(\"read_log_1971\")"}]}, "when": "has_flag(\"read_log_1971\")",
-     "hint": [45, "The logbook lies open on the desk, left of the chart."], "do": [["wait", 2], ["talk", "ch1_log_after"]]},
-    {"id": "mary_ellen", "objective": "", "when": "true", "do": [["clock", 1437, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]]}
+    {"id": "radio_check", "when": "true", "do": [["timeskip", 1110, "18:30"], ["clock", 1110, 0.12], ["wait", 2], ["talk", "ch1_radio_check"], ["log", "log_1830"]], "duty": []},
+    {"id": "kittiwake", "needs_power": true, "when": "true", "do": [["wait", 4], ["ship", {"name": "Kittiwake", "kind": "fishing", "bearing": 14, "aim": 24, "speed_mul": 0.85, "hold": true, "protected": true}], ["talk", "ch1_rory_call"], ["duty", "kittiwake"], ["until", "flag(\"tx_confirm\") >= 1"], ["until", "has_flag(\"position_Kittiwake\") or not sim.radio_on()"], ["wait", 3], ["talk", "ch1_bearings"]]},
+    {"id": "vector", "needs_power": true, "when": "piloting(\"Kittiwake\")", "do": [["wait", 4], ["talk", "ch1_rory_in"]], "duty": ["kittiwake_in"]},
+    {"id": "kittiwake_home", "when": "saved(\"Kittiwake\")", "do": [["log", "log_1850"], ["autosave"]], "duty": ["kittiwake_home"]},
+    {"id": "late", "when": "true", "do": [["timeskip", 1405, "23:25"], ["clock", 1405, 0.15], ["storm", 0.25], ["wait", 2], ["talk", "ch1_morag_late"], ["log", "log_2325"]], "duty": []},
+    {"id": "log", "when": "has_flag(\"read_log_1971\")", "do": [["wait", 2], ["talk", "ch1_log_after"]], "duty": ["write_up"]},
+    {"id": "mary_ellen", "when": "true", "do": [["clock", 1437, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]], "duty": []}
    ]},
   {"n": 2, "title": "Strange Signals", "subtitle": "Monday 15 November · 00:02",
    "start": {"fuel": 44, "clock": 1442, "clock_rate": 0.12, "storm": 0.3},
+   "duties": [
+     {"id": "radar_watch", "caption": "Strange Signals", "line": "Watch the radar for the caller.", "done": "false", "nudge": "The radar. Whoever it was, they were close.", "hint": "The radar screen stands on the desk beside the radio."},
+     {"id": "gannet", "caption": "Gannet", "line": "Bring Gannet in by the West Gut.", "done": "saved(\"Gannet\") or lost(\"Gannet\")", "sub": [{"id": "line", "line": "Onto the West Gut line, 314°", "done": "piloting(\"Gannet\") or saved(\"Gannet\") or lost(\"Gannet\")", "nudge": "Gannet's for the West Gut. Three-one-four.", "hint": "Confirm Gannet's position, then turn her until she points down the West Gut line on the radar."}, {"id": "shelter", "line": "See her into shelter", "done": "saved(\"Gannet\") or lost(\"Gannet\")", "nudge": "Watch her in.", "hint": "Keep her on the 314° line until she reaches shelter.", "discover": ["piloting(\"Gannet\") or saved(\"Gannet\") or lost(\"Gannet\")"]}]},
+     {"id": "archive", "caption": "1953", "line": "Find the 1953 log.", "done": "has_flag(\"read_log_1953\")", "sub": [{"id": "box", "line": "The old-log box, top shelf by the stair door", "done": "has_flag(\"read_log_1953\")", "nudge": "The old logs. The oak box, top shelf.", "hint": "The old station logs are in the oak box on the top storage shelf, left of the stair door."}]},
+     {"id": "jam_ch2", "caption": "The gear", "line": "Free the jammed gear by hand.", "done": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "sub": [{"id": "off", "line": "MODE to OFF", "done": "sim.mode == 0 or flag(\"jam_cleared_ch2\") >= 1", "nudge": "Motor off first. MODE to OFF.", "hint": "At the light console: {turn_back} on the MODE knob turns it back to OFF."}, {"id": "wheel", "line": "Handwheel back past 046°", "done": "flag(\"jam_cleared_ch2\") >= 1", "nudge": "Back her past the tooth with the handwheel.", "hint": "With the motor off, {wheel} on the handwheel turns the optic by hand, back past 046°."}, {"id": "auto", "line": "MODE back to AUTO", "done": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "nudge": "MODE to AUTO. Let the motor take her.", "hint": "At the light console: MODE back to AUTO ({interact} on the knob)."}]}
+   ],
    "optional_calls": [
-    {"id": "opt_ch2_rory", "station": "Kittiwake", "label": "Call Kittiwake (Rory, in the Sound)", "conv": "opt_ch2_rory", "open_after": "gannet_in", "close_at": "archive"},
-    {"id": "opt_ch2_morag", "station": "Stornoway", "label": "Call Stornoway Coastguard (Morag)", "conv": "opt_ch2_morag", "open_after": "gannet_in", "close_at": "archive"}
+     {"id": "opt_ch2_rory", "station": "Kittiwake", "label": "Call Kittiwake (Rory, in the Sound)", "conv": "opt_ch2_rory", "open_after": "gannet_in", "close_at": "archive"},
+     {"id": "opt_ch2_morag", "station": "Stornoway", "label": "Call Stornoway Coastguard (Morag)", "conv": "opt_ch2_morag", "open_after": "gannet_in", "close_at": "archive"}
    ],
    "beats": [
-    {"id": "trace", "objective": "", "do": [["wait", 2], ["talk", "ch2_trace"]]},
-    {"id": "radar", "objective": "Watch the radar for the caller", "when": "true", "do": [["phantom_echo", 46, 95, 40], ["wait", 18], ["talk", "ch2_phantom"]]},
-    {"id": "gannet", "objective": "", "when": "true", "do": [["wait", 4], ["ship", {"name": "Gannet", "kind": "schooner", "bearing": -40, "aim": "reef", "speed_mul": 0.85}], ["talk", "ch2_gannet"]]},
-    {"id": "gannet_in", "needs_power": true, "objective": {"title": "Bring Gannet in", "steps": [{"text": "Turn her onto the West Gut line: 314°, north-west", "done": "piloting(\"Gannet\") or saved(\"Gannet\") or lost(\"Gannet\")"}, {"text": "See her in to shelter", "done": "saved(\"Gannet\") or lost(\"Gannet\")"}]}, "when": "saved(\"Gannet\") or lost(\"Gannet\")",
-     "hint": [120, "Confirm Gannet's position, then turn her until she points down the West Gut line on the radar."], "do": [["talk", "ch2_gannet_after"], ["autosave"]]},
-    {"id": "second_call", "objective": "", "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_mary_ellen"]]},
-    {"id": "archive", "objective": {"title": "Find the 1953 station log", "steps": [{"text": "The old-log box: top storage shelf, left of the stair door", "done": "has_flag(\"read_log_1953\")"}]}, "when": "has_flag(\"read_log_1953\")",
-     "hint": [60, "The old station logs are in the oak box on the top storage shelf, left of the stair door."], "do": [["wait", 1], ["talk", "ch2_same_hand"], ["clue", "same_hand"]]},
-    {"id": "jam", "objective": "", "when": "true", "do": [["wait", 6], ["fault", "jam", "story"], ["talk", "ch2_jam"]]},
-    {"id": "clear", "objective": {"title": "Free the jammed gear by hand", "steps": [{"text": "MODE to OFF (the motor off)", "done": "sim.mode == 0 or flag(\"jam_cleared_ch2\") >= 1"}, {"text": "Turn the handwheel back past 046°", "done": "flag(\"jam_cleared_ch2\") >= 1"}, {"text": "MODE back to AUTO", "done": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1"}]}, "when": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1",
-     "hint": [30, "At the light console: {turn_back} on the MODE knob turns it back to OFF. With the motor off, {wheel} on the handwheel turns the optic by hand. Then MODE to AUTO."],
-     "do": [["talk", "ch2_046"], ["autosave"]]}
+    {"id": "trace", "do": [["wait", 2], ["talk", "ch2_trace"]], "duty": []},
+    {"id": "radar", "when": "true", "do": [["phantom_echo", 46, 95, 40], ["wait", 18], ["talk", "ch2_phantom"]], "duty": ["radar_watch"]},
+    {"id": "gannet", "when": "true", "do": [["wait", 4], ["ship", {"name": "Gannet", "kind": "schooner", "bearing": -40, "aim": "reef", "speed_mul": 0.85}], ["talk", "ch2_gannet"]], "duty": []},
+    {"id": "gannet_in", "needs_power": true, "when": "saved(\"Gannet\") or lost(\"Gannet\")", "do": [["talk", "ch2_gannet_after"], ["autosave"]], "duty": ["gannet"]},
+    {"id": "second_call", "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_mary_ellen"]], "duty": []},
+    {"id": "archive", "when": "has_flag(\"read_log_1953\")", "do": [["wait", 1], ["talk", "ch2_same_hand"], ["clue", "same_hand"]], "duty": ["archive"]},
+    {"id": "jam", "when": "true", "do": [["wait", 6], ["fault", "jam", "story"], ["talk", "ch2_jam"]], "duty": []},
+    {"id": "clear", "when": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "do": [["talk", "ch2_046"], ["autosave"]], "duty": ["jam_ch2"]}
    ]},
   {"n": 3, "title": "The Storm", "subtitle": "Monday 15 November · 01:05",
    "start": {"fuel": 46, "clock": 1505, "clock_rate": 0.1, "storm": 0.55},
+   "duties": [
+     {"id": "two_boats", "caption": "Two boats", "line": "Bring both boats in. Mind the battery.", "done": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))", "sub": [{"id": "corrie", "line": "Corrie May into the East Gut, 046°", "done": "saved(\"Corrie May\") or lost(\"Corrie May\")", "nudge": "Corrie May's for the East Gut.", "hint": "Corrie May belongs in the East Gut (046°): confirm her position, then turn her onto the line."}, {"id": "lowestoft", "line": "Lowestoft Star into the North Sound, 000°", "done": "saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\")", "nudge": "The Lowestoft Star, North Sound. Due north.", "hint": "Lowestoft Star belongs in the North Sound (000°): confirm her position, then turn her onto the line."}]},
+     {"id": "restore_ch3", "caption": "Power", "line": "Reset the MAIN breaker.", "done": "sim.main_breaker", "sub": [{"id": "main", "line": "MAIN lever up, tall cabinet, west wall", "done": "sim.main_breaker", "nudge": "The red lamp on the cabinet. MAIN.", "hint": "In the dark: the red MAIN lamp on the tall cabinet. Push the MAIN lever up ({interact})."}]}
+   ],
    "optional_calls": [
-    {"id": "opt_ch3_hector", "station": "Gannet", "label": "Call Gannet (Hector, in the West Gut lee)", "conv": "opt_ch3_hector", "open_after": "both", "close_at": "notes", "if": "saved(\"Gannet\")"}
+     {"id": "opt_ch3_hector", "station": "Gannet", "label": "Call Gannet (Hector, in the West Gut lee)", "conv": "opt_ch3_hector", "open_after": "both", "close_at": "notes", "if": "saved(\"Gannet\")"}
    ],
    "beats": [
-    {"id": "forecast", "objective": "", "do": [["wait", 2], ["talk", "ch3_forecast"], ["storm", 0.7]]},
+    {"id": "forecast", "do": [["wait", 2], ["talk", "ch3_forecast"], ["storm", 0.7]], "duty": []},
     {"id": "two_ships", "when": "true", "do": [["ship", {"name": "Corrie May", "kind": "fishing", "bearing": 62, "aim": "reef", "speed_mul": 0.8}], ["talk", "ch3_corrie"], ["wait", 10], ["ship", {"name": "Lowestoft Star", "kind": "schooner", "bearing": -22, "aim": -10, "speed_mul": 0.8}], ["talk", "ch3_lowestoft"]]},
-    {"id": "both", "needs_power": true, "objective": {"title": "Bring both boats in (mind the battery)", "steps": [{"text": "Corrie May: into the East Gut, 046° (north-east)", "done": "saved(\"Corrie May\") or lost(\"Corrie May\")"}, {"text": "Lowestoft Star: into the North Sound, 000° (due north)", "done": "saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\")"}]}, "when": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))",
-     "hint": [150, "Corrie May belongs in the East Gut (046°), Lowestoft Star in the North Sound (000°). Confirm each, then turn them onto the lines."], "do": [["talk", "ch3_after_two"], ["autosave"]]},
-    {"id": "elspeth", "objective": "", "when": "true", "do": [["wait", 6], ["talk", "ch3_elspeth"]]},
+    {"id": "both", "needs_power": true, "when": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))", "do": [["talk", "ch3_after_two"], ["autosave"]], "duty": ["two_boats"]},
+    {"id": "elspeth", "when": "true", "do": [["wait", 6], ["talk", "ch3_elspeth"]], "duty": []},
     {"id": "notes", "when": "true", "do": [["wait", 8], ["talk", "ch3_notes_a"], ["fault", "trip"], ["set", "blackout=1"], ["talk", "ch3_dark"]]},
-    {"id": "restore", "objective": {"title": "Restore power", "steps": [{"text": "Reset the MAIN breaker (tall cabinet, west wall)", "done": "sim.main_breaker"}]}, "when": "sim.main_breaker",
-     "hint": [30, "In the dark: the red MAIN lamp on the tall cabinet. Push the MAIN lever up ({interact})."], "do": [["unset", "blackout"], ["wait", 2], ["talk", "ch3_notes_b"]]},
-    {"id": "dark_boat", "objective": "", "when": "true", "do": [["wait", 6], ["talk", "ch3_rory_dark"], ["autosave"]]}
+    {"id": "restore", "when": "sim.main_breaker", "do": [["unset", "blackout"], ["wait", 2], ["talk", "ch3_notes_b"]], "duty": ["restore_ch3"]},
+    {"id": "dark_boat", "when": "true", "do": [["wait", 6], ["talk", "ch3_rory_dark"], ["autosave"]], "duty": []}
    ]},
   {"n": 4, "title": "The Visitor", "subtitle": "Monday 15 November · 02:21",
    "start": {"fuel": 44, "clock": 1581, "clock_rate": 0.08, "storm": 0.75},
+   "duties": [
+     {"id": "dark_boat", "caption": "The dark boat", "line": "Get the beam on the dark boat.", "done": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "sub": [{"id": "manual", "line": "MODE to MANUAL", "done": "sim.mode == 2 or has_flag(\"docked_Visitor\")", "nudge": "MANUAL. Put the light on her myself.", "hint": "At the light console: MODE to MANUAL ({interact} on the knob)."}, {"id": "hold", "line": "Hold the beam on her with the handwheel", "done": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "nudge": "The handwheel. Keep the beam on her.", "hint": "Hold {wheel} on the handwheel until the beam sits on her (the radar shows the beam line)."}]},
+     {"id": "dark_boat_in", "caption": "The dark boat", "line": "She won't answer. Watch her come in.", "done": "has_flag(\"docked_Visitor\")", "nudge": "No lights. No answer. Watch her.", "hint": "The dark boat comes in to the jetty by herself. Watch her on the radar or from the window."},
+     {"id": "door", "caption": "The door", "line": "Someone's at the door.", "done": "has_flag(\"at_door\")", "nudge": "The stair door.", "hint": "The stair door is on the south wall."}
+   ],
    "optional_calls": [
-    {"id": "ch4_mf_morag", "station": "Stornoway (MF)", "label": "Call Stornoway on the MF set (2182 kHz)", "conv": "ch4_mf_morag", "open_after": "identify", "close_at": "door", "if": "not has_flag(\"called_morag\")"}
+     {"id": "ch4_mf_morag", "station": "Stornoway (MF)", "label": "Call Stornoway on the MF set (2182 kHz)", "conv": "ch4_mf_morag", "open_after": "identify", "close_at": "door", "if": "not has_flag(\"called_morag\")"}
    ],
    "beats": [
-    {"id": "approach", "objective": "", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0,
-      "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "tension"], ["talk", "ch4_watch"]]},
-    {"id": "identify", "needs_power": true, "objective": {"title": "Identify the dark boat", "steps": [{"text": "MODE to MANUAL", "done": "sim.mode == 2 or has_flag(\"docked_Visitor\")"}, {"text": "Hold the beam on her with the handwheel", "done": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")"}]}, "when": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")",
-     "hint": [60, "MODE to MANUAL, then at the console hold {wheel} on the handwheel until the beam sits on her (the radar shows the beam line)."], "do": [["talk", "ch4_bow"], ["clue", "sy214"]]},
-    {"id": "hail", "objective": "She will not answer. Watch her come in.", "when": "has_flag(\"docked_Visitor\")", "do": [["wait", 2], ["talk", "ch4_docked"]]},
-    {"id": "steps", "objective": "", "when": "true", "do": [["wait", 4], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"],
-      ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["caption", "[A cough, deep in the chest. It goes on a long time.]"],
-      ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"],
-      ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]]},
-    {"id": "door", "objective": "Someone is at the door.", "when": "has_flag(\"at_door\")", "hint": [25, "The stair door is on the south wall."], "do": [["talk", "ch4_door"], ["autosave"]]}
+    {"id": "approach", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0, "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "tension"], ["talk", "ch4_watch"]], "duty": []},
+    {"id": "identify", "needs_power": true, "when": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "do": [["talk", "ch4_bow"], ["clue", "sy214"]], "duty": ["dark_boat"]},
+    {"id": "hail", "when": "has_flag(\"docked_Visitor\")", "do": [["wait", 2], ["talk", "ch4_docked"]], "duty": ["dark_boat_in"]},
+    {"id": "steps", "when": "true", "do": [["wait", 4], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
+    {"id": "door", "when": "has_flag(\"at_door\")", "do": [["talk", "ch4_door"], ["autosave"]], "duty": ["door"]}
    ]},
   {"n": 5, "title": "The Truth", "subtitle": "Monday 15 November · 03:04",
    "start": {"fuel": 46, "clock": 1624, "clock_rate": 0.08, "storm": 0.8},
+   "duties": [
+     {"id": "drawer", "caption": "The desk", "line": "Search the desk drawers.", "done": "has_flag(\"read_letter\")", "nudge": "The desk. Every drawer.", "hint": "The bottom-left drawer of the desk."},
+     {"id": "power_ch5", "caption": "Power", "line": "Get the light back.", "done": "sim.main_breaker and sim.gen == 2", "sub": [{"id": "main", "line": "Reset the MAIN breaker", "done": "sim.main_breaker", "nudge": "MAIN first.", "hint": "MAIN breaker on the west wall: push the lever up ({interact})."}, {"id": "engine", "line": "Engine running again (let her cool if she cut out hot)", "done": "sim.gen == 2", "nudge": "The engine. Let her cool if she's hot.", "hint": "If the generator has cut out hot, let it cool, then hold {interact} on START."}]}
+   ],
    "beats": [
-    {"id": "story", "objective": "", "do": [["talk", "ch5_ross"]]},
-    {"id": "drawer", "objective": "Search the desk drawers.", "when": "has_flag(\"read_letter\")", "hint": [60, "The bottom-left drawer of the desk."], "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"]]},
-    {"id": "morag", "objective": "", "when": "true", "do": [["wait", 4], ["talk", "ch5_morag"]]},
+    {"id": "story", "do": [["talk", "ch5_ross"]], "duty": []},
+    {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"]], "duty": ["drawer"]},
+    {"id": "morag", "when": "true", "do": [["wait", 4], ["talk", "ch5_morag"]], "duty": []},
     {"id": "mayday", "when": "true", "do": [["wait", 6], ["sfx", "static_burst"], ["talk", "ch5_mayday"], ["fault", "overheat"], ["fault", "trip"], ["talk", "ch5_dark"]]},
-    {"id": "power", "objective": {"title": "Get the light back", "steps": [{"text": "Reset the MAIN breaker", "done": "sim.main_breaker"}, {"text": "Get the generator running (if it cut out hot, let it cool first)", "done": "sim.gen == 2"}]}, "when": "sim.main_breaker and sim.gen == 2",
-     "hint": [40, "MAIN breaker on the west wall. If the generator has cut out hot, let it cool, then restart it."], "do": [["autosave"]]}
+    {"id": "power", "when": "sim.main_breaker and sim.gen == 2", "do": [["autosave"]], "duty": ["power_ch5"]}
    ]},
   {"n": 6, "title": "The Last Light", "subtitle": "Monday 15 November · 04:12",
    "start": {"fuel": 48, "clock": 1692, "clock_rate": 0.06, "storm": 1.0},
+   "duties": [
+     {"id": "jam_ch6", "caption": "The gear", "line": "Free the gear by hand. Then MANUAL.", "done": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "sub": [{"id": "off", "line": "MODE to OFF", "done": "sim.mode == 0 or flag(\"jam_cleared_ch6\") >= 1", "nudge": "Motor off. MODE to OFF.", "hint": "At the light console: {turn_back} on the MODE knob to OFF."}, {"id": "wheel", "line": "Handwheel back past 046°", "done": "flag(\"jam_cleared_ch6\") >= 1", "nudge": "Back her off the tooth.", "hint": "{wheel} on the handwheel backs the optic off the tooth, past 046°."}, {"id": "manual", "line": "MODE to MANUAL", "done": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "nudge": "MANUAL now.", "hint": "At the light console: MODE to MANUAL ({interact} on the knob)."}]},
+     {"id": "iona", "caption": "Iona Star", "line": "Bring Iona Star through the East Gut.", "done": "saved(\"Iona Star\") or lost(\"Iona Star\")", "sub": [{"id": "light", "line": "Hold the light on her in MANUAL", "done": "lit_by_hand(\"Iona Star\") or saved(\"Iona Star\")", "nudge": "Light her. MANUAL, and hold it.", "hint": "MANUAL mode puts a long beam on her so she can see: hold it on her with the handwheel."}, {"id": "line", "line": "Onto the East Gut line, 046°", "done": "piloting(\"Iona Star\") or saved(\"Iona Star\")", "nudge": "Zero-four-six. The East Gut.", "hint": "Confirm her position, then turn her onto the 046° line."}]}
+   ],
    "beats": [
-    {"id": "iona", "objective": "", "do": [["ship", {"name": "Iona Star", "kind": "steamer", "bearing": 66, "aim": 30, "speed_mul": 0.55, "hold": true, "protected": true}], ["talk", "ch6_iona"]]},
+    {"id": "iona", "do": [["ship", {"name": "Iona Star", "kind": "steamer", "bearing": 66, "aim": 30, "speed_mul": 0.55, "hold": true, "protected": true}], ["talk", "ch6_iona"]], "duty": []},
     {"id": "jam", "when": "true", "do": [["wait", 4], ["fault", "jam", "story", "manual"], ["talk", "ch6_jam"]]},
-    {"id": "free", "objective": {"title": "Free the jammed gear by hand", "steps": [{"text": "MODE to OFF (the motor off)", "done": "sim.mode == 0 or flag(\"jam_cleared_ch6\") >= 1"}, {"text": "Back the handwheel past 046°", "done": "flag(\"jam_cleared_ch6\") >= 1"}, {"text": "MODE to MANUAL", "done": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2"}]}, "when": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2",
-     "hint": [25, "At the light console: {turn_back} on the MODE knob to OFF, {wheel} on the handwheel to back the optic off the tooth, then MODE to MANUAL."],
-     "do": [["talk", "ch6_freed"]]},
+    {"id": "free", "when": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "do": [["talk", "ch6_freed"]], "duty": ["jam_ch6"]},
     {"id": "standby", "when": "true", "do": [["wait", 6], ["talk", "ch6_rory"], ["release", "Iona Star"]]},
-    {"id": "rescue", "needs_power": true, "objective": {"title": "Bring Iona Star through the East Gut", "steps": [{"text": "Hold the light on her in MANUAL", "done": "lit_by_hand(\"Iona Star\") or saved(\"Iona Star\")"}, {"text": "Turn her onto the East Gut line: 046°, north-east", "done": "piloting(\"Iona Star\") or saved(\"Iona Star\")"}]}, "when": "saved(\"Iona Star\") or lost(\"Iona Star\")",
-     "hint": [150, "MANUAL mode puts a long beam on her so she can see. Confirm her position, then turn her onto the 046° line."], "do": [["wait", 3], ["talk", "ch6_outcome"]]},
-    {"id": "dawn", "objective": "", "when": "true", "do": [["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_morag_dawn"], ["talk", "ch6_final_log"]]},
+    {"id": "rescue", "needs_power": true, "when": "saved(\"Iona Star\") or lost(\"Iona Star\")", "do": [["wait", 3], ["talk", "ch6_outcome"]], "duty": ["iona"]},
+    {"id": "dawn", "when": "true", "do": [["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_morag_dawn"], ["talk", "ch6_final_log"]], "duty": []},
     {"id": "ending", "when": "true", "do": [["wait", 2], ["ending_card", "ch6_epilogue"], ["end_campaign"]]}
    ]}
  ],

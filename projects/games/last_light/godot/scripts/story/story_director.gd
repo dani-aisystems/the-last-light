@@ -289,7 +289,19 @@ func _duty_entry(id: String) -> Dictionary:
 
 
 ## A beat (or the "duty" action) makes these duties active; the last one becomes the HUD's focus.
+## An empty list ends the focus duty (it is over, done or not; no log line) and clears the HUD.
 func activate_duties(ids: Array) -> void:
+	if ids.is_empty():
+		var f := state.focus_duty
+		if f != "" and state.duty_state(f) != StoryState.DUTY_DONE:
+			_duty_entry(f)["s"] = StoryState.DUTY_DONE
+			duty_changed.emit(f, StoryState.DUTY_DONE)
+		state.focus_duty = ""
+		state.objective = ""
+		state.obj_done = []
+		_duty_view_key = ""
+		objective_changed.emit("")
+		return
 	for raw in ids:
 		var id := String(raw)
 		if duty_def(id).is_empty():
@@ -416,6 +428,8 @@ func current_step() -> Dictionary:
 	var d := duty_def(id)
 	if d.is_empty() or state.duty_state(id) == StoryState.DUTY_DONE:
 		return {}
+	if d.get("sub", []).is_empty():               # a duty without steps escalates on its own nudge and hint
+		return d
 	var e: Dictionary = state.duties.get(id, {})
 	var optional_left := {}
 	for sub in d.get("sub", []):              # required steps first: a keeper at the cage is not nagged

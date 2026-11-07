@@ -80,7 +80,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 | A (docs) | Findings log, proposals 35–37, this section, PROJECT_STATE, handoff | — | ✅ done 2026-11-06 (awaiting Daniel's read) |
 | G1 progression, input and correctness bugs | 32, 7, 25, 23, 26, 21, 28, 3, 5 | 2E, 3D, 4, Cabin pass 2 | ✅ approved by Daniel 2026-11-06 (`cfa55b1`) |
 | G2 opening, missions, feedback, saves | 8, 9, 20, 16, 4, 27, 24 (decision) | 2E, 3D, 6 | 🟡 implemented and committed (`193fcf3`, `7ac1175`, test fix `a1ed964`); **all suites green 2026-11-06**; captures and checkpoint pending |
-| **G2b cinematic duty system** | replaces 9/20; supersedes Proposal 36; Duties part of 37 | 2E, 3D, 6 | ⬜ next (Daniel's design decisions 2026-11-06; plan `pasted-content-id-bdd5-the-last-twinkling-crab.md`; stages S1 model → S2 HUD → S3 ch1 slice → S4 logbook → S5 ch2–6) |
+| **G2b cinematic duty system** | replaces 9/20; supersedes Proposal 36; Duties part of 37 | 2E, 3D, 6 | 🟡 S1–S4 approved and committed (`b37cdfc`, `f21a5dc`, `b550e29`, `726f8c7`); S5 (all chapters) implemented, all suites green, closing checkpoint pending. Record: FINDINGS_LOG "G2b implementation record" |
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ⬜ |
 | G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ⬜ |
 | G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented and committed locally (`0b3e750`, all suites green); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |

@@ -66,8 +66,8 @@ func build_log(written: Array, rows: Array) -> String:
 	return "Station log, North Point, Sunday 14 November 1971.\n\n14.11.71 Sun.\n" + "\n".join(lines)
 
 
-## The pencil page: every duty the keeper knows tonight (any chapter so far), its known steps under it;
-## done ones struck through, optional ones he did without left off. Returns the transcription (T).
+## The pencil page: the duties the keeper knows in this chapter of the night, its known steps under
+## each; done ones struck through, optional ones he did without left off. Returns the transcription (T).
 func build_duties(director: StoryDirector) -> String:
 	_clear()
 	page = "duties"
@@ -75,8 +75,8 @@ func build_duties(director: StoryDirector) -> String:
 	var y := float(TOP_Y)
 	var lines: Array = ["Tonight (pencil, at the back of the log):"]
 	for c in director.chapters:
-		if int(c["n"]) > director.state.chapter:
-			break
+		if int(c["n"]) != director.state.chapter:
+			continue
 		for d in c.get("duties", []):
 			var id := String(d["id"])
 			var st := director.state.duty_state(id)

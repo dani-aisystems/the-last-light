@@ -22,7 +22,13 @@
 - **G2b S1 committed** (`b37cdfc`).
 - **G2b S2 committed** (`f21a5dc`).
 - **G2b S3 committed** (`b550e29`).
-- **G2b S4 (logbook + completion) implemented, uncommitted, awaiting Daniel's checkpoint:**
+- **G2b S4 committed** (`726f8c7`).
+- **G2b S5 (all chapters) implemented, uncommitted, awaiting the closing G2b checkpoint:**
+  - 19 duties across ch1–6 (no `objective` key left);
+  - `"duty": []` ends a duty; duties without steps escalate; the Duties page is per chapter; the write-up counts only at the desk (`game_fp._at_desk`).
+  - All suites green. **Evidence:** `renders/last_light/g2b6_*.png`.
+  - **Next, after approval:** commit, then G3, starting with the pipe question (item 19).
+- **G2b S4 (logbook + completion), for reference:**
   - `chapters.json` `station_log` holds tonight's five canon rows (verbatim `log_1971`); duties log by id, beats with the `["log", id]` action (18.30, 18.50, 23.25);
   - `blender/log_strips.py` (seeded, reproducible) renders the blank page, row strips, slips (paper + ink), the pencil Duties page and duty strips into `godot/assets/docs/log/` with a manifest;
   - `scripts/story/logbook_pages.gd` (a SubViewport) composes the log with only the written rows, plus the Duties page; L / desk logbook open it; A/D/Tab flip pages;

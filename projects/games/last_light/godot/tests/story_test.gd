@@ -99,10 +99,14 @@ func _check_beat_actions() -> void:
 					texts.append(String(o[k].get("title", "")))
 					for st in o[k].get("steps", []):
 						texts.append(String(st.get("text", "")))
+				if k == "objective":                 # G2b S5: every objective is a duty now
+					fails.append("chapters.json: a legacy 'objective' key remains (%s)" % [o.get("id", "?")])
 				if k == "duties" and o[k] is Array:
 					for d in o[k]:
 						texts.append(String(d.get("caption", "")))
 						texts.append(String(d.get("line", "")))
+						texts.append(String(d.get("nudge", "")))
+						texts.append(String(d.get("hint", "")))
 						for sb in d.get("sub", []):
 							texts.append(String(sb.get("line", "")))
 							texts.append(String(sb.get("nudge", "")))
@@ -114,6 +118,7 @@ func _check_beat_actions() -> void:
 				if k == "do" and o[k] is Array:
 					for a in o[k]:
 						if String(a[0]) == "objective":
+							fails.append("chapters.json: a legacy 'objective' action remains")
 							if a[1] is Dictionary:
 								texts.append(String(a[1].get("title", "")))
 								for st in a[1].get("steps", []):

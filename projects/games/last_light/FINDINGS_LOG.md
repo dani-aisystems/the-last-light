@@ -169,6 +169,22 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
   - catch-lights in darkness only.
 - **Supersedes** PROPOSAL_36. It implements the Duties part of PROPOSAL_37.
 
+## G2b implementation record (2026-11-06/07; S1–S4 approved by Daniel; S5 awaiting the closing checkpoint)
+
+| Stage | What changed | Commit |
+|---|---|---|
+| S1 model | `StoryState.duties` / `focus_duty` / `log_written` (saved by id); director discover / latch / complete in any order / log once; ch1 duties | `b37cdfc` |
+| S2 HUD | `duty_hud.gd`: top-left duty line on a dark plate (12–18:1 contrast, was 1.1–1.5:1); Guidance Minimal / Standard / Full (Full = checkbox plus dotted one-line steps); J/R3 recall; regress R13 | `f21a5dc` |
+| S3 ch1 slice | START with the valve shut cranks, coughs and fails; Callum's thought teaches the valve; nudge at 25 s, hint at 60 s (required steps first); darkness catch-lights; `gen_crank_dry` / `gen_catch` / `relay_clack` / `torch_click`; battery_low only while draining; gauge 14 A; radio "sixteen-forty" | `b550e29` |
+| S4 logbook | Canon `station_log` (verbatim `log_1971`); `log_strips.py` (seeded, Callum's hand); the log page shows only the written rows; the pencil Duties page; a completion slip top-right revealed with `pen_write`; regress R14 | `726f8c7` |
+| S5 migration | All ch1–6 objectives became 19 duties (Callum's register plus panel labels, nudges, hints); `"duty": []` ends a duty; duties without steps escalate; the Duties page is per chapter; "write up the evening" counts only at the desk; no `objective` key left (story_test enforces it) | (this checkpoint) |
+
+**Moved to G4:** KEEPER'S ORDERS line 5 (needs the Blender pipeline).
+
+**Noted:** the ship radio subtitles faintly show through the document shade (existing behaviour, seen in `g2b6_t140`).
+
+**Daniel's listening queue:** `gen_crank_dry`, `gen_catch`, `relay_clack`, `torch_click`, `pen_write` (`godot/assets/audio/`).
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.
