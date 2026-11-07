@@ -21,7 +21,15 @@
 - **Still pending with Daniel:** the music pick, the listening pass, the Visitor figure.
 - **G2b S1 committed** (`b37cdfc`).
 - **G2b S2 committed** (`f21a5dc`).
-- **G2b S3 (ch1 slice) implemented, uncommitted, awaiting Daniel's checkpoint:**
+- **G2b S3 committed** (`b550e29`).
+- **G2b S4 (logbook + completion) implemented, uncommitted, awaiting Daniel's checkpoint:**
+  - `chapters.json` `station_log` holds tonight's five canon rows (verbatim `log_1971`); duties log by id, beats with the `["log", id]` action (18.30, 18.50, 23.25);
+  - `blender/log_strips.py` (seeded, reproducible) renders the blank page, row strips, slips (paper + ink), the pencil Duties page and duty strips into `godot/assets/docs/log/` with a manifest;
+  - `scripts/story/logbook_pages.gd` (a SubViewport) composes the log with only the written rows, plus the Duties page; L / desk logbook open it; A/D/Tab flip pages;
+  - the completion slip top-right reveals its ink with the `pen_write` sound;
+  - tests: story `_station_log_canon` plus the campaign writing all five rows once; regress R14.
+  - **Evidence:** `renders/last_light/g2b5_*.png`. The strike-through was moved to mid x-height after the capture (verify in S5).
+- **G2b S3 (ch1 slice), for reference:**
   - START is no longer refused with the valve shut: it cranks, coughs (`gen_crank_dry`) and fails; Callum's thought follows (queued if dialogue is up), and the fuel valve becomes known;
   - new synth sounds `gen_crank_dry`, `gen_catch`, `relay_clack` (lights on), `torch_click`; existing WAVs byte-identical;
   - per-step escalation in the director (`NUDGE_S` 25, `HINT_S` 60; required steps before optional), with nudge and hint texts in ch1 `chapters.json`; the duplicate beat hints retired;

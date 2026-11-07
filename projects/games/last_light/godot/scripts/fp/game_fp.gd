@@ -141,6 +141,7 @@ func _setup_story(save: Dictionary) -> void:
 	Settings.changed.connect(_on_settings_changed)     # method (not lambda): auto-disconnects when freed
 	presenter.dialogue.blip.connect(func(kind): audio.ui_blip(kind))
 	presenter.document_closed.connect(_on_doc_closed)
+	presenter.log_card_shown.connect(func(_e): if audio: audio.sfx("pen_write", -8.0))   # G2b: the pen on paper
 	backlog = preload("res://scripts/ui/backlog_ui.gd").new()
 	backlog.chapter_title_fn = func(n): return String(director.chapter_data(n).get("title", ""))
 	backlog.close_requested.connect(close_backlog)

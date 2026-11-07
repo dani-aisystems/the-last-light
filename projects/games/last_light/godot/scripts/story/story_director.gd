@@ -33,7 +33,7 @@ signal transition_requested(kind: String, args: Array)
 ## The beat-action contract (Stage 2): actions the director runs itself, and presentation events it
 ## forwards to game_fp._on_story_event. story_test fails on any "do" name outside these two lists, so a
 ## no-op like the retired hint_device cannot creep back in.
-const ACTIONS := ["talk", "wait", "objective", "duty", "duty_drop", "set", "unset", "add", "clue", "ship", "storm", "clock", "fault",
+const ACTIONS := ["talk", "wait", "objective", "duty", "duty_drop", "log", "set", "unset", "add", "clue", "ship", "storm", "clock", "fault",
 	"battery", "mode", "intensity", "autosave", "end_campaign", "timeskip", "ending_card", "until", "release"]
 const PRESENTATION_EVENTS := ["hint", "sky", "phantom_echo", "door_open", "visitor_enter", "knock",
 	"footsteps", "sfx", "static", "music", "caption"]
@@ -59,6 +59,7 @@ var db := DialogueDB.new()
 var runner: DialogueRunner
 var chapters: Array = []
 var after_read: Dictionary = {}        # doc id -> [[first chapter, last chapter, conv], ...] (3B, E7)
+var station_log: Array = []            # G2b: tonight's canon log rows {id, date, time, wind, weather, text}
 var bot := false                   # auto-advance dialogue + auto-choose (tests/captures)
 var bot_choice := 0
 var bot_pick_fn: Callable              # tests: (conversation id, choices) -> index; overrides bot_choice
@@ -105,6 +106,7 @@ func setup(k: KeeperSim, headless_bot := false) -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/story/chapters.json"))
 	chapters = data["chapters"]
 	after_read = data.get("after_read", {})
+	station_log = data.get("station_log", {}).get("1971-11-14", [])
 
 
 func chapter_data(n: int) -> Dictionary:
@@ -253,6 +255,25 @@ var _duty_t := 0.0
 var _duty_view_key := ""                # the last duty view sent to the HUD (adapter, no repeats)
 
 
+## G2b layer C: Callum writes tonight's log row `id` (once). The presenter shows it being written.
+func write_log(id: String) -> void:
+	var entry := log_entry(id)
+	if entry.is_empty():
+		push_error("story: unknown station-log row '%s'" % id)
+		return
+	if id in state.log_written:
+		return
+	state.log_written.append(id)
+	duty_logged.emit(entry)
+
+
+func log_entry(id: String) -> Dictionary:
+	for e in station_log:
+		if String(e["id"]) == id:
+			return e
+	return {}
+
+
 func duty_def(id: String) -> Dictionary:
 	for c in chapters:
 		for d in c.get("duties", []):
@@ -338,10 +359,8 @@ func _eval_duties() -> void:
 			e["s"] = StoryState.DUTY_DONE
 			duty_changed.emit(id, StoryState.DUTY_DONE)
 			changed = true
-			var lg: Dictionary = d.get("log", {})
-			if not lg.is_empty() and not (String(lg["id"]) in state.log_written):
-				state.log_written.append(String(lg["id"]))
-				duty_logged.emit(lg)
+			if String(d.get("log", "")) != "":
+				write_log(String(d["log"]))
 		if changed and id == state.focus_duty:
 			_emit_duty_view()
 
@@ -591,6 +610,8 @@ func _do(a: Array) -> void:
 			_set_objective(args[0])
 		"duty":
 			activate_duties(args)
+		"log":
+			write_log(String(args[0]))
 		"duty_drop":
 			for id in args:
 				var e := _duty_entry(String(id))

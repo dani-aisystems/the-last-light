@@ -3,6 +3,7 @@ extends CanvasLayer
 ## time-skip fades. Owned by game_fp in story mode; talks to StoryDirector via signals.
 
 signal document_closed(doc_id: String)
+signal log_card_shown(entry: Dictionary)   # G2b: a log line starts being written on screen (game_fp: pen sound)
 
 const CARD_ON_BLACK_S := 1.8          # the clock or chapter card is fully up on black at least this long (item 21)
 var director: StoryDirector
@@ -23,6 +24,16 @@ var thought: Label                       # brief item 16: Callum's short, non-bl
 var duty_hud: DutyHUD                     # G2b layer A: the duty line top-left (replaced the item 20 panel)
 var _last_hint := ""                     # G2b: the last story hint, for the J / R3 recall
 var _queued_thought := ""                # G2b: a thought held back while dialogue was up
+## G2b layer C: the logbook (the log page with tonight's written rows, the pencil Duties page) and the
+## completion slip that appears top-right as Callum writes a row.
+var log_pages: LogbookPages
+var log_card: Control
+var _card_bg: TextureRect
+var _card_clip: Control
+var _card_ink: TextureRect
+var _card_queue: Array = []
+var _card_tw: Tween
+const LOG_DOCS := ["log_1971", "duties"]
 var _thought_tw: Tween
 var _caption_tw: Tween
 ## 3B ending card (§15.5): warm black, the ending's title, the epilogue lines one at a time.
@@ -70,6 +81,27 @@ func _ready() -> void:
 	# and hint keep their names for the rest of the game: they are the HUD's duty line and hint row.
 	duty_hud = DutyHUD.new()
 	root.add_child(duty_hud)
+	log_pages = LogbookPages.new()
+	add_child(log_pages)
+	log_card = Control.new()
+	log_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	log_card.modulate.a = 0.0
+	log_card.visible = false
+	root.add_child(log_card)
+	_card_bg = TextureRect.new()
+	_card_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_card_bg.stretch_mode = TextureRect.STRETCH_SCALE
+	_card_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	log_card.add_child(_card_bg)
+	_card_clip = Control.new()
+	_card_clip.clip_contents = true
+	_card_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	log_card.add_child(_card_clip)
+	_card_ink = TextureRect.new()
+	_card_ink.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_card_ink.stretch_mode = TextureRect.STRETCH_SCALE
+	_card_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_clip.add_child(_card_ink)
 	objective = duty_hud.line
 	hint = duty_hud.hint
 	dialogue = preload("res://scripts/ui/dialogue_ui.gd").new()
@@ -181,6 +213,7 @@ func bind(d: StoryDirector) -> void:
 	dialogue.choice_made.connect(d.choose)
 	d.objective_changed.connect(set_objective)
 	d.objective_progress.connect(set_progress)
+	d.duty_logged.connect(show_log_entry)
 	dialogue.hold_fn = is_screen_held
 	d.chapter_started.connect(show_chapter)
 	d.transition_requested.connect(_on_transition)
@@ -210,6 +243,41 @@ func is_step_done(i: int) -> bool:
 ## A device view is open (radio, console...): the duty line steps aside unless Full or recalled.
 func set_compact(on: bool) -> void:
 	duty_hud.compact = on
+
+
+## G2b layer C: Callum writes a log row. A paper slip top-right (below the notices, clear of the radio
+## panel and the subtitles); its ink appears left to right as if written, then it fades. One at a time.
+func show_log_entry(entry: Dictionary) -> void:
+	_card_queue.append(entry)
+
+
+func _tick_log_card() -> void:
+	if _card_queue.is_empty() or (_card_tw and _card_tw.is_running()) or is_screen_held():
+		return
+	var e: Dictionary = _card_queue.pop_front()
+	var bg: Texture2D = load(LogbookPages.DIR + "card_%s.png" % e["id"])
+	var ink: Texture2D = load(LogbookPages.DIR + "card_ink_%s.png" % e["id"])
+	if bg == null or ink == null:
+		return
+	var vp := log_card.get_viewport_rect().size
+	var s := minf(1.0, vp.x * 0.34 / float(bg.get_width())) * minf(1.0 + (UIStyle.text_scale - 1.0) * 0.5, 1.25)
+	var sz := Vector2(bg.get_width(), bg.get_height()) * s
+	log_card.size = sz
+	log_card.position = Vector2(vp.x * (1.0 - DutyHUD.MARGIN) - sz.x, vp.y * DutyHUD.TOP)
+	_card_bg.texture = bg
+	_card_bg.size = sz
+	_card_ink.texture = ink
+	_card_ink.size = sz
+	_card_clip.size = Vector2(0, sz.y)
+	log_card.visible = true
+	log_card.set_meta("entry", e["id"])
+	log_card_shown.emit(e)
+	_card_tw = create_tween()
+	_card_tw.tween_property(log_card, "modulate:a", 1.0, 0.35)
+	_card_tw.tween_property(_card_clip, "size:x", sz.x, 1.5)
+	_card_tw.tween_interval(4.0)
+	_card_tw.tween_property(log_card, "modulate:a", 0.0, 1.0)
+	_card_tw.tween_callback(func(): log_card.visible = false)
 
 
 ## G2b escalation, by the Guidance option: 0 a new current step (Full shows its hint at once; the others
@@ -481,11 +549,17 @@ func doc_info(id: String) -> Dictionary:
 ## opening and closing); this layer never sets the mouse mode.
 func open_document(id: String) -> void:
 	var d := doc_info(id)
-	if d.is_empty():
+	var composed := id in LOG_DOCS and director != null and not log_pages.manifest.is_empty()
+	if d.is_empty() and not composed:
 		return
 	_doc_open = id
-	doc_tex.texture = load(String(d.get("tex", "res://assets/docs/%s.png" % id)))
-	doc_text.text = d["text"]
+	if composed:                                   # G2b: tonight's log as written so far / the pencil page
+		doc_text.text = log_pages.build_log(director.state.log_written, director.station_log) if id == "log_1971" \
+			else log_pages.build_duties(director)
+		doc_tex.texture = log_pages.get_texture()
+	else:
+		doc_tex.texture = load(String(d.get("tex", "res://assets/docs/%s.png" % id)))
+		doc_text.text = d["text"]
 	_transcript = false
 	doc_text.visible = false
 	doc_tex.visible = true
@@ -502,10 +576,13 @@ func open_document(id: String) -> void:
 
 func _update_doc_title() -> void:
 	var d := doc_info(_doc_open)
+	if _doc_open == "duties":
+		d = {"title": "Tonight · pencil, at the back of the log"}
+	var pages := "  ·  %s page" % ("A / D" if not InputSetup.pad_active else "Left stick") if _doc_open in LOG_DOCS else ""
 	var zoom_keys := "%s zoom · drag to move" % InputSetup.key("turn") if not InputSetup.pad_active \
 		else "%s zoom · %s move" % [InputSetup.key("turn"), "[Right stick]"]
-	doc_title.text = "%s        %s  ·  %s transcription  ·  %s / %s close" % [d.get("title", ""), zoom_keys,
-		InputSetup.key("transcript"), InputSetup.key("interact"), InputSetup.key("back")]
+	doc_title.text = "%s        %s  ·  %s transcription%s  ·  %s / %s close" % [d.get("title", ""), zoom_keys,
+		InputSetup.key("transcript"), pages, InputSetup.key("interact"), InputSetup.key("back")]
 
 
 func is_document_open() -> bool:
@@ -520,6 +597,9 @@ func close_document() -> void:
 	_dragging = false
 	var id := _doc_open
 	_doc_open = ""
+	if id in LOG_DOCS:
+		log_pages.stop()
+		id = "log_1971"                            # the Duties page is the back of the same book
 	document_closed.emit(id)
 
 
@@ -563,6 +643,10 @@ func _input(event: InputEvent) -> void:
 	if not doc_root.visible:
 		return
 	get_viewport().set_input_as_handled()          # nothing under the viewer reacts while reading
+	if _doc_open in LOG_DOCS and _zoom <= 1.01 and (event.is_action_pressed("move_left") or event.is_action_pressed("move_right")
+			or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_TAB)):
+		open_document("duties" if _doc_open == "log_1971" else "log_1971")   # G2b: turn to the other page
+		return
 	if event.is_action_pressed("transcript"):    # T, or pad X (Stage 2C)
 		_transcript = not _transcript
 		doc_text.visible = _transcript
@@ -597,6 +681,7 @@ func _process(delta: float) -> void:
 		_hint_t -= delta
 		hint.modulate.a = clampf(_hint_t, 0.0, 1.0)
 	duty_hud.tick(delta, is_screen_held())
+	_tick_log_card()
 	if _queued_thought != "" and not dialogue.is_active() and not is_screen_held():
 		var qt := _queued_thought
 		_queued_thought = ""

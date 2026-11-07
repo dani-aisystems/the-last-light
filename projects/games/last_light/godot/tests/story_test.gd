@@ -70,6 +70,7 @@ func _run() -> void:
 		await _kittiwake_power_out()
 		_opening_duties()
 		_duty_escalation()
+	_station_log_canon()
 	await _save_roundtrip()
 	_save_files()
 	print("STORY_RESULT ", JSON.stringify({"failed": fails.size(), "failures": fails}))
@@ -298,7 +299,8 @@ func _opening_duties() -> void:
 	k.set_start(false)
 	k.set_charge(true)
 	step.call(40.0)
-	if dir.state.duty_state("light") != StoryState.DUTY_DONE or logs != ["log_1622", "log_1640"] or dir.state.log_written != ["log_1622", "log_1640"]:
+	var d_ok: bool = logs.slice(0, 2) == ["log_1622", "log_1640"] and logs == dir.state.log_written and logs.size() == {}.merged(Array(logs).reduce(func(acc, x): acc[x] = 1; return acc, {})).size()
+	if dir.state.duty_state("light") != StoryState.DUTY_DONE or not d_ok:
 		fails.append("G2b D: console-first wrong: light %s, logs %s, written %s, beat %d" % [dir.state.duties.get("light", {}), logs, dir.state.log_written, dir.state.beat])
 	dir.queue_free()
 
@@ -379,6 +381,44 @@ func _duty_escalation() -> void:
 		fails.append("G2b escalation wrong: levels %s at +%.1f / +%.1f s, torch quiet %s, next fuel %s, quiet %s (all %s)" % [lv, dt1, dt2, torch_quiet, next_is_fuel, no_early_nudge, got])
 	print("DUTY_ESCALATION ok=%s events=%s" % [ok, got])
 	dir.queue_free()
+
+
+## G2b layer C: every log row a duty or a beat writes exists in chapters.json "station_log", each row's
+## wording is verbatim the canon log_1971 (docs.json, CANON_INDEX §6), and blender/log_strips.py has
+## rendered its strips (re-run it after changing a row or adding a duty).
+func _station_log_canon() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string("res://data/story/chapters.json"))
+	var rows: Array = data.get("station_log", {}).get("1971-11-14", [])
+	var ids := {}
+	var canon: String = JSON.parse_string(FileAccess.get_file_as_string("res://assets/docs/docs.json"))["log_1971"]["text"]
+	for e in rows:
+		ids[String(e["id"])] = true
+		if not (String(e["text"]) in canon) or not ("%s " % e["time"] in canon):
+			fails.append("G2b station log: row %s is not verbatim log_1971 ('%s %s')" % [e["id"], e["time"], e["text"]])
+		for f in ["row_%s.png", "card_%s.png", "card_ink_%s.png"]:
+			if not ResourceLoader.exists(LogbookPages.DIR + f % e["id"]):
+				fails.append("G2b station log: %s missing (run blender/log_strips.py)" % (f % e["id"]))
+	var used: Array = []
+	for c in data["chapters"]:
+		for d in c.get("duties", []):
+			if String(d.get("log", "")) != "":
+				used.append(String(d["log"]))
+			if not ResourceLoader.exists(LogbookPages.DIR + "duty_%s.png" % d["id"]):
+				fails.append("G2b duties page: duty_%s.png missing (run blender/log_strips.py)" % d["id"])
+			for sb in d.get("sub", []):
+				if not ResourceLoader.exists(LogbookPages.DIR + "sub_%s_%s.png" % [d["id"], sb["id"]]):
+					fails.append("G2b duties page: sub_%s_%s.png missing (run blender/log_strips.py)" % [d["id"], sb["id"]])
+		for b in c["beats"]:
+			for a in b.get("do", []):
+				if String(a[0]) == "log":
+					used.append(String(a[1]))
+	for u in used:
+		if not ids.has(u):
+			fails.append("G2b station log: '%s' is written but not in station_log" % u)
+	for id in ids:
+		if used.count(id) != 1:
+			fails.append("G2b station log: row %s is written by %d places (expected exactly 1)" % [id, used.count(id)])
+	print("STATION_LOG rows=%d used=%s" % [rows.size(), used])
 
 
 ## A fresh ch1 director over a fresh sim, for the G2b checks: [sim, director, logged ids, step(secs)].
@@ -566,6 +606,9 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 	else:
 		var eid: String = ended[1].get("ending", "")
 		endings[eid] = endings.get(eid, []) + [label]
+		var all_rows: Array = dir.station_log.map(func(x): return String(x["id"]))
+		if dir.state.log_written != all_rows:      # G2b: tonight's five rows, each once, in canon order
+			fails.append("campaign %s: the station log was written %s, expected %s" % [label, dir.state.log_written, all_rows])
 		if dir.ending_lines.size() < 3 or String(ended[1].get("title", "")) == "":
 			fails.append("campaign %s: ending card '%s' has no title or too few lines %s" % [label, eid, dir.ending_lines])
 		if sc.has("expect") and eid != sc["expect"]:

@@ -366,6 +366,23 @@ def relay():
     save("relay_clack", clack + second + ring, -4)
 
 
+def pen_write():
+    """G2b: Callum writes a line in the log. Short pen strokes on paper (band-limited scratches with a
+    soft paper rub), a little faster at the start of the line, ~1.6 s."""
+    sec = 1.6
+    n = int(sec * SR)
+    x = np.zeros(n)
+    r = np.random.default_rng(zlib.crc32(b"pen_write_strokes"))
+    pos = int(0.04 * SR)
+    while pos < n - int(0.12 * SR):
+        L = int(r.uniform(0.035, 0.11) * SR)
+        stroke = band(noise(L / SR), 1800, 7000) * env(L, 0.004, L / SR * 0.6) * r.uniform(0.5, 1.0)
+        rub = band(noise(L / SR), 200, 1200) * env(L, 0.01, L / SR * 0.8) * 0.25
+        x[pos:pos + L] += stroke + rub
+        pos += L + int(r.uniform(0.015, 0.07) * SR)
+    save("pen_write", x * np.clip((sec - t(sec)) / 0.25, 0, 1), -9)
+
+
 def footsteps(name, metal=True, n=4):
     for k in range(n):
         L = int(0.35 * SR)
@@ -470,6 +487,7 @@ def main(argv=None):
         ("ui_click", ui_click), ("breaker_trip", breaker), ("gen_crank", crank),
         ("gen_crank_dry", crank_dry), ("gen_catch", catch), ("relay_clack", relay),          # G2b S3
         ("torch_click", lambda: click("torch_click", 3200, 0.007, 420)),
+        ("pen_write", pen_write),                                                            # G2b S4
         ("gen_stop", lambda: save("gen_stop", band(noise(2.0), 30, 300) * env(int(2.0 * SR), 0.01, 0.8), -4)),
         ("step_metal", lambda: footsteps("step_metal", True)),
         ("step_stone", lambda: footsteps("step_stone", False)),

@@ -1367,6 +1367,56 @@ func _r12_brief_g2() -> void:
 	g.sim.battery = 80.0
 	g.director.process_mode = Node.PROCESS_MODE_DISABLED
 	await _r13_duty_hud()
+	await _r14_logbook()
+
+
+## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties
+## page lists the known duties with done ones struck, A / D turns the page, closing from either page is
+## "read the log"; a written row appears as a slip top-right whose ink is revealed, then fades.
+func _r14_logbook() -> void:
+	print("R14 G2b logbook and log slips")
+	var pr = g.presenter
+	var dir: StoryDirector = g.director
+	var written0: Array = dir.state.log_written.duplicate()
+	dir.state.log_written = []
+	pr.open_document("log_1971")
+	await _frames(2)
+	_check(pr.is_document_open() and pr.log_pages.page == "log" and pr.log_pages.shown.is_empty() and pr.doc_text.text.contains("Nothing written"),
+		"an empty night: the log page shows no rows (%s)" % [pr.log_pages.shown])
+	pr.close_document()
+	dir.state.log_written = ["log_1622"]
+	pr.open_document("log_1971")
+	await _frames(2)
+	_check(pr.log_pages.shown == ["log_1622"] and pr.doc_text.text.contains("Batteries flat") and not pr.doc_text.text.contains("Light exhibited"),
+		"after 16.22 only the 16.22 row is on the page (%s)" % [pr.log_pages.shown])
+	var closed: Array = []
+	var cb := func(id): closed.append(id)
+	pr.document_closed.connect(cb)
+	var ev := InputEventAction.new()
+	ev.action = "move_right"
+	ev.pressed = true
+	pr._input(ev)
+	await _frames(2)
+	_check(pr._doc_open == "duties" and pr.log_pages.page == "duties", "D turns to the pencil Duties page")
+	_check(pr.log_pages.shown.any(func(x): return String(x).begins_with("duty:")), "the Duties page lists the duties known tonight (%s)" % [pr.log_pages.shown])
+	pr.close_document()
+	await _frames(1)
+	_check(closed == ["log_1971"], "closing from the Duties page counts as reading the log (%s)" % [closed])
+	pr.document_closed.disconnect(cb)
+	dir.state.log_written = written0
+	# the slip: a written row is shown top-right, ink revealed left to right, then gone
+	dir.write_log("log_1830") if not ("log_1830" in written0) else pr.show_log_entry(dir.log_entry("log_1830"))
+	await create_timer(0.6).timeout
+	var vp: Rect2 = g.get_viewport().get_visible_rect()
+	var cr: Rect2 = pr.log_card.get_global_rect()
+	_check(pr.log_card.visible and String(pr.log_card.get_meta("entry", "")) == "log_1830" and vp.encloses(cr) and cr.position.x > vp.size.x * 0.5
+		and cr.position.y < vp.size.y * 0.2, "a written row appears as a slip top-right (%s)" % cr)
+	var w0: float = pr._card_clip.size.x
+	await create_timer(0.8).timeout
+	_check(pr._card_clip.size.x > w0 and pr._card_clip.size.x <= pr._card_bg.size.x + 0.5, "the ink is revealed left to right (%.0f -> %.0f px)" % [w0, pr._card_clip.size.x])
+	await create_timer(6.0).timeout
+	_check(not pr.log_card.visible, "the slip is gone after a few seconds")
+	dir.state.log_written = written0
 
 
 ## G2b (Daniel 2026-11-06) R13: the duty HUD replaces the item 9/20 panel. Top-left in the safe margin,
