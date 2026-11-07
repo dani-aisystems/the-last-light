@@ -44,7 +44,13 @@
   - regress R15. All suites green.
   - **Evidence:** `renders/last_light/g3a_*.png`, `g3a2_*`, `g3a3_*`.
   - **Pad:** G/B left unbound for now (Daniel 2026-11-07; a later controls pass).
-  - **Approved by Daniel; committed.** Next: G3b (arms and hands), inspect and plan first.
+  - **Approved by Daniel; committed** (`31afb9a`).
+- **G3b, started 2026-11-07 (Daniel: "Continue"):**
+  - **Inspection:** the CC0 bundle has no armature; it has "Hand  - Realistic" (831 vertices, multires) and GEO-body_male_realistic. Canon (PROFILE §G): fair to lightly ruddy skin, no scars, clean hands; a navy or charcoal wool guernsey, cuffs repaired.
+  - **Plan:**
+    - new `blender/player_hands.py`: the hand mirrored for the left; our own armature (detected finger chains, automatic weights); a knitted guernsey cuff with a darn; poses relaxed / torch / compass / binoculars; `hands.glb`, validated and reimport-checked;
+    - in Godot, hands only while holding something; the torch light in the right hand;
+    - regress R16, then captures.
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).
