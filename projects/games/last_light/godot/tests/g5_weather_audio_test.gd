@@ -84,6 +84,34 @@ func _run() -> void:
 	var cc := _players("carrier_click")
 	_ok("carrier_click plays on Dialogue", cc.size() == 1 and cc[0].bus == &"Dialogue")
 
+	# --- G2b S3: machinery sounds. A crank with the valve shut is the dry crank (it never catches),
+	#     an open valve the normal crank; the engine catching, the torch switch and the lights relay
+	var valve0: bool = g.sim.fuel_valve
+	g.sim.fuel_valve = false
+	au.on_events([{"type": "gen_crank"}])
+	g.sim.fuel_valve = true
+	au.on_events([{"type": "gen_crank"}])
+	au.on_events([{"type": "gen_start"}, {"type": "torch", "on": true}])
+	_ok("valve shut: the dry crank plays (once)", _players("gen_crank_dry").size() == 1)
+	_ok("valve open: the normal crank plays", _players("gen_crank").size() >= 1)
+	_ok("the engine catching and the torch switch are heard", _players("gen_catch").size() == 1 and _players("torch_click").size() == 1)
+	g.sim.fuel_valve = valve0
+	var lit0: bool = g.sim.brk_lights
+	var batt0: float = g.sim.battery
+	var main0: bool = g.sim.main_breaker
+	g.sim.battery = 60.0                     # power the room, so the relay check is real
+	g.sim.main_breaker = true
+	g.sim.set_breaker("lights", false)
+	await _frames(2)
+	var relays0 := _players("relay_clack").size()
+	g.sim.set_breaker("lights", true)
+	await _frames(2)
+	_ok("the lights coming on pull in the relay (once)", g.sim.lights_on() and _players("relay_clack").size() == relays0 + 1,
+		"lights_on=%s relays %d -> %d" % [g.sim.lights_on(), relays0, _players("relay_clack").size()])
+	g.sim.set_breaker("lights", lit0)
+	g.sim.battery = batt0
+	g.sim.main_breaker = main0
+
 	# --- 29/30: the sim's lightning event
 	var ev: Array = []
 	g.sim._next_lightning = g.sim.t

@@ -109,6 +109,7 @@ func setup(k: KeeperSim) -> void:
 	_bind(room)
 	_make_window_lights()
 	_make_instrument_lights()
+	_make_catch_lights()
 	_make_probe()
 	_make_fog_cut()
 	apply_shadow_preset()
@@ -316,6 +317,44 @@ func _make_window_lights() -> void:
 
 ## Small warm spots on the instrument faces so gauges stay readable in a low-key room. They are on
 ## the room-lights breaker like the lamps. (Their fixtures are modelled in Stage 1 iteration 3.)
+## G2b (Daniel 2026-11-06): in darkness only, the controls the keeper needs first catch a little light:
+## brass and red paint picking up the emergency lamp. A small warm, shadowless point light just in front of
+## each, fading out with distance; no outline, no marker, never through a wall (range 0.28 m). Off the
+## moment the room lights are on.
+const CATCH_IDS := ["torch", "fuel_valve", "start", "charge"]
+var catch_lights := {}                  # ia id -> OmniLight3D
+
+
+func _make_catch_lights() -> void:
+	for id in CATCH_IDS:
+		if not _ia_bodies.has(id):
+			continue
+		var p: Vector3 = (_ia_bodies[id] as Node3D).global_position
+		var inward := Vector3(-p.x, 0, -p.z).normalized()
+		var l := OmniLight3D.new()
+		l.name = "CATCH_" + id
+		l.omni_range = 0.28
+		l.omni_attenuation = 1.6
+		l.light_color = Color(1.0, 0.62, 0.38)
+		l.light_energy = 0.0
+		l.shadow_enabled = false
+		l.light_specular = 1.0
+		l.layers = LAYER_INTERIOR
+		l.light_cull_mask = LAYER_INTERIOR
+		l.distance_fade_enabled = true
+		l.distance_fade_begin = 3.5
+		l.distance_fade_length = 2.0
+		add_child(l)
+		l.global_position = p + inward * 0.09 + Vector3(0, 0.03, 0)
+		catch_lights[id] = l
+
+
+func _update_catch_lights(room_on: bool) -> void:
+	for id in catch_lights:
+		var gone: bool = id == "torch" and torch_taken
+		(catch_lights[id] as OmniLight3D).light_energy = 0.0 if room_on or gone else 0.12   # 0.35 lit whole panels (S3 captures)
+
+
 func _make_instrument_lights() -> void:
 	for pair in [["inst_console", "NDL_bearing"], ["inst_charger", "NDL_battery"], ["inst_gen", "NDL_temp"],
 			["inst_power", "PT_brk_lights"]]:
@@ -553,8 +592,8 @@ func availability(id: String) -> Dictionary:
 					return {"ok": false, "reason": "Still too hot to restart. Let it cool."}
 				if sim.fuel <= 0.0:
 					return {"ok": false, "reason": "The day-tank is empty."}
-				if not sim.fuel_valve:
-					return {"ok": false, "reason": "The fuel valve is shut."}
+				# G2b (Daniel 2026-11-06): a shut fuel valve no longer refuses START. The engine turns over,
+				# coughs and dies (keeper_sim gen_crank_fail), and Callum says why: the keeper learns by trying.
 		"doc":
 			if not docs_enabled:
 				return {"ok": false, "reason": ""}
@@ -757,6 +796,7 @@ func _process_body(delta: float) -> void:
 			base = 0.3 if room_on else 0.5      # 0.6 turned the 20 mm door gap into a glowing white slot
 		l.light_energy = base * f if on else 0.0
 	_update_windows()
+	_update_catch_lights(room_on)
 	_update_probe(f if room_on else 0.0, room_on)
 	for id in lamps:
 		if id.begins_with("wall"):

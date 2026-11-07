@@ -320,6 +320,52 @@ def crank():
     save("gen_crank", x + band(noise(sec), 100, 400) * 0.1, -3)
 
 
+def crank_dry():
+    """G2b: START held with the fuel valve shut. The engine turns over, slowing; one weak cough
+    (a puff of the little fuel left in the line) at ~1.5 s; then it runs down to nothing (~2.7 s)."""
+    sec = 2.7
+    tt = t(sec)
+    rate = np.clip(8.0 - 1.6 * tt, 2.5, None) * np.clip((2.5 - tt) / 0.6, 0, 1)
+    ph = np.cumsum(rate) / SR
+    pulses = (np.sin(2 * np.pi * ph) > 0.6).astype(float) * band(noise(sec), 100, 900)
+    pulses *= np.clip((2.55 - tt) / 0.5, 0, 1)
+    n = len(tt)
+    cough = np.zeros(n)
+    c0 = int(1.5 * SR)
+    cl = int(0.22 * SR)
+    ct = np.arange(cl) / SR
+    cough[c0:c0 + cl] = (np.sin(2 * np.pi * 58 * ct) * 0.9 + band(noise(cl / SR), 60, 700) * 0.7) * env(cl, 0.004, 0.12)
+    x = pulses + cough + band(noise(sec), 100, 400) * 0.08 * np.clip((2.4 - tt) / 0.4, 0, 1)
+    save("gen_crank_dry", x, -3)
+
+
+def catch():
+    """G2b: the engine catches. Cranking turns into firing strokes that quicken and swell for ~1 s,
+    then fade under the gen_idle loop that starts with them."""
+    sec = 1.1
+    tt = t(sec)
+    rate = 9.0 + 14.0 * np.clip(tt / 0.7, 0, 1)
+    ph = np.cumsum(rate) / SR
+    stroke = np.clip(np.sin(2 * np.pi * ph), 0, None) ** 6
+    thump = band(noise(sec), 40, 260) * stroke * 1.4 + np.sin(2 * np.pi * 52 * tt) * stroke * 0.8
+    crankn = (np.sin(2 * np.pi * np.cumsum(np.full(len(tt), 9.0)) / SR) > 0.6).astype(float) * band(noise(sec), 100, 900)
+    crankn *= np.clip((0.3 - tt) / 0.3, 0, 1) * 0.6
+    swell = np.clip(tt / 0.35, 0, 1) * np.clip((sec - tt) / 0.45, 0, 1)
+    save("gen_catch", thump * swell + crankn, -3)
+
+
+def relay():
+    """G2b: the lighting contactor pulls in as power reaches the room: a hard clack, a smaller
+    second one as it seats, a short metallic ring."""
+    L = int(0.45 * SR)
+    tt = t(L / SR)
+    clack = band(noise(L / SR), 600, 5000) * env(L, 0.0002, 0.008)
+    second = np.roll(band(noise(L / SR), 900, 6000) * env(L, 0.0002, 0.005) * 0.45, int(0.055 * SR))
+    second[:int(0.055 * SR)] = 0
+    ring = np.sin(2 * np.pi * 1840 * tt) * env(L, 0.0005, 0.06) * 0.12 + np.sin(2 * np.pi * 95 * tt) * env(L, 0.002, 0.05) * 0.4
+    save("relay_clack", clack + second + ring, -4)
+
+
 def footsteps(name, metal=True, n=4):
     for k in range(n):
         L = int(0.35 * SR)
@@ -422,6 +468,8 @@ def main(argv=None):
         ("click_button", lambda: click("click_button", 1200, 0.03, 120)),
         ("carrier_click", carrier_click),
         ("ui_click", ui_click), ("breaker_trip", breaker), ("gen_crank", crank),
+        ("gen_crank_dry", crank_dry), ("gen_catch", catch), ("relay_clack", relay),          # G2b S3
+        ("torch_click", lambda: click("torch_click", 3200, 0.007, 420)),
         ("gen_stop", lambda: save("gen_stop", band(noise(2.0), 30, 300) * env(int(2.0 * SR), 0.01, 0.8), -4)),
         ("step_metal", lambda: footsteps("step_metal", True)),
         ("step_stone", lambda: footsteps("step_stone", False)),

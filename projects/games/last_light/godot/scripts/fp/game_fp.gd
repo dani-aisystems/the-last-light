@@ -172,6 +172,8 @@ func _on_story_event(name_: String, args: Array) -> void:
 			_route(args[0])
 		"hint":
 			presenter.show_hint(args[0], true)
+		"duty_nudge":                          # G2b: [level, Callum's nudge, the hint]
+			presenter.duty_nudge(int(args[0]), String(args[1]), String(args[2]))
 		"timeskip":
 			pass                                  # 3B: the presenter runs it as a transition (transition_requested)
 		"caption":
@@ -651,7 +653,14 @@ func _ui_events(events: Array) -> void:
 			"radio_dead":
 				ui.show_notice("The radio is dead: no power.", 2.5)
 			"gen_crank_fail":
-				ui.show_notice("It turns over but won't catch. Is the fuel valve open?" if e["why"] == "valve" else "Out of diesel.")
+				if e["why"] == "valve" and story_mode and presenter:
+					var t := "Turns, but she won't catch. No fuel getting through."   # G2b: the fuel valve, learned
+					if presenter.show_thought(t):
+						director.log_thought(t)
+					else:
+						presenter.queue_thought(t)          # the dusk thoughts are still up: say it after them
+				else:
+					ui.show_notice("It turns over but won't catch. Is the fuel valve open?" if e["why"] == "valve" else "Out of diesel.")
 			"gen_start":
 				ui.show_notice_once("The engine catches and settles.", 2.5)       # item 16
 			"gen_crank_stop":

@@ -379,6 +379,59 @@ func _emit_duty_view() -> void:
 	objective_progress.emit(v["done"])
 
 
+## G2b escalation (Daniel 2026-11-06): the focus duty's current step (the first known, not done, required
+## before optional) earns
+## a Callum thought after NUDGE_S without progress, then the duty line with a one-line hint after HINT_S,
+## then the hint again every HINT_S. Any progress resets it; nothing counts while someone is speaking or
+## the screen is held. story_event("duty_nudge", [level, nudge, hint]): level 0 = a new current step
+## (Full guidance shows its hint at once), 1 = the thought, 2 = the hint. The presenter applies Guidance.
+const NUDGE_S := 25.0
+const HINT_S := 60.0
+var _esc_key := ""
+var _esc_t := 0.0
+var _esc_level := 0
+
+
+func current_step() -> Dictionary:
+	var id := state.focus_duty
+	var d := duty_def(id)
+	if d.is_empty() or state.duty_state(id) == StoryState.DUTY_DONE:
+		return {}
+	var e: Dictionary = state.duties.get(id, {})
+	var optional_left := {}
+	for sub in d.get("sub", []):              # required steps first: a keeper at the cage is not nagged
+		var sid := String(sub["id"])          # about the torch he chose to do without
+		if sid in e.get("known", []) and not (sid in e.get("done", [])) and not (sid in e.get("dropped", [])):
+			if not bool(sub.get("optional", false)):
+				return sub
+			if optional_left.is_empty():
+				optional_left = sub
+	return optional_left
+
+
+func _tick_escalation(delta: float) -> void:
+	var sub := current_step()
+	if sub.is_empty():
+		_esc_key = ""
+		return
+	var e: Dictionary = state.duties.get(state.focus_duty, {})
+	var key := "%s:%s:%d:%d" % [state.focus_duty, sub["id"], e.get("done", []).size(), e.get("known", []).size()]
+	if key != _esc_key:
+		_esc_key = key
+		_esc_t = 0.0
+		_esc_level = 0
+		story_event.emit("duty_nudge", [0, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+	if _talking or _hold != 0 or _radio_wait != "":
+		return
+	_esc_t += delta
+	if _esc_level == 0 and _esc_t >= NUDGE_S:
+		_esc_level = 1
+		story_event.emit("duty_nudge", [1, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+	elif _esc_level >= 1 and _esc_t >= HINT_S * _esc_level:      # the hint at 60 s, then every 60 s
+		_esc_level += 1
+		story_event.emit("duty_nudge", [2, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+
+
 ## Item 32: what the keeper should fix when the story waits on power (radio or light).
 func _power_hint_text() -> String:
 	if not sim.main_breaker:
@@ -447,6 +500,7 @@ func _process(delta: float) -> void:
 	_tick_power_hint(delta)
 	_tick_objective(delta)
 	_tick_duties(delta)
+	_tick_escalation(delta)
 	# conversations
 	if _talking:
 		_dialogue_tick(delta)

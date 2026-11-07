@@ -16,7 +16,7 @@
 
 == ch1_gen mode=thought
 ~ She catches on the second turn and settles into that low knock you feel through your boots.
-~ Now the charge.
+[if not sim.charge_on] ~ Now the charge.
 
 == ch1_charging mode=thought
 ~ The lamps come up. That's better.
@@ -41,7 +41,7 @@ MORAG: I'm always early. You're always surprised. Anything to report, keeper? Ov
 = proper
 MORAG: North Point, Stornoway. Loud and clear also. Anything to report? Over.
 = report
-CALLUM: Light exhibited at sixteen-twenty-two. Engine running, batteries on charge. Nothing on the radar. Over.
+CALLUM: Light exhibited at sixteen-forty. Engine running, batteries on charge. Nothing on the radar. Over.
 MORAG: Roger. Gale warning for Hebrides and Minches. South-westerly seven, rising severe gale nine before dawn. Visibility poor in rain. Over.
 CALLUM: Received. Gale nine before dawn. Over.
 MORAG: And Callum. It's the fourteenth.

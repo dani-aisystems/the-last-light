@@ -25,6 +25,7 @@ var demand := 0.0
 var charge_flow := 0.0
 var _overload_t := 0.0
 var _batt_warned := false
+var _charge_t := 0.0            # seconds charging has been flowing (cosmetic: the CHARGE gauge climbs)
 
 # ---- generator ----
 var fuel := 45.0
@@ -171,8 +172,12 @@ func motor_amps() -> float:
 	return 8.6 if jammed else 3.1
 
 
+## Charging current for the CHARGE gauge (cosmetic): about 14 A as charging starts, climbing towards
+## ~22 A over the first minute (Callum, ch1: "Fourteen amps and climbing"), with a small ripple.
 func charge_amps() -> float:
-	return 0.0 if charge_flow <= 0.0 else 28.0 + 6.0 * sin(t * 1.7)
+	if charge_flow <= 0.0:
+		return 0.0
+	return 14.0 + 8.0 * (1.0 - exp(-_charge_t / 30.0)) + 0.6 * sin(t * 1.7)
 
 
 func stats() -> Dictionary:
@@ -498,11 +503,13 @@ func _power_step(dt: float, ev: Array) -> void:
 		if lights_on():
 			demand += cfg.lights_draw
 	charge_flow = cfg.charge_rate if gen == Gen.RUNNING and charge_on else 0.0
+	_charge_t = _charge_t + dt if charge_flow > 0.0 else 0.0
 	var was_powered := powered()
 	battery = clampf(battery + (charge_flow - demand) * dt, 0.0, 100.0)
 	if was_powered and battery <= 0.0:
 		ev.append({"type": "battery_dead"})
-	if battery < cfg.battery_warn and not _batt_warned:
+	# G2b: warn only while the cells are being drained, never while they charge up from flat (ch1 opens at 0 %)
+	if battery < cfg.battery_warn and not _batt_warned and powered() and charge_flow <= 0.0:
 		_batt_warned = true
 		ev.append({"type": "battery_low"})
 	elif battery > cfg.battery_warn + 10.0:

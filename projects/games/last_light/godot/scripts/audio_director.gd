@@ -42,6 +42,9 @@ var _gust_next := 0.0
 var _music_fade := 0.0          # > 0: fading the music out (set_menu(false))
 
 
+var _lights_was := true                         # G2b: last frame's sim.lights_on() (no clack on a lit load)
+
+
 func setup(k: KeeperSim, st: Node3D) -> void:
 	sim = k
 	station = st
@@ -205,7 +208,13 @@ func on_events(events: Array) -> void:
 			"breaker_trip":
 				sfx("breaker_trip", 0.0)
 			"gen_crank":
-				sfx_at("gen_crank", loops["gen_idle"].global_position, 0.0)
+				# G2b: with the valve shut (or the tank dry) the whole attempt is one sound that never catches
+				var dry: bool = sim != null and (not sim.fuel_valve or sim.fuel <= 0.0)
+				sfx_at("gen_crank_dry" if dry else "gen_crank", loops["gen_idle"].global_position, 0.0)
+			"gen_start":
+				sfx_at("gen_catch", loops["gen_idle"].global_position, -1.0)      # G2b: she catches
+			"torch":
+				sfx("torch_click", -12.0)                                          # G2b: the torch switch
 			"gen_stop", "gen_overheat":
 				sfx_at("gen_stop", loops["gen_idle"].global_position, -2.0)
 			"ship_spawned":
@@ -284,6 +293,11 @@ func footsteps(stage: String, door: Vector3) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if sim and loops.has("hum"):                 # G2b: the lighting contactor pulls in as the room lights come on
+		var lit := sim.lights_on()
+		if lit and not _lights_was and _t > 1.0:
+			sfx_at("relay_clack", loops["hum"].global_position, -4.0)
+		_lights_was = lit
 	var keep: Array = []
 	for p in _pending:
 		if _t >= p[0]:

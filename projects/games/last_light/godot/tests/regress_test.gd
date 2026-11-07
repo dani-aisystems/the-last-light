@@ -111,15 +111,22 @@ func _r5_interaction_state() -> void:
 	# a) valid prompt in free walk carries the interact key
 	var p: Dictionary = st.prompt_info("radio", false)
 	_check(p["ok"] and p["key"] == "[E]" and p["text"] == "Use the radio", "radio prompt is '[E]  Use the radio' (%s)" % p)
-	# b) START with the valve shut: unavailable, the reason is the valve, and a press is refused (no crank)
+	# b) G2b (Daniel 2026-11-06): START with the valve shut is no longer refused: the engine cranks,
+	#    fails after crank_fail_time (gen_crank_fail, why valve) and is back to OFF; the keeper learns by trying
 	k.gen = KeeperSim.Gen.OFF
 	k.fuel_valve = false
 	k.start_held = false
 	p = st.prompt_info("start", false)
-	_check(not p["ok"] and p["key"] == "" and p["sub"] == "The fuel valve is shut.", "START with the valve shut: no key, reason shown (%s)" % p)
+	_check(p["ok"] and p["key"] != "", "START with the valve shut can be tried (%s)" % p)
 	var ev: Array = st.use("start", "press")
-	_check(ev.size() == 1 and ev[0]["type"] == "refused" and k.gen == KeeperSim.Gen.OFF and not k.start_held,
-		"START press with the valve shut is refused and does not crank (%s)" % [ev])
+	_check(ev.any(func(x): return x["type"] == "gen_crank") and k.gen == KeeperSim.Gen.CRANKING, "START press with the valve shut cranks (%s)" % [ev])
+	var fail_ev: Array = []
+	for i in 90:
+		fail_ev += k.step(1.0 / 30.0)
+	_check(fail_ev.any(func(x): return x["type"] == "gen_crank_fail" and x["why"] == "valve") and k.gen == KeeperSim.Gen.OFF,
+		"with the valve shut the crank fails (why: valve) and the engine is off again")
+	ev = st.use("start", "release")
+	k.start_held = false
 	k.gen = KeeperSim.Gen.RUNNING
 	_check(st.availability("start")["reason"] == "The generator is already running.", "START while running says so")
 	k.gen = KeeperSim.Gen.OFF

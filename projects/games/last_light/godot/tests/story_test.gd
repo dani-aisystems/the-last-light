@@ -69,6 +69,7 @@ func _run() -> void:
 		await _autosave_resumes()
 		await _kittiwake_power_out()
 		_opening_duties()
+		_duty_escalation()
 	await _save_roundtrip()
 	_save_files()
 	print("STORY_RESULT ", JSON.stringify({"failed": fails.size(), "failures": fails}))
@@ -103,6 +104,8 @@ func _check_beat_actions() -> void:
 						texts.append(String(d.get("line", "")))
 						for sb in d.get("sub", []):
 							texts.append(String(sb.get("line", "")))
+							texts.append(String(sb.get("nudge", "")))
+							texts.append(String(sb.get("hint", "")))
 				if k == "duty" and o[k] is Array:
 					for id in o[k]:
 						if not _duty_ids(data).has(String(id)):
@@ -210,9 +213,12 @@ func _opening_duties() -> void:
 		fails.append("G2b: at the start only the torch and the engine should be known, nothing done: %s" % [p])
 	dir.state.flags["torch_taken"] = 1
 	step.call(0.5)
-	dir.on_sim_events([{"type": "refused", "device": "start", "reason": "The fuel valve is shut."}])
-	step.call(0.5)
-	var fuel_known: bool = "fuel" in dir.state.duties["power"]["known"]
+	var fuel_before: bool = "fuel" in dir.state.duties["power"]["known"]
+	k.set_start(true)                     # G2b: START with the valve shut cranks, coughs and fails
+	step.call(3.0)
+	k.set_start(false)
+	step.call(0.3)
+	var fuel_known: bool = "fuel" in dir.state.duties["power"]["known"] and not fuel_before and dir.state.has_flag("crank_failed")
 	k.set_fuel_valve(true)
 	step.call(0.5)
 	k.set_start(true)
@@ -234,6 +240,14 @@ func _opening_duties() -> void:
 	step.call(0.5)
 	if dir.state.duties["power"]["done"].size() != 4:
 		fails.append("G2b A: a done sub-task un-ticked when the lights went off")
+	if dir.get_meta("batt_low")[0] != 0:
+		fails.append("G2b A: 'Battery below a quarter' fired during the opening (%d times)" % dir.get_meta("batt_low")[0])
+	k.set_charge(false)                   # ...but it still warns when the cells are really draining
+	k.set_breaker("lights", true)
+	k.battery = 25.15
+	step.call(6.0)
+	if dir.get_meta("batt_low")[0] != 1:
+		fails.append("G2b A: a draining battery under a quarter did not warn (%d, battery %.2f)" % [dir.get_meta("batt_low")[0], k.battery])
 	print("OPENING_DUTIES A power=%s log=%s" % [dir.state.duties["power"], logs])
 	dir.queue_free()
 
@@ -330,6 +344,43 @@ func _opening_duties() -> void:
 	dir2.queue_free()
 
 
+## G2b escalation: the current step (first known, not done) gets Callum's nudge at 25 s, the hint at
+## 60 s, then every 60 s; progress resets the clock and the next step takes over; every ch1 step has both.
+func _duty_escalation() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string("res://data/story/chapters.json"))
+	for d in data["chapters"][0].get("duties", []):
+		for sb in d.get("sub", []):
+			if String(sb.get("nudge", "")) == "" or String(sb.get("hint", "")) == "":
+				fails.append("G2b: ch1 step %s.%s lacks a nudge or a hint" % [d["id"], sb["id"]])
+	var o := _duty_rig(0.05)
+	var k: KeeperSim = o[0]
+	var dir: StoryDirector = o[1]
+	var step: Callable = o[3]
+	var got: Array = []
+	dir.story_event.connect(func(n, a): if n == "duty_nudge": got.append([int(a[0]), String(a[2]).substr(0, 18), snappedf(dir.state.play_seconds, 0.1)]))
+	step.call(64.0)                         # nothing done for a minute: the engine (first required) escalates
+	var eng_ev: Array = got.filter(func(x): return String(x[1]).begins_with("The generator cag"))
+	var lv: Array = eng_ev.map(func(x): return x[0])
+	var t_new: float = eng_ev[0][2] if not eng_ev.is_empty() else -1.0
+	var dt1: float = eng_ev[1][2] - t_new if eng_ev.size() > 1 else -1.0
+	var dt2: float = eng_ev[2][2] - t_new if eng_ev.size() > 2 else -1.0
+	var torch_quiet: bool = got.filter(func(x): return String(x[1]).begins_with("The torch")).is_empty()
+	k.set_start(true)                       # a failed crank: the fuel valve is known, and comes first
+	step.call(3.0)
+	k.set_start(false)
+	step.call(0.5)
+	var n_after := got.size()
+	var next_is_fuel: bool = String(got[-1][1]).begins_with("In the generator c") and got[-1][0] == 0
+	step.call(20.0)
+	var no_early_nudge: bool = got.size() == n_after
+	# nudge 25 s and hint 60 s after the step became current (plus any time the story was speaking)
+	var ok: bool = lv == [0, 1, 2] and dt1 >= 25.0 and dt1 < 30.0 and dt2 >= 60.0 and dt2 < 66.0 and torch_quiet and next_is_fuel and no_early_nudge
+	if not ok:
+		fails.append("G2b escalation wrong: levels %s at +%.1f / +%.1f s, torch quiet %s, next fuel %s, quiet %s (all %s)" % [lv, dt1, dt2, torch_quiet, next_is_fuel, no_early_nudge, got])
+	print("DUTY_ESCALATION ok=%s events=%s" % [ok, got])
+	dir.queue_free()
+
+
 ## A fresh ch1 director over a fresh sim, for the G2b checks: [sim, director, logged ids, step(secs)].
 func _duty_rig(line_s: float) -> Array:
 	var k := KeeperSim.new()
@@ -345,9 +396,15 @@ func _duty_rig(line_s: float) -> Array:
 	dir.objective_changed.connect(func(ob): sent[0] = ob)
 	dir.set_meta("sent", sent)
 	dir.begin(true)
+	var warned: Array = [0]                       # battery_low events (must never fire in the opening)
+	dir.set_meta("batt_low", warned)
 	var step := func(secs: float):
 		for i in int(secs * 30):
-			dir.on_sim_events(k.step(1.0 / 30.0))
+			var ev: Array = k.step(1.0 / 30.0)
+			for e in ev:
+				if e["type"] == "battery_low":
+					warned[0] += 1
+			dir.on_sim_events(ev)
 			dir._process(1.0 / 30.0)
 	return [k, dir, logs, step]
 

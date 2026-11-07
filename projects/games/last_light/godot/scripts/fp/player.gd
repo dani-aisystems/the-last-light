@@ -124,6 +124,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("torch"):
 		if torch_held:
 			set_torch(not torch_light.visible)
+			events.emit([{"type": "torch", "on": torch_light.visible}])   # G2b: the switch is heard
 	elif event.is_action_pressed("back"):     # pad B (keyboard: Esc and right click, below / in game_fp)
 		if focused != "":
 			leave_focus()

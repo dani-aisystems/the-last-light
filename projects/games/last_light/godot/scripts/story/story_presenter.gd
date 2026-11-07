@@ -22,6 +22,7 @@ var caption: Label                       # 3B: sound captions outside conversati
 var thought: Label                       # brief item 16: Callum's short, non-blocking thought when checking a device
 var duty_hud: DutyHUD                     # G2b layer A: the duty line top-left (replaced the item 20 panel)
 var _last_hint := ""                     # G2b: the last story hint, for the J / R3 recall
+var _queued_thought := ""                # G2b: a thought held back while dialogue was up
 var _thought_tw: Tween
 var _caption_tw: Tween
 ## 3B ending card (§15.5): warm black, the ending's title, the epilogue lines one at a time.
@@ -211,6 +212,28 @@ func set_compact(on: bool) -> void:
 	duty_hud.compact = on
 
 
+## G2b escalation, by the Guidance option: 0 a new current step (Full shows its hint at once; the others
+## keep it for J / R3), 1 Callum's nudge as a thought (all modes), 2 the hint with the duty line
+## (Standard and Full; Minimal keeps it for J / R3).
+func duty_nudge(level: int, nudge: String, hint_text: String) -> void:
+	var g := DutyHUD.guidance()
+	if hint_text != "":
+		_last_hint = hint_text
+	match level:
+		0:
+			if g == DutyHUD.GUIDE_FULL and hint_text != "":
+				show_hint(hint_text, true)
+		1:
+			if nudge != "" and show_thought(nudge) and director:
+				director.log_thought(nudge)
+			elif nudge != "":
+				_queued_thought = nudge
+		_:
+			if g >= DutyHUD.GUIDE_STANDARD and hint_text != "":
+				show_hint(hint_text, true)
+				duty_hud.announce()
+
+
 ## G2b: J / R3. Tap: the current duty for a few seconds. Hold: the latest hint as well.
 func recall_duty(with_hint := false) -> void:
 	duty_hud.recall()
@@ -296,6 +319,12 @@ func timeskip(clock_text: String) -> void:
 
 ## Item 16: a device check's thought. It never waits for a key (it fades by itself) and is skipped while a
 ## story line is on screen, so it can't talk over the story. Returns true if it was shown.
+## G2b: a thought that must not be lost (a failed crank, a duty nudge) waits for the dialogue to finish.
+func queue_thought(t: String) -> void:
+	if not show_thought(t):
+		_queued_thought = t
+
+
 func show_thought(t: String) -> bool:
 	if t == "" or dialogue.is_active() or _ending_open:
 		return false
@@ -568,6 +597,11 @@ func _process(delta: float) -> void:
 		_hint_t -= delta
 		hint.modulate.a = clampf(_hint_t, 0.0, 1.0)
 	duty_hud.tick(delta, is_screen_held())
+	if _queued_thought != "" and not dialogue.is_active() and not is_screen_held():
+		var qt := _queued_thought
+		_queued_thought = ""
+		if show_thought(qt) and director:
+			director.log_thought(qt)
 	if _hint_next != "" and 14.0 - _hint_t >= HINT_MIN_S:
 		hint.text = _hint_next
 		_hint_next = ""

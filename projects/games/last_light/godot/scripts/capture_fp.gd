@@ -24,7 +24,7 @@ extends Node
 ##     LAMP NORMAL); bolt (re-strike until a visible bolt is drawn, saved within its life); visitor (stair
 ##     door open, the Visitor figure inside it; restored)
 ##   G2b duty HUD states: guidance_min / guidance_full (the Guidance option, restored), recall (J / R3
-##     held: the duty and the latest hint), refuse_start (START pressed with the fuel valve shut)
+##     held: the duty and the latest hint), crank_fail (START held with the fuel valve shut: it fails)
 ##   VIEW pp_<ia id> (Stage 2): the PLAYER stands 1.3 m from that control and looks at it, so the shot
 ##     shows the real crosshair and prompt (e.g. 60@pp_start!gen_off!valve_shut)
 ##   --story_auto (with --bot=): dialogue advances and replies are picked, but the sim is left alone.
@@ -194,8 +194,8 @@ func _run() -> void:
 		_place(g, vname)
 		for st in states:
 			_force(g, st)
-		if "op_start" in states:
-			await _crank(g)
+		if "op_start" in states or "crank_fail" in states:
+			await _crank(g)                  # crank_fail: the same hold with the valve shut (G2b S3)
 		var fps: Array = []
 		for i in 90:
 			await _frames(1)
@@ -268,7 +268,7 @@ func _force(g, st: String) -> void:
 		"valve_shut":               # Stage 2: START refused with a reason
 			_restore_state["fuel_valve"] = g.sim.fuel_valve
 			g.sim.fuel_valve = false
-		"flash", "bolt", "op_start":
+		"flash", "bolt", "op_start", "crank_fail":
 			pass                        # flash/bolt: right before the save; op_start: _crank, after the forces
 		"op_valve":
 			g._route(g.sim.set_fuel_valve(true))
@@ -284,8 +284,6 @@ func _force(g, st: String) -> void:
 			g.presenter.duty_hud._rebuild()
 		"recall":                                # G2b: the player held J / R3 (duty + latest hint)
 			g.presenter.recall_duty(true)
-		"refuse_start":                          # G2b: START pressed with the valve shut (refused, S1-S2)
-			g._route([{"type": "refused", "device": "start", "reason": "The fuel valve is shut."}])
 		"visitor":
 			_restore_state["visitor"] = g.station.door_open
 			g.station.door_open = true
@@ -484,8 +482,10 @@ func _crank(g) -> void:
 	var t0: float = g.sim.t
 	while g.sim.gen != KeeperSim.Gen.RUNNING and g.sim.t - t0 < 20.0:
 		await _frames(1)
+		if g.sim.gen == KeeperSim.Gen.OFF and not g.sim.fuel_valve:   # failed (G2b: valve shut)
+			break
 	g._route(g.sim.set_start(false))
-	if g.sim.gen != KeeperSim.Gen.RUNNING:
+	if g.sim.gen != KeeperSim.Gen.RUNNING and g.sim.fuel_valve:
 		push_warning("capture: op_start - the engine did not catch in 20 s")
 
 

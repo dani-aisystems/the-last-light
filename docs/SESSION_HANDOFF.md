@@ -20,7 +20,18 @@
   3. Then G3, starting with the pipe question.
 - **Still pending with Daniel:** the music pick, the listening pass, the Visitor figure.
 - **G2b S1 committed** (`b37cdfc`).
-- **G2b S2 (duty HUD) implemented, uncommitted, awaiting Daniel's checkpoint approval:**
+- **G2b S2 committed** (`f21a5dc`).
+- **G2b S3 (ch1 slice) implemented, uncommitted, awaiting Daniel's checkpoint:**
+  - START is no longer refused with the valve shut: it cranks, coughs (`gen_crank_dry`) and fails; Callum's thought follows (queued if dialogue is up), and the fuel valve becomes known;
+  - new synth sounds `gen_crank_dry`, `gen_catch`, `relay_clack` (lights on), `torch_click`; existing WAVs byte-identical;
+  - per-step escalation in the director (`NUDGE_S` 25, `HINT_S` 60; required steps before optional), with nudge and hint texts in ch1 `chapters.json`; the duplicate beat hints retired;
+  - darkness catch-lights on torch / fuel_valve / start / charge (`station.gd`);
+  - fixes: battery_low only while draining; charge gauge about 14 A and climbing; radio "sixteen-forty"; "Now the charge." only if CHARGE is off.
+  - **Not done:**
+    - KEEPER'S ORDERS line 5: moved to G4, because it needs the full Blender pipeline;
+    - the ch1 beat restructure: not needed; story_test proves every order works.
+  - **Evidence:** `renders/last_light/g2b3_*.png`, `g2b4_sheet.png`.
+- **G2b S2 (duty HUD), for reference:**
   - new `scripts/ui/duty_hud.gd`: top-left below the notices' band, a dark soft-edged plate;
   - Standard / Full / Minimal (`Settings.guidance`) and `duty_hold_s`;
   - J / R3 recall (hold for the hint); a tick on finished duties;
