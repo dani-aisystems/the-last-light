@@ -48,6 +48,14 @@ func _check(ok: bool, what: String) -> void:
 		print("  FAIL ", what)
 
 
+## Wait for the frame right after the radio panel's vessel refresh (fp_ui: every 30 process frames, which
+## clears selected_ship when no vessel is on the channel), so a key sent now has 28 frames' margin. The
+## radio-order checks failed about 1 run in 4 under load when the refresh landed between set and key.
+func _after_vessel_refresh() -> void:
+	while Engine.get_process_frames() % 30 != 1:
+		await process_frame
+
+
 func _frames(n: int) -> void:
 	for i in n:
 		await process_frame
@@ -761,16 +769,19 @@ func _r1_mouse() -> void:
 	_choices("radio")
 	await _frames(2)
 	_check(dlg.has_open_choices(), "radio choices unlocked inside the radio view")
+	await _after_vessel_refresh()
 	g.ui.selected_ship = 999
 	_key(KEY_2)
 	await _frames(1)
 	_check(picked == [1], "key 2 picks the second reply (got %s)" % [picked])
 	_check(orders[0] == 0, "picking a reply sends no radio order (orders=%d)" % orders[0])
+	await _after_vessel_refresh()
 	g.ui.selected_ship = 999          # re-set: _refresh_vessels clears it every 30 frames (no ships)
 	_key(KEY_3)
 	await _frames(1)
 	_check(orders[0] == 1, "with no replies open, key 3 sends a radio order (orders=%d)" % orders[0])
 	g.set_paused(true)
+	await _after_vessel_refresh()
 	g.ui.selected_ship = 999
 	_key(KEY_4)
 	await _frames(1)
