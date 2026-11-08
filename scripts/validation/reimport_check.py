@@ -37,8 +37,24 @@ def import_file(path: Path):
         raise SystemExit(f"Unsupported: {ext}")
 
 
+def _bone_shapes() -> set:
+    """Objects the glTF importer makes as bone display shapes (an icosphere per armature): not part of
+    the asset, so they're left out of the counts (G3b hands: +1 mesh, +80 tris, 2 m bounds per rig)."""
+    shapes = set()
+    for o in bpy.context.scene.objects:
+        if o.type == "ARMATURE" and o.pose:
+            for pb in o.pose.bones:
+                if pb.custom_shape:
+                    shapes.add(pb.custom_shape.name)
+    return shapes
+
+
 def stats():
-    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    skip = _bone_shapes()
+    for o in bpy.context.scene.objects:          # skinned assets are measured at rest, as the source is
+        if o.type == "ARMATURE":
+            o.data.pose_position = "REST"
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH" and o.name not in skip]
     dg = bpy.context.evaluated_depsgraph_get()
     tris, mats, pts = 0, set(), []
     per = {}

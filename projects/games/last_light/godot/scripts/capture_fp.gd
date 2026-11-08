@@ -290,6 +290,11 @@ func _force(g, st: String) -> void:
 			if g.player.equipment.held != st:
 				g.player.equipment.toggle(st)
 			_restore_state["equip"] = true
+		"bino_half":                             # G3b: the binoculars most of the way up, both hands on them
+			if g.player.equipment.held != "binoculars":
+				g.player.equipment.toggle("binoculars")
+			g.player.equipment.hold_raise = 0.5     # at arm's length, before the zoom (G3b raise path)
+			_restore_state["equip"] = true
 		"face_north", "face_east":               # G3a: the keeper looks north (bearing 0) or east, level
 			g.player._yaw = 0.0 if st == "face_north" else -PI / 2.0
 			g.player._pitch = -0.05
@@ -401,6 +406,7 @@ func _unforce(g) -> void:
 	if _restore_state.has("ending"):
 		g.presenter.hide_ending()
 	if _restore_state.has("equip"):
+		g.player.equipment.hold_raise = -1.0
 		g.player.equipment.put_away_now()
 	if _restore_state.has("guidance"):
 		Settings.v["guidance"] = _restore_state["guidance"]

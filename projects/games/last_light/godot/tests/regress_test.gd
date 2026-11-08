@@ -1369,6 +1369,7 @@ func _r12_brief_g2() -> void:
 	await _r13_duty_hud()
 	await _r14_logbook()
 	await _r15_equipment()
+	await _r16_hands()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1458,6 +1459,173 @@ func _r15_equipment() -> void:
 	_check(eq.has["compass"] and eq.has["binoculars"] and eq.held == "compass" and st.items_taken.get("compass", false)
 		and st._item_nodes.get("binoculars", []).all(func(n): return not n.visible), "a save restores the kit in hand and the empty desk")
 	eq.put_away_now()
+
+
+## G3b R16: the keeper's hands. hands.glb gives two 16-bone hands and the four grip poses each; no hands
+## with nothing in them; the compass in the left hand, the torch (once it's on) in the right with its beam
+## leaving from the lens (kept inside the capsule), both hands on the binoculars while raising and none at
+## the eyes; each hand reaches its pose; nothing of a hand near the eye or inside the near plane; a device
+## view hides them.
+func _pose_err(eq, side: String, pose: String) -> float:
+	var worst := 0.0
+	var target: Dictionary = eq.poses.get(side + "_" + pose, {})
+	for bi in target:
+		var q: Quaternion = eq.skel[side].get_bone_pose_rotation(bi)
+		worst = maxf(worst, rad_to_deg(q.angle_to(target[bi])))
+	return worst if not target.is_empty() else 999.0
+
+
+func _hand_depth(eq, side: String) -> float:
+	var cam: Camera3D = g.player.camera
+	var sk: Skeleton3D = eq.skel[side]
+	var nearest := 99.0
+	for bi in sk.get_bone_count():
+		var p: Vector3 = cam.global_transform.affine_inverse() * (sk.global_transform * sk.get_bone_global_pose(bi).origin)
+		nearest = minf(nearest, -p.z)
+	return nearest
+
+
+## The nearest vertex of a hand's meshes (each rigid to its strongest bone) inside a 10 x 10 cm box round
+## the line of sight, as a distance in front of the eye. 1.0 when the box is empty or the hand hidden.
+var _eye_verts := 0                        # vertices _eye_clear looked at (a guard: the box test saw the mesh)
+
+
+func _eye_clear(eq, side: String) -> float:
+	if not eq.hand[side].visible:
+		return 1.0
+	var sk: Skeleton3D = eq.skel[side]
+	var to_cam: Transform3D = g.player.camera.global_transform.affine_inverse() * sk.global_transform
+	var nearest := 1.0
+	for mi in eq.hand[side].find_children("*", "MeshInstance3D", true, false):
+		var m: Mesh = (mi as MeshInstance3D).mesh
+		var skin: Skin = (mi as MeshInstance3D).skin
+		if m == null or skin == null:
+			continue
+		for s in m.get_surface_count():
+			var arr: Array = m.surface_get_arrays(s)
+			var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var bones = arr[Mesh.ARRAY_BONES]
+			var wts = arr[Mesh.ARRAY_WEIGHTS]
+			if bones == null or wts == null or verts.is_empty():
+				continue
+			var per: int = bones.size() / verts.size()
+			for i in range(0, verts.size(), 2):
+				var best := 0
+				for j in per:
+					if wts[i * per + j] > wts[i * per + best]:
+						best = j
+				var bind: int = bones[i * per + best]
+				var bi: int = skin.get_bind_bone(bind)
+				if bi < 0:
+					bi = sk.find_bone(skin.get_bind_name(bind))
+				var p: Vector3 = to_cam * (sk.get_bone_global_pose(bi) * skin.get_bind_pose(bind) * verts[i])
+				_eye_verts += 1
+				if absf(p.x) < 0.05 and absf(p.y) < 0.05:
+					nearest = minf(nearest, -p.z)
+	return nearest
+
+
+func _r16_hands() -> void:
+	print("R16 G3b hands")
+	var eq = g.player.equipment
+	var nb := 0
+	for side in ["L", "R"]:
+		nb += eq.skel.get(side, Skeleton3D.new()).get_bone_count()
+	var want: Array = []
+	for side in ["L", "R"]:
+		for pose in ["relaxed", "torch", "compass", "binoculars"]:
+			want.append(side + "_" + pose)
+	_check(nb == 32 and want.all(func(k): return eq.poses.has(k) and not eq.poses[k].is_empty()),
+		"hands.glb gives two 16-bone hands and all eight grip poses (%d bones, poses %s)" % [nb, eq.poses.keys()])
+	g.player.leave_focus()
+	await _settle_focus()
+	eq.has = {"compass": true, "binoculars": true}
+	eq.put_away_now()
+	g.player.give_torch(false)
+	await _frames(3)
+	var hv: Dictionary = eq.hands_visible()
+	_check(not hv["L"] and not hv["R"] and not eq.torch_node.visible, "nothing in hand, no hands (%s)" % hv)
+	eq.toggle("compass")
+	await create_timer(0.8).timeout
+	hv = eq.hands_visible()
+	_check(hv["L"] and not hv["R"] and _pose_err(eq, "L", "compass") < 3.0,
+		"the compass sits in the left hand, compass grip reached (%.1f deg off); the right hand is empty and hidden" % _pose_err(eq, "L", "compass"))
+	g.player.give_torch(true)
+	await create_timer(0.8).timeout
+	hv = eq.hands_visible()
+	var lens: Vector3 = eq.torch_node.transform * Vector3(0.0, 0.12, 0.0)
+	var lp: Vector3 = g.player.torch_light.position
+	_check(hv["L"] and hv["R"] and eq.torch_node.visible and lp.distance_to(eq._light_pos(lens)) < 0.005
+		and _pose_err(eq, "R", "torch") < 3.0,
+		"torch on: it's in the right fist (%.1f deg off the grip), the beam leaves from its lens (%s)" % [_pose_err(eq, "R", "torch"), lp])
+	# the poses are real curls, not the rest pose: read against the skeleton's own rest (G3b: each action
+	# also carried the other hand's rest tracks, and a name-only read took those)
+	var mid: int = eq.skel["R"].find_bone("middle_2")
+	var curl: float = rad_to_deg(eq.skel["R"].get_bone_pose_rotation(mid).angle_to(eq.skel["R"].get_bone_rest(mid).basis.get_rotation_quaternion()))
+	_check(curl > 70.0, "the torch fist is closed: middle finger PIP %.0f deg from rest" % curl)
+	# nose to a wall: the lens is past the capsule, the light stays on the near side. A 1 m test wall 0.30 m
+	# ahead of the eye (a real one depends on where the bot stands; pipes and rails are thinner than a beam)
+	var cam: Camera3D = g.player.camera
+	var wall := StaticBody3D.new()
+	wall.collision_layer = g.player.collision_mask
+	var wcs := CollisionShape3D.new()
+	var wbox := BoxShape3D.new()
+	wbox.size = Vector3(1.0, 1.0, 0.05)
+	wcs.shape = wbox
+	wall.add_child(wcs)
+	g.add_child(wall)
+	wall.global_transform = Transform3D(cam.global_basis, cam.global_position - cam.global_basis.z * 0.325)
+	await physics_frame
+	await _frames(3)
+	var face: Vector3 = wall.global_position + wall.global_basis.z * 0.025       # the face toward the keeper
+	var gap: float = (g.player.torch_light.global_position - face).dot(wall.global_basis.z)
+	_check(gap > 0.005 and gap < 0.2, "nose to a wall the torch light stays this side of it (%.3f m short of the wall face)" % gap)
+	wall.queue_free()
+	await physics_frame
+	await _frames(2)
+	var shallow := 99.0
+	for pitch in [-1.45, 1.45]:
+		g.player._pitch = pitch
+		g.player._apply_look()
+		await _frames(3)
+		shallow = minf(shallow, minf(_hand_depth(eq, "L"), _hand_depth(eq, "R")))
+	_check(shallow > g.player.camera.near + 0.02, "no hand bone inside the near plane at either pitch limit (nearest %.3f m, near %.2f)" % [shallow, g.player.camera.near])
+	_eye_verts = 0
+	var clear := minf(_eye_clear(eq, "L"), _eye_clear(eq, "R"))
+	_check(clear > 0.05 and _eye_verts > 1000, "compass and torch hands: no skin or sleeve within 5 cm of the eye in front of the face (nearest %.3f m, %d vertices)" % [clear, _eye_verts])
+	g.player._pitch = -0.08
+	g.player._apply_look()
+	eq.toggle("binoculars")
+	eq.hold_raise = 0.45                       # held halfway up: both hands on the barrels
+	await create_timer(0.6).timeout
+	hv = eq.hands_visible()
+	clear = minf(_eye_clear(eq, "L"), _eye_clear(eq, "R"))
+	_check(hv["L"] and hv["R"] and not eq.torch_node.visible and _pose_err(eq, "L", "binoculars") < 3.0 and _pose_err(eq, "R", "binoculars") < 3.0
+		and clear > 0.05, "raising the binoculars: a hand on each barrel (%.1f / %.1f deg off), the torch away, the eye clear (%.3f m)"
+		% [_pose_err(eq, "L", "binoculars"), _pose_err(eq, "R", "binoculars"), clear])
+	eq.hold_raise = 0.5                        # at arm's length: in view, before the zoom
+	await create_timer(0.3).timeout
+	var cam_b: Camera3D = g.player.camera
+	_check(cam_b.is_position_in_frustum(eq.bino_node.global_position) and absf(cam_b.fov - float(root.get_node("Settings").v["fov"])) < 0.5
+		and eq.hands_visible()["L"] and eq.hands_visible()["R"],
+		"halfway up, the binoculars and both hands are in view and the view has not zoomed yet (FOV %.1f)" % cam_b.fov)
+	eq.hold_raise = -1.0
+	await create_timer(0.8).timeout
+	hv = eq.hands_visible()
+	_check(eq.binoculars_up() and not hv["L"] and not hv["R"], "at the eyes only the view is left: no hands (%s)" % hv)
+	eq.put_away_now()
+	await create_timer(0.5).timeout
+	hv = eq.hands_visible()
+	_check(not hv["L"] and hv["R"] and eq.pose_now["R"] == "R_torch" and eq.torch_node.visible, "lowered: back to the torch hand (%s)" % hv)
+	g.player.enter_focus("radio")
+	await _settle_focus()
+	await _frames(3)
+	hv = eq.hands_visible()
+	_check(not hv["L"] and not hv["R"], "a device view puts the hands away (%s)" % hv)
+	g.player.leave_focus()
+	await _settle_focus()
+	eq.put_away_now()
+	g.player.give_torch(false)
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

@@ -46,7 +46,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 11 | Console note texture and writing | Visual | P2 | S | Cabin pass 2 / G4 | Planned |
 | 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (a new brass hand compass on the chart; the old one no longer existed; G; the needle points north within 1°; regress R15; captures `g3a*`). Held without arms until G3b |
 | 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Planned |
-| 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Planned |
+| 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Implemented in G3b (CC0 hand, own 16-bone rig, guernsey sleeve; grips for torch, compass, binoculars; regress R16; captures `g3b3_*`). Approved 2026-11-08 |
 | 15 | Photograph realism | Visual | P3 | S | Cabin pass 2 / G4 | Planned |
 | 16 | Generator / battery feedback | Bug (UX) | P0 | S | 2E / G2 | Planned |
 | 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
@@ -184,6 +184,18 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 **Noted:** the ship radio subtitles faintly show through the document shade (existing behaviour, seen in `g2b6_t140`).
 
 **Daniel's listening queue:** `gen_crank_dry`, `gen_catch`, `relay_clack`, `torch_click`, `pen_write` (`godot/assets/audio/`).
+
+## G3b record (2026-11-07/08; approved by Daniel)
+
+| Part | What changed |
+|---|---|
+| Asset | `blender/hands.py` (v007): Blender Studio "Hand  - Realistic" (CC0), mirrored for the right; our own 16-bone armature, automatic weights; a ribbed guernsey sleeve from the real wrist, with a darn; four poses as actions (relaxed, torch, compass cupped, binoculars). 22,920 tris, validation 0 FAIL / 1 WARN (origin at the wrist), reimport OK; `godot/assets/models/hands.glb` |
+| Game | `equipment.gd`: hands only while something is held. Torch in the right fist (beam from the lens; a raycast keeps the light 3 cm short of a wall); compass on the left palm, held lower and tipped 40° (G3a: 64°); both hands on the binoculars, raise 0.45 s, rising to arm's length before the zoom (from 60 %); a warm fill light (render layer 10) on the hands and torch only; hands hidden in device views and at the eyepieces |
+| Bug found by the captures | Every pose action carries both armatures' tracks (same bone names); a name-only read took the other hand's rest values, so the hands stayed open. Poses are now read per armature, and R16 checks curl against the bone rest |
+| Tests | regress R16 (13 checks): no hands empty-handed; poses reached and the fist closed (88° PIP); light at the lens and short of a test wall; nothing within 5 cm of the eye; binoculars and hands in view before the zoom; none at the eyes or in a device view |
+
+**Evidence:** `renders/last_light/g3b_*` (before: open hands), `g3b2_*`, `g3b3_*` (after).
+**For Daniel's playtest:** raise timing, hand size, skin tone under the warm room light.
 
 ## Dependency map
 **Ordering constraints:**

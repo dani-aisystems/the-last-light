@@ -51,6 +51,12 @@
     - new `blender/player_hands.py`: the hand mirrored for the left; our own armature (detected finger chains, automatic weights); a knitted guernsey cuff with a darn; poses relaxed / torch / compass / binoculars; `hands.glb`, validated and reimport-checked;
     - in Godot, hands only while holding something; the torch light in the right hand;
     - regress R16, then captures.
+- **G3b done; approved by Daniel 2026-11-08 ("Continue" on the checkpoint, with the 40° compass hold and the 0.45 s raise); committed locally.**
+  - A duplicate session (PID 61377, a resumed copy of this conversation) was stopped at Daniel's word; its R16 was merged into ours.
+  - Built as `blender/hands.py` (not `player_hands.py`), v007; record and evidence in FINDINGS_LOG "G3b record".
+  - **Gotcha:** the glTF exporter writes every armature's tracks into every action. Read poses per armature (`equipment.gd` filters on the track path).
+  - A separate session (PID 79015) is adding a gameplay-film mode (`--film`, `film_fp.gd`) to `capture_fp.gd`. Its hunk and files are not in the G3b commit.
+- **Next: G3c** (the full body and sitting at the radio, item 13/24): inspect, plan, Daniel's decisions.
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).
