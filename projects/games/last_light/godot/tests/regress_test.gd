@@ -1370,6 +1370,7 @@ func _r12_brief_g2() -> void:
 	await _r14_logbook()
 	await _r15_equipment()
 	await _r16_hands()
+	await _r17_body()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1626,6 +1627,152 @@ func _r16_hands() -> void:
 	await _settle_focus()
 	eq.put_away_now()
 	g.player.give_torch(false)
+
+
+## G3c R17: the keeper's body. body.glb gives a 19-bone body; the legs, boots and torso are seen and cast
+## shadows, the arms and head only cast shadows; idle standing, the walk while moving (its stance foot slides
+## under 3 cm a step at the walking speed), stepping round when turning on the spot; seated in the radio
+## view with the head under the view's eye; put away in the other device views; nothing of it near the eye.
+func _r17_body() -> void:
+	print("R17 G3c body")
+	var pb = g.player.body
+	_check(pb != null and pb.skel != null and pb.skel.get_bone_count() == 19
+		and pb.meshes["view"].cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		and pb.meshes["shadow"].cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY,
+		"body.glb: 19 bones; legs, boots and torso seen; arms and head shadow-only")
+	g.player.leave_focus()
+	await _settle_focus()
+	g.player.equipment.put_away_now()
+	# the longest clear line on the floor, to walk along
+	var space: PhysicsDirectSpaceState3D = g.player.get_world_3d().direct_space_state
+	var o: Vector3 = g.player.global_position + Vector3(0, 0.5, 0)
+	var best := 0.0
+	var best_yaw := 0.0
+	for i in 16:
+		var yaw := TAU * i / 16.0
+		var d := Vector3(-sin(yaw), 0, -cos(yaw))
+		var q := PhysicsRayQueryParameters3D.create(o, o + d * 6.0, g.player.collision_mask, [g.player.get_rid()])
+		var h: Dictionary = space.intersect_ray(q)
+		var dist: float = 6.0 if h.is_empty() else o.distance_to(h["position"])
+		if dist > best:
+			best = dist
+			best_yaw = yaw
+	g.player._yaw = best_yaw
+	g.player._pitch = 0.0
+	g.player._apply_look()
+	await create_timer(0.5).timeout
+	var floor_y: float = g.player.global_position.y
+	var feet: Dictionary = pb.foot_positions()
+	_check(pb.state == "idle" and pb.visible and absf(minf(feet["L"].y, feet["R"].y) - floor_y - 0.098) < 0.03,
+		"standing still: idle, the ankles on the floor (%.3f m above it; the clear line ahead %.1f m)" % [minf(feet["L"].y, feet["R"].y) - floor_y, best])
+	# walking plays the walk at the walking speed
+	Input.action_press("move_forward")
+	await create_timer(0.8).timeout
+	var spd := Vector2(g.player.velocity.x, g.player.velocity.z).length()
+	_check(pb.state == "walk" and absf(pb.ap.speed_scale - spd / PlayerBody.WALK_SPEED) < 0.02,
+		"walking: the walk plays, its rate matched to the speed (%.2f m/s, x%.2f)" % [spd, pb.ap.speed_scale])
+	Input.action_release("move_forward")
+	# foot sliding, frame-rate independent: step the walk in 1/120 s and carry the body forward at the speed
+	# it is keyed for; a planted foot (ankle within 2 cm of standing height) must stay put
+	pb.set_process(false)
+	pb.ap.play("walk")
+	pb.ap.speed_scale = 1.0
+	var worst := 0.0
+	var stance := ""
+	var start := 0.0
+	var tau := 0.0
+	var rest_y: float = pb.skel.get_bone_global_rest(pb.skel.find_bone("foot.L")).origin.y
+	var cycle: float = pb.ap.get_animation("walk").length
+	while tau < cycle * 2.0:
+		pb.ap.seek(fmod(tau, cycle), true)
+		var low := ""
+		var fz := {}
+		for sd in ["L", "R"]:
+			var fpos: Vector3 = pb.skel.get_bone_global_pose(pb.skel.find_bone("foot." + sd)).origin
+			fz[sd] = fpos.z + PlayerBody.WALK_SPEED * tau      # body front is +Z in the skeleton
+			if fpos.y - rest_y < 0.02 and (low == "" or fpos.y < pb.skel.get_bone_global_pose(pb.skel.find_bone("foot." + low)).origin.y):
+				low = sd
+		if low != stance:
+			stance = low
+			if stance != "":
+				start = fz[stance]
+		elif stance != "":
+			worst = maxf(worst, absf(fz[stance] - start))
+		tau += 1.0 / 120.0
+	pb.set_process(true)
+	_check(worst < 0.03, "a planted foot slides %.3f m a step at the walking speed (under 0.03)" % worst)
+	await create_timer(0.6).timeout
+	# turning on the spot: 3 rad/s in fixed 1/60 s steps (frame-rate independent)
+	pb.set_process(false)
+	for i in 30:
+		g.player._yaw += 3.0 / 60.0
+		g.player._apply_look()
+		pb._process(1.0 / 60.0)
+	_check(pb.state == "turn", "turning on the spot steps round (%s, %.1f rad/s)" % [pb.state, pb._turn_rate])
+	for i in 60:
+		pb._process(1.0 / 60.0)
+	_check(pb.state == "idle", "standing again once the turn stops (%s)" % pb.state)
+	pb.set_process(true)
+	await create_timer(0.8).timeout
+	# nothing of the seen body near the eye, looking ahead or straight down
+	var near := 1.0
+	for pitch in [0.0, -1.45]:
+		g.player._pitch = pitch
+		g.player._apply_look()
+		await _frames(3)
+		near = minf(near, _mesh_eye_clear(pb.meshes["view"], pb.skel))
+	_check(near > 0.08, "the seen body stays clear of the eye, level and looking down (nearest %.3f m in front)" % near)
+	g.player._pitch = 0.0
+	g.player._apply_look()
+	# seated at the radio, put away elsewhere
+	g.player.enter_focus("radio")
+	await _settle_focus()
+	await _frames(4)
+	var eye: Vector3 = g.station.focus["radio"]["eye"]
+	var head: Vector3 = pb.skel.global_transform * pb.skel.get_bone_global_pose(pb.skel.find_bone("head")).origin
+	var hips: Vector3 = pb.skel.global_transform * pb.skel.get_bone_global_pose(pb.skel.find_bone("hips")).origin
+	_check(pb.state == "sit" and pb.visible and Vector2(head.x - eye.x, head.z - eye.z).length() < 0.08 and absf(hips.y - floor_y - 0.55) < 0.05,
+		"the radio view: seated, the head under the view's eye (%.3f m off), the hips at the seat (%.2f m)" % [Vector2(head.x - eye.x, head.z - eye.z).length(), hips.y - floor_y])
+	g.player.leave_focus()
+	await _settle_focus()
+	g.player.enter_focus("console")
+	await _settle_focus()
+	await _frames(2)
+	_check(not pb.visible and pb.state == "away", "another device view puts the body away")
+	g.player.leave_focus()
+	await _settle_focus()
+	await _frames(2)
+	_check(pb.visible and pb.state != "sit", "back on his feet after leaving the view (%s)" % pb.state)
+
+
+## The nearest vertex of a skinned mesh (each rigid to its strongest bone) inside a 10 x 10 cm box round the
+## line of sight, as a distance in front of the eye. 1.0 when the box is empty.
+func _mesh_eye_clear(mi: MeshInstance3D, sk: Skeleton3D) -> float:
+	var to_cam: Transform3D = g.player.camera.global_transform.affine_inverse() * sk.global_transform
+	var nearest := 1.0
+	var skin: Skin = mi.skin
+	var m: Mesh = mi.mesh
+	for s in m.get_surface_count():
+		var arr: Array = m.surface_get_arrays(s)
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones = arr[Mesh.ARRAY_BONES]
+		var wts = arr[Mesh.ARRAY_WEIGHTS]
+		if bones == null or wts == null or verts.is_empty() or skin == null:
+			continue
+		var per: int = bones.size() / verts.size()
+		for i in range(0, verts.size(), 2):
+			var bst := 0
+			for j in per:
+				if wts[i * per + j] > wts[i * per + bst]:
+					bst = j
+			var bind: int = bones[i * per + bst]
+			var bi: int = skin.get_bind_bone(bind)
+			if bi < 0:
+				bi = sk.find_bone(skin.get_bind_name(bind))
+			var p: Vector3 = to_cam * (sk.get_bone_global_pose(bi) * skin.get_bind_pose(bind) * verts[i])
+			if absf(p.x) < 0.05 and absf(p.y) < 0.05 and p.z < 0.0:
+				nearest = minf(nearest, -p.z)
+	return nearest
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

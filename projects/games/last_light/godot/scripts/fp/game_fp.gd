@@ -91,6 +91,10 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 	add_child(eq)
 	player.equipment = eq
 	eq.setup(player, station)
+	var pb := PlayerBody.new()                  # G3c: the keeper's body (legs and boots when he looks down, his shadow)
+	add_child(pb)
+	player.body = pb
+	pb.setup(player, station)
 	ui = preload("res://scripts/fp/fp_ui.gd").new()
 	ui.sim = sim
 	add_child(ui)

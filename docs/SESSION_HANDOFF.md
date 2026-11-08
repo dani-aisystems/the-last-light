@@ -56,7 +56,15 @@
   - Built as `blender/hands.py` (not `player_hands.py`), v007; record and evidence in FINDINGS_LOG "G3b record".
   - **Gotcha:** the glTF exporter writes every armature's tracks into every action. Read poses per armature (`equipment.gd` filters on the track path).
   - A separate session (PID 79015) is adding a gameplay-film mode (`--film`, `film_fp.gd`) to `capture_fp.gd`. Its hunk and files are not in the G3b commit.
-- **Next: G3c** (the full body and sitting at the radio, item 13/24): inspect, plan, Daniel's decisions.
+- **G3c decisions (Daniel, 2026-11-08):**
+  - the G3b camera hands stay; the body shows legs, boots and torso when looking down; its arms and head only cast shadows;
+  - our own light rig (about 30 bones, automatic weights), built in a new `blender/body.py`;
+  - walk / idle / sit / turn hand-keyed in Blender (no downloads);
+  - the body casts shadows, with a frame-time check against the ROADMAP budget.
+  - Source: `GEO-body_male_realistic` from the CC0 bundle (10,582 verts, 1.69 m, no armature). Canon §G: lean, upright; dark guernsey, worn shirt, wool trousers, stout boots.
+- **G3c done; approved by Daniel 2026-11-08 and committed locally.** Record and evidence in FINDINGS_LOG "G3c record". G3 is complete.
+  - **Gotchas:** bundle objects carry a layout offset in `matrix_world` (read it after `view_layer.update()`); Blender bone heat fails on the base body (use the distance weights in `body.py`); walk-sync and turn tests must step time themselves (real frames under load skip whole steps).
+- **Next: G4** (cabin assets: KEEPER'S ORDERS line 5, Iain's pipe as a cabin object (option), the D8 doc re-render), then G6.
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).

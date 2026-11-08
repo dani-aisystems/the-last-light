@@ -196,6 +196,8 @@ func _run() -> void:
 		_place(g, vname)
 		for st in states:
 			_force(g, st)
+		if vname == "body_3p":
+			await _body_3p(g)                    # G3c: framed after the states (in_radio) have settled
 		if "op_start" in states or "crank_fail" in states:
 			await _crank(g)                  # crank_fail: the same hold with the valve shut (G2b S3)
 		var fps: Array = []
@@ -295,6 +297,13 @@ func _force(g, st: String) -> void:
 				g.player.equipment.toggle("binoculars")
 			g.player.equipment.hold_raise = 0.5     # at arm's length, before the zoom (G3b raise path)
 			_restore_state["equip"] = true
+		"look_down":                             # G3c: the keeper looks down at himself (level again after)
+			_restore_state["pitch"] = g.player._pitch
+			g.player._pitch = -1.2
+			g.player._apply_look()
+		"in_radio":                              # G3c: seated at the set (for a body_3p shot)
+			g.player.enter_focus("radio")
+			_restore_state["radio"] = true
 		"face_north", "face_east":               # G3a: the keeper looks north (bearing 0) or east, level
 			g.player._yaw = 0.0 if st == "face_north" else -PI / 2.0
 			g.player._pitch = -0.05
@@ -405,6 +414,11 @@ func _unforce(g) -> void:
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
 		g.presenter.hide_ending()
+	if _restore_state.has("radio"):
+		g.player.leave_focus()
+	if _restore_state.has("pitch"):
+		g.player._pitch = _restore_state["pitch"]
+		g.player._apply_look()
 	if _restore_state.has("equip"):
 		g.player.equipment.hold_raise = -1.0
 		g.player.equipment.put_away_now()
@@ -554,10 +568,45 @@ func _place(g, vname: String) -> void:
 	if vname.begins_with("pp_"):
 		_pose_player(g, vname.substr(3))
 		return
+	if vname == "body_3p":                      # framed by _body_3p after the states
+		return
 	var v := view(vname)
 	if v.is_empty():
 		push_warning("capture: unknown view '%s'" % vname)
 		return
+	_place_view(g, v)
+
+
+## G3c: the keeper's body from 2 m to his right, as it stands (or sits) now.
+func _body_3p(g) -> void:
+	if cam == null:
+		cam = Camera3D.new()
+		cam.far = 2000.0
+		add_child(cam)
+	await _frames(30)
+	var pb: Node3D = g.player.body
+	var right: Vector3 = pb.global_basis.x * -1.0   # the body faces +Z: its right is -X
+	var aim: Vector3 = pb.global_position + Vector3(0, 0.85, 0)
+	var spot := aim + right * 2.0 + Vector3(0, 0.4, 0)
+	var space: PhysicsDirectSpaceState3D = g.player.get_world_3d().direct_space_state
+	for side in [right, -right, pb.global_basis.z * -1.0]:   # right, left, behind: the first clear 2 m
+		var cand: Vector3 = aim + side * 2.0 + Vector3(0, 0.4, 0)
+		if space.intersect_ray(PhysicsRayQueryParameters3D.create(aim, cand, 0xFFFFFFFF, [g.player.get_rid()])).is_empty():
+			spot = cand
+			break
+	cam.near = 0.05
+	cam.global_position = spot
+	cam.look_at(pb.global_position + Vector3(0, 0.85, 0), Vector3.UP)
+	cam.fov = 60.0
+	cam.current = true
+	_cutaway(g, false)
+	if g.player.enabled:
+		g.player.enabled = false
+		g.ui.clear_prompt()
+		_player_muted = true
+
+
+func _place_view(g, v: Array) -> void:
 	if cam == null:
 		cam = Camera3D.new()
 		cam.far = 2000.0

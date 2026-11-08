@@ -52,6 +52,7 @@ var vessel_cycle_fn: Callable                # fp_ui.cycle_vessel: LB / RB in th
 ## crosshair at about 3 m. F / LT switches it.
 var torch_held := false
 var equipment: Equipment                   # G3a: compass and binoculars (game_fp creates it under the camera)
+var body: Node3D                           # G3c: PlayerBody (game_fp creates it)
 var torch_light: SpotLight3D
 var _pos_prev := Vector3.ZERO
 var _pos_cur := Vector3.ZERO

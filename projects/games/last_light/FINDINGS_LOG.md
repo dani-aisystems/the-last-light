@@ -45,7 +45,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 10 | Shelf items, per object | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
 | 11 | Console note texture and writing | Visual | P2 | S | Cabin pass 2 / G4 | Planned |
 | 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (a new brass hand compass on the chart; the old one no longer existed; G; the needle points north within 1°; regress R15; captures `g3a*`). Held without arms until G3b |
-| 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Planned |
+| 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Implemented in G3c (CC0 body, own 19-bone rig, guernsey / trousers / boots; legs and boots seen, arms and head shadow-only; walk synced, planted foot slides 1.4 cm a step; regress R17; captures `g3c2_*`). Approved 2026-11-08 |
 | 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Implemented in G3b (CC0 hand, own 16-bone rig, guernsey sleeve; grips for torch, compass, binoculars; regress R16; captures `g3b3_*`). Approved 2026-11-08 |
 | 15 | Photograph realism | Visual | P3 | S | Cabin pass 2 / G4 | Planned |
 | 16 | Generator / battery feedback | Bug (UX) | P0 | S | 2E / G2 | Planned |
@@ -56,7 +56,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |
 | 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Profiles done (`character-refs/`); portrait images paused until Daniel supplies them (2026-11-06) |
 | 23 | Radio interaction restrictions | Bug (interaction) | P0 | S | 2E / G1 | Verified (regress R8, R11) |
-| 24 | Radio: sit or stand | Design decision | P2 | S | 2E / G2 + G3 | Planned (decision: seated) |
+| 24 | Radio: sit or stand | Design decision | P2 | S | 2E / G2 + G3 | Implemented in G3c: seated on the chair in the radio view (head within 3 cm of the view's eye; R17; capture `g3c2_t032`) |
 | 25 | Number-key reply selection | UX | P0 | S | 2E / G1 | Verified (regress R8, R11) |
 | 26 | Dialogue overlap | Bug (system) | P0 | M | 2E / G1 | Implemented (regress R11; full-run frame audit still to add) |
 | 27 | Maritime terminology | UX | P1 | S | 3D / G2 | Planned |
@@ -196,6 +196,19 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 
 **Evidence:** `renders/last_light/g3b_*` (before: open hands), `g3b2_*`, `g3b3_*` (after).
 **For Daniel's playtest:** raise timing, hand size, skin tone under the warm room light.
+
+## G3c record (2026-11-08; approved by Daniel)
+
+| Part | What changed |
+|---|---|
+| Asset | `blender/body.py` (v003): Blender Studio "GEO-body_male_realistic" (CC0), base level, scaled ×1.048 (eyes at 1.65 m, 1.77 m tall); guernsey #343A46, trousers #4B473F, lofted leather boots #3E2F25 replacing the bare feet; 19-bone rig with region-limited distance weights (Blender's bone heat failed: every vertex went to one bone); split into SK_body (legs, boots, torso) and SK_body_shadow (arms, head); idle / walk / sit hand-keyed. 21k tris; validation 0 FAIL / 4 WARN (n-gon boot caps, open split edges, origin 2.4 cm behind the bounds centre) |
+| Game | `player_body.gd`: follows the smoothed player position and yaw; walk rate = speed / 1.6; a stepping turn on the spot; seated on the chair in the radio view; put away in the other device views; set back 0.12 m looking level to 0.28 m looking down, so the view clears the chest to the boots; arms and head cast shadows only (the G3b hands stay) |
+| Bugs found | The bundle places the body at x −2.264: the trace used local coordinates, the first build baked the world offset (the mesh sat 2.26 m from its bones). The stride was 25 % short for 1.6 m/s (planted foot drifting 0.13 m a step): thigh swing +24/−18 → +30/−24 |
+| Tests | regress R17 (10 checks), frame-rate independent slide and turn checks |
+
+**Evidence:** `renders/last_light/g3c_*` (before), `g3c2_*` (after); previews `renders/last_light/g3c/preview/`.
+**Frame time:** desk view 48 → 45 fps (−6 %), draw calls 536 → 630, one run on a loaded Mac (PARTIAL).
+**For Daniel's playtest:** the walk in motion; his shadow under each lamp.
 
 ## Dependency map
 **Ordering constraints:**
