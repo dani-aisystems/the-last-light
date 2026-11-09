@@ -30,8 +30,8 @@
 CALLUM: Stornoway, Stornoway, North Point on two-one-eight-two. There's a boat tied up at my landing. No lights, and somebody's sitting on sixteen. Over.
 ! static
 MORAG: ...North Point, Stornoway. I hear you, Callum. Faint. The lifeboat's out on a shout at the Shiants. Two hours at least. Over.
-MORAG: Whoever it is, you do not open that door. Do you hear me? Over.
-CALLUM: I hear you.
+MORAG(worried): Whoever it is, you do not open that door. Do you hear me? Over.
+CALLUM(guarded): I hear you.
 MORAG: I'm staying on the set. Both sets. Stornoway listening.
 
 == ch4_door mode=person
@@ -72,8 +72,8 @@ VISITOR: To come in out of the rain, first. Then to see a page in your book.
 ! set called_morag=1
 ~ I back away from the door to the desk without taking my eyes off it. Sixteen's still dead. The MF set, then.
 CALLUM: Stornoway, North Point on two-one-eight-two. There's a man at my door. Came off that dark boat. Over.
-MORAG: ...North Point, Stornoway. Callum, the lifeboat's out on a shout at the Shiants. Two hours at least. Do not open that door. Do you hear me? Over.
-CALLUM: I hear you.
+MORAG(worried): ...North Point, Stornoway. Callum, the lifeboat's out on a shout at the Shiants. Two hours at least. Do not open that door. Do you hear me? Over.
+CALLUM(guarded): I hear you.
 MORAG: I'm staying on the set. Stornoway listening.
 ~ Back to the door. The knocking hasn't come again. He's waiting.
 -> probe2

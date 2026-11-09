@@ -99,7 +99,7 @@ ROSS: He used to sing that song as well, you know. When he thought nobody could 
 
 == ch5_morag mode=radio
 ! static
-MORAG: North Point, Stornoway. Sixteen's been blocked solid for half an hour. Callum, talk to me. Are you safe? Over.
+MORAG(worried): North Point, Stornoway. Sixteen's been blocked solid for half an hour. Callum, talk to me. Are you safe? Over.
 * [if has_flag("door_open")] He's inside. He's an old man and he's wet through. I'm safe. -> safe
 * [if has_flag("door_shut")] He's still at the door. I'm safe. -> safe
 * Morag. It's Alasdair Ross. -> ross
@@ -107,7 +107,7 @@ MORAG: North Point, Stornoway. Sixteen's been blocked solid for half an hour. Ca
 MORAG: Who is he, Callum?
 = ross
 MORAG: ...
-MORAG: That's not possible.
+MORAG(worried): That's not possible.
 [if has_flag("door_open")] ROSS@room: It's possible, lass. You wrote me down at eight minutes to two. I heard you say "Roger, Mary Ellen" and then nothing. Yours was the last voice I heard before the sea.
 [if has_flag("door_shut")] CALLUM: He says you wrote him down at eight minutes to two. He says yours was the last voice he heard before the sea.
 MORAG: ...I'm going to need to sit down.

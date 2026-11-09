@@ -36,6 +36,25 @@ static func resolve(id: String, state: StoryState = null) -> Dictionary:
 		"sub": String(e.get("sub", "")), "art": String(e.get("art", "")), "where": String(e.get("where", "mode"))}
 
 
+const PORTRAIT_DIR := "res://assets/portraits/"
+
+
+## Stage 3C: the portrait for a speaker id AS PRESENTED (resolve() has already swapped hidden identities,
+## so an unrevealed ROSS arrives here as VISITOR and gets none), or "" when there is none and the card
+## keeps its line drawing. Tries <id>_<expr>, then <id>_neutral: a missing expression falls back, and a new
+## file in assets/portraits/ is picked up with no code change. ROSS has only the silhouette print (F12).
+static func portrait(id: String, expr: String = "") -> String:
+	if id == "":
+		return ""
+	var key := id.to_lower().replace(" ", "_")
+	var tries: Array = ["neutral"] if expr == "" or expr == "neutral" else [expr, "neutral"]
+	for e in tries:
+		var p := "%s%s_%s.png" % [PORTRAIT_DIR, key, e]
+		if ResourceLoader.exists(p):
+			return p
+	return ""
+
+
 ## How a line is drawn: "radio" (panel + card), "person" (named subtitle), "thought" (italic, Callum's
 ## mind), "sound" (a caption for a sound, e.g. [Three slow knocks]).
 ##   kind : "speech" | "thought" | "sound"    tag : "" | "room" | "radio" (SPEAKER@room: in the script)

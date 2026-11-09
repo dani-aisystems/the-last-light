@@ -293,9 +293,13 @@ def forecast():
 
 
 RAW_KEEPERS = HERE / "tex" / "src" / "photo_keepers_raw.png"   # blender/photo_render.py (CC0 base meshes)
+# Daniel 2026-11-09: the wall photograph is his print of Iain and Callum (character-refs/Picture-wall; the
+# bare print of the two, chosen over the copy with a mount and caption baked in, so the canon caption below
+# stays exact). It replaces the Blender render above, which is kept as the fallback.
+SRC_KEEPERS = HERE.parent / "character-refs" / "Picture-wall" / "Vintage Maritime Portrait by the Sea.png"
 
 
-def silver_print(raw, seed):
+def silver_print(raw, seed, creases=3):
     """Raw Cycles render -> 1950s silver gelatin snapshot: grey tone, soft lens, compressed and lifted
     tonal range, warm-grey toning, vignette, film grain, a few soft creases."""
     rnd = random.Random(seed)
@@ -315,7 +319,7 @@ def silver_print(raw, seed):
     g = Image.blend(g, grain, 0.12)
     img = Image.merge("RGB", (g, g.point(lambda v: int(v * 0.965)), g.point(lambda v: int(v * 0.885))))
     d2 = ImageDraw.Draw(img, "RGBA")
-    for _ in range(3):
+    for _ in range(creases):
         x, y = rnd.randint(0, W), rnd.randint(0, H)
         pts = [(x, y)]
         for _ in range(10):
@@ -344,10 +348,14 @@ def note_on_hood(img):
 def photo(kind):
     W, H = 1100, 800
     rnd = random.Random(5 if kind == "keepers" else 8)
-    if kind == "keepers" and RAW_KEEPERS.exists():
-        img = silver_print(Image.open(RAW_KEEPERS).convert("RGB").resize((W, H), Image.LANCZOS), 5)
-        framed = Image.new("RGB", (W + 80, H + 160), (236, 229, 212))
-        framed.paste(img, (40, 40))
+    if kind == "keepers" and (SRC_KEEPERS.exists() or RAW_KEEPERS.exists()):
+        raw = Image.open(SRC_KEEPERS if SRC_KEEPERS.exists() else RAW_KEEPERS).convert("RGB")
+        pw = min(W, round(H * raw.width / raw.height))   # the print at full height, never stretched: a
+        # framed behind glass on the wall: no creases (one ran across Callum's face); the G4c glass smudge
+        # carries the wear. A narrower print gets wider side margins.
+        img = silver_print(raw.resize((pw, H), Image.LANCZOS), 5, creases=0)
+        framed = Image.new("RGB", (W + 80, H + 160), (236, 229, 212))   # the mount stays 1180 x 960 (build.py)
+        framed.paste(img, ((W + 80 - pw) // 2, 40))
         fd = ImageDraw.Draw(framed)
         fd.text((W // 2 + 40, H + 80), "Iain & Callum Mackay, North Point, May 1952", font=PRINT(30),
                 fill=(88, 80, 70), anchor="mm")              # D8 / I09: a printed mount caption, nobody's hand

@@ -1384,6 +1384,7 @@ func _r12_brief_g2() -> void:
 	await _r17_body()
 	await _r18_cabin_g4a()
 	await _r19_ending_g6a()
+	await _r20_portraits()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1918,6 +1919,35 @@ func _r19_ending_g6a() -> void:
 	dir.ending_body = []
 	dir.ending_closing = []
 	g.player.enabled = true
+
+
+## Stage 3C / item 22 R20: the radio card is a print for a speaker with a portrait (Daniel's prints,
+## assets/portraits/<id>_<expr>.png), with the expression's print when there is one and the neutral one
+## otherwise; the Mary Ellen's card is the boat; a caller with no print (the Corrie May) keeps the line
+## drawing; the unrevealed visitor gets none, and Ross only the silhouette print.
+func _r20_portraits() -> void:
+	print("R20 item 22 radio portraits")
+	_check(Speakers.portrait("MORAG", "worried").ends_with("morag_worried.png"), "Morag (worried) gets her worried print")
+	_check(Speakers.portrait("MORAG", "furious").ends_with("morag_neutral.png"), "an expression with no print falls back to neutral")
+	_check(Speakers.portrait("MARY ELLEN").ends_with("mary_ellen_neutral.png"), "the Mary Ellen's card is the boat print")
+	_check(Speakers.portrait("CORRIE") == "" and Speakers.portrait("VISITOR") == "", "no print for the Corrie May or the unrevealed visitor")
+	_check(Speakers.portrait("ROSS").ends_with("ross_neutral.png"), "Ross has only the silhouette print")
+	if dlg.is_active():
+		dlg.close()
+	dlg.show_line({"mode": "radio", "speaker": "MARY ELLEN", "text": "...tell Iain... we cannot... see the light..."})
+	await _frames(2)
+	_check(dlg.radio_panel.visible and dlg._portrait != null and dlg._portrait.resource_path.ends_with("mary_ellen_neutral.png"),
+		"a Mary Ellen radio line shows the boat print on the card")
+	_check(dlg.card.size.x >= dlg.PHOTO_RECT.end.x and dlg.card.size.y >= dlg.PHOTO_RECT.end.y, "the print fits inside the card (%s)" % dlg.card.size)
+	dlg.close()
+	dlg.show_line({"mode": "radio", "speaker": "MORAG", "expr": "worried", "text": "North Point, Stornoway."})
+	await _frames(2)
+	_check(dlg._portrait != null and dlg._portrait.resource_path.ends_with("morag_worried.png"), "a tagged line shows that expression's print")
+	dlg.close()
+	dlg.show_line({"mode": "radio", "speaker": "CORRIE", "text": "Corrie May, Corrie May."})
+	await _frames(2)
+	_check(dlg._portrait == null, "a caller with no print keeps the line drawing")
+	dlg.close()
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

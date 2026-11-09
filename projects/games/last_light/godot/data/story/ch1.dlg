@@ -63,7 +63,7 @@ MORAG: ...Right you are. Stornoway, out.
 ! static
 RORY: North Point Light, North Point Light, this is the Kittiwake, Kittiwake, eh, Sierra Yankee three-seven. Over.
 CALLUM: Kittiwake, North Point. Go ahead, over.
-RORY: Callum, is that you? Thank God. Sorry, eh, North Point. I'm coming in from the Flannans, and the rain's that thick I can't see my own bow. I was meant to pick up the Sound an hour ago. Over.
+RORY(scared): Callum, is that you? Thank God. Sorry, eh, North Point. I'm coming in from the Flannans, and the rain's that thick I can't see my own bow. I was meant to pick up the Sound an hour ago. Over.
 RORY: And, eh. Don't be telling my mother I was out on the Sabbath. Over.
 RORY: I've stopped her. I'm just sitting here like a gull on a fence post. Can you put me in? Over.
 * Stay where you are, Rory. I'll find you. Over. -> calm
@@ -128,7 +128,7 @@ MORAG: Like father, like son. He kept that station like a kirk, so they say.
 = once
 ! set admitted_once=1
 MORAG: Once? When was that?
-CALLUM: Long time ago. Write your log, Morag.
+CALLUM(guarded): Long time ago. Write your log, Morag.
 MORAG: ...Aye. Right.
 = close
 MORAG: Stornoway listening on sixteen. Out.
@@ -161,7 +161,7 @@ MARY ELLEN: ...the East... Gut...
 ~ The light is burning. I can hear the motor through the ceiling.
 
 == ch1_morag_heard mode=radio
-MORAG: North Point, Stornoway. Callum. Did you hear that? Over.
+MORAG(worried): North Point, Stornoway. Callum. Did you hear that? Over.
 * I heard it. -> heard
 * Heard what? -> lie
 = heard

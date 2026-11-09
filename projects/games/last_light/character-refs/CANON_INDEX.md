@@ -364,7 +364,9 @@ Daniel's bible frames the endings as "Ending A, truth" and "Ending B, the protec
   Characters who believe Ross drowned say "seven".
 
 ## 9. Visual consistency rules
-- **Portraits** are Blender busts from the CC0 Human Base Meshes (`blender/portraits.py`). They are a cinematic presentation layer, not video calls. No AI-generated imagery goes in the game.
+- **Portraits** are Daniel's ChatGPT prints, made from one shared template (DECISIONS Q13, 2026-11-09; this replaces the Blender busts). `blender/portraits_prepare.py` turns them into `godot/assets/portraits/<id>_<expr>.png`. They are a cinematic presentation layer, not video calls. No other AI-generated imagery goes in the game, apart from the ending panels (Q11).
+  - **Shipped (2026-11-09):** Callum neutral and guarded; Morag neutral and worried; Rory neutral and scared; Elspeth neutral and cold; Hector neutral and sorry; Ross silhouette; the Mary Ellen (a print of the boat, SY 214, for the ch2 caller).
+  - **Still to make:** Callum grief, Morag hurt, Rory grin, Elspeth moved, Hector warm. Until then the neutral print shows.
 - **The dossier PNGs** guide likeness and mood only. Their in-image text and other characters' thumbnails are not canon (README precedence 5).
 - **Ross** is silhouette only, never a full portrait, even after the reveal (FLAG-F12). Read him by posture and light: oilskin, sou'wester, a stooped tall frame, face in shadow.
 - **Iain** is seen only in the May 1952 photograph, with Callum. His dossier likeness informs that photo.

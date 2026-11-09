@@ -52,6 +52,7 @@ func _run() -> void:
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	var policies: PackedStringArray = String(args.get("policies", "0,1,2")).split(",")
 	_check_layout()
+	_portrait_coverage(db)
 	_audit_flags(db)
 	_check_dlg_actions(db)
 	_check_remap()
@@ -717,6 +718,24 @@ func _ending_sequence() -> void:
 			fails.append("G6a: the log page panel %s is missing (blender/ending_pages.py)" % id)
 	print("G6A ending sequence: %d cases" % cases.size())
 	dir.queue_free()
+
+
+## Stage 3C / item 22: every SPEAKER(expr) tag in the dialogue has that exact print in assets/portraits/
+## (a missing one would quietly fall back to neutral), and the speakers who have prints have a neutral one.
+func _portrait_coverage(db: DialogueDB) -> void:
+	var tags := {}
+	for id in db.convs:
+		for s in db.convs[id]["steps"]:
+			if s["kind"] == "line" and String(s.get("expr", "")) != "":
+				tags["%s(%s)" % [s.get("speaker", ""), s["expr"]]] = [String(s.get("speaker", "")), String(s["expr"])]
+	for k in tags:
+		var p := Speakers.portrait(tags[k][0], tags[k][1])
+		if not p.ends_with("_%s.png" % tags[k][1]):
+			fails.append("item 22: %s has no print of its own (%s)" % [k, p if p != "" else "none"])
+	for sp in ["CALLUM", "MORAG", "RORY", "ELSPETH", "HECTOR", "ROSS", "MARY ELLEN"]:
+		if Speakers.portrait(sp) == "":
+			fails.append("item 22: no neutral print for %s" % sp)
+	print("PORTRAITS tags=%d %s" % [tags.size(), tags.keys()])
 
 
 ## The beat layout the master script specifies (and that saves are remapped to).

@@ -57,6 +57,11 @@ var _choice_age := 0.0                      # seconds since the replies appeared
 
 const ADVANCE_DWELL_S := 0.5                # a fully shown line must stay this long before Space advances it
 const CHOICE_GUARD_S := 0.4                 # replies ignore input this long after they appear
+## Stage 3C: the card is a print. The photo is 4:5 (the portraits are 512x640) inside a paper border.
+const CARD_SIZE := Vector2(152, 190)
+const PHOTO_RECT := Rect2(8, 10, 136, 170)
+
+var _portrait: Texture2D                    # the current radio speaker's print, or null (line drawing)
 
 
 func _ready() -> void:
@@ -80,7 +85,7 @@ func _ready() -> void:
 	h.add_theme_constant_override("separation", 18)
 	radio_panel.add_child(h)
 	card = Control.new()
-	card.custom_minimum_size = Vector2(170, 190)
+	card.custom_minimum_size = CARD_SIZE
 	card.draw.connect(_draw_card)
 	h.add_child(card)
 	var v := VBoxContainer.new()
@@ -174,6 +179,8 @@ func show_line(item: Dictionary) -> void:
 				ident.append(String(_item[k]))
 		r_ident.text = "  ·  ".join(ident)
 		r_hint.text = ""
+		var pp := Speakers.portrait(_speaker, String(_item.get("expr", "")))
+		_portrait = load(pp) as Texture2D if pp != "" else null
 		card.queue_redraw()
 		blip.emit("squelch")
 	else:
@@ -191,11 +198,12 @@ func show_line(item: Dictionary) -> void:
 func _resolved(item: Dictionary) -> Dictionary:
 	if item.has("look") and item.has("name"):
 		return {"speaker": String(item.get("speaker", "")), "name": String(item["name"]), "call": String(item.get("call", "")),
-			"sub": String(item.get("sub", "")), "art": String(item.get("art", "")), "look": String(item["look"])}
+			"sub": String(item.get("sub", "")), "art": String(item.get("art", "")), "look": String(item["look"]),
+			"expr": String(item.get("expr", ""))}
 	var r := Speakers.resolve(String(item.get("speaker", "")), null)
 	var kind := "thought" if r["id"] == "" else "speech"
 	return {"speaker": r["id"], "name": r["name"], "call": r["call"], "sub": r["sub"], "art": r["art"],
-		"look": Speakers.look(kind, r["where"], "", String(item.get("mode", "radio")))}
+		"look": Speakers.look(kind, r["where"], "", String(item.get("mode", "radio"))), "expr": String(item.get("expr", ""))}
 
 
 ## The whole line as BBCode. Brackets in the script are escaped so a caption like [ Knocks ] is text.
@@ -416,12 +424,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _draw_card() -> void:
 	# Stage 3A: the identity text moved to the name row (it was drawn here at 9-10 px and never scaled);
-	# the card keeps the line drawing and the live signal meter (portraits replace the drawing in 3C)
+	# the card keeps the live signal meter; Stage 3C: a speaker with a portrait gets the print in a paper
+	# border, everyone else (the Corrie May, the Lowestoft Star, the Mary Ellen caller) keeps the drawing
 	var w := card.size.x
 	var h := card.size.y
 	card.draw_rect(Rect2(0, 0, w, h), Color(0.86, 0.82, 0.7, 0.92))
-	card.draw_rect(Rect2(4, 4, w - 8, h - 8), Color(0.25, 0.2, 0.15, 0.6), false, 2.0)
-	var kind: String = String(_item.get("art", ""))
+	if _portrait != null:
+		card.draw_texture_rect(_portrait, PHOTO_RECT, false)
+		card.draw_rect(PHOTO_RECT, Color(0.25, 0.2, 0.15, 0.7), false, 1.0)
+	else:
+		card.draw_rect(Rect2(4, 4, w - 8, h - 8), Color(0.25, 0.2, 0.15, 0.6), false, 2.0)
+	var kind: String = "" if _portrait != null else String(_item.get("art", ""))
 	var ink := Color(0.18, 0.14, 0.11)
 	var cx := w * 0.5
 	var cy := h * 0.52
@@ -442,6 +455,8 @@ func _draw_card() -> void:
 			card.draw_colored_polygon(PackedVector2Array([Vector2(cx - 14, cy - 50), Vector2(cx + 14, cy - 50), Vector2(cx, cy - 66)]), ink)
 			card.draw_line(Vector2(cx + 14, cy - 56), Vector2(cx + 60, cy - 70), Color(0.75, 0.5, 0.15), 3.0)
 	if line_look == "radio" and _active:
+		if _portrait != null:                   # a dark plate so the meter reads over the photo
+			card.draw_rect(Rect2(w - 27, h - 82, 22, 52), Color(0.04, 0.035, 0.03, 0.55))
 		for i in 5:
 			var lit := (sin(_t * 9.0 + i) * 0.5 + 0.5) * 5.0 > i
 			card.draw_rect(Rect2(w - 22, h - 40 - i * 9, 12, 6), Color(0.2, 0.6, 0.3) if lit else Color(0.4, 0.35, 0.3))

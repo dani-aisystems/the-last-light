@@ -54,7 +54,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | **Dropped** (Daniel 2026-11-07: no pipe for Callum; his profile has none). Option for G4: Iain's pipe as a cabin object, not smoked |
 | 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Implemented, then **superseded by G2b** (checkpoint 2026-11-06: contrast FAIL 1.1–1.5:1 over lit walls, `g25_panel_crops.png`; Daniel chose the cinematic duty system) |
 | 21 | Time card before the fade | Bug (presentation) | P1 | S | 3D / G1 | Verified (regress R11 + g1_sheet_door: clock readable on black) |
-| 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Profiles done (`character-refs/`); portrait images paused until Daniel supplies them (2026-11-06) |
+| 22 | Radio character profiles | UI + art | P1 | L | 3C / G6 | Implemented (radio-card prints from Daniel's images, 6 speakers + the Mary Ellen boat, 5 expressions; regress R20, story `_portrait_coverage`); card captures pending |
 | 23 | Radio interaction restrictions | Bug (interaction) | P0 | S | 2E / G1 | Verified (regress R8, R11) |
 | 24 | Radio: sit or stand | Design decision | P2 | S | 2E / G2 + G3 | Implemented in G3c: seated on the chair in the radio view (head within 3 cm of the view's eye; R17; capture `g3c2_t032`) |
 | 25 | Number-key reply selection | UX | P0 | S | 2E / G1 | Verified (regress R8, R11) |
@@ -255,6 +255,21 @@ Photograph on a nail and wire, leaning 2° (2 / 14 mm gap); M_LL_Photo roughness
 | Tests | story `_ending_sequence` (6 cases) + per-campaign panel and line checks; regress R19 (19 checks); pytest `test_last_light_ending.py` (entries match ch6.dlg, PNGs match the renderer) |
 
 **Suites:** story 0 failures; regress 275/0; interaction 159/0 (12 warnings); qa_sweep 1,924; sim_v2 no gate failures; run_tests 95; g5 48; pytest 23.
+
+## Item 22 record (2026-11-09; started by a parallel session, adopted at Daniel's word; awaiting his checkpoint)
+
+| Part | What changed |
+|---|---|
+| Prints | `blender/portraits_prepare.py`: Daniel's 2:3 template images in `character-refs/<id>/` → the centred 4:5 crop at 512 × 640 → `godot/assets/portraits/<id>_<expr>.png`. 12 prints: Callum (neutral, guarded), Morag (neutral, worried), Rory (neutral, scared), Elspeth (neutral, cold), Hector (neutral, sorry), Ross (silhouette only, F12), **the Mary Ellen** (the boat, SY 214, `character-refs/ellen.png`) |
+| Card | `Speakers.portrait(id, expr)`: the expression's print, else neutral, else none (the line drawing stays for the Corrie May and the Lowestoft Star; the unrevealed visitor gets none). `dialogue_ui`: the print in a paper border on a 152 × 190 card, a dark plate under the signal meter |
+| Script | Expression tags on 14 lines in ch1–5 (`RORY(scared)`, `MORAG(worried)`, `ELSPETH(cold)`, `CALLUM(guarded)`, `HECTOR(sorry)`); the parser already supported them (3A). Text unchanged |
+| Review | All 12 prints viewed on one sheet (`renders/last_light/g22_portrait_sheet.png`): one framing and grade; canon wardrobe and props (Hector's pipe, Callum's guernsey); Ross a faceless silhouette. Expression pairs are subtle (Elspeth's cold and neutral nearly identical) |
+| Tests | regress R20 (9 checks); story `_portrait_coverage` (every tag has its own print; every speaker a neutral one) |
+
+**NOT TESTED:** the cards in game (one capture run, with Daniel's OK).
+
+## Wall photograph (2026-11-09, Daniel)
+The May 1952 print of Iain and Callum is now Daniel's image (`character-refs/Picture-wall/Vintage Maritime Portrait by the Sea.png`, the bare print; the other copy had its mount and caption baked in, with a malformed "Iain"). `documents.photo("keepers")` fits it at full height (1000 × 800, never stretched) inside the unchanged 1180 × 960 mount, ages it with `silver_print` (no creases: one crossed Callum's face, and the print is behind glass) and keeps the canon printed caption. Only `photo_keepers.png` and `T_LL_Photo.png` were re-rendered (no `--docs` churn). Build v052: room 127,378 tris, validation 0 FAIL, reimport OK; the in-game texture equals the new print. The old Blender render (`photo_render.py`) stays as the fallback. **NOT TESTED:** the photo seen in the room (capture pending).
 
 ## Dependency map
 **Ordering constraints:**

@@ -50,7 +50,7 @@ Rules and per-item rulings are in REVIEW_FLAGS. Follow-up asset and game-text ch
 
    This overrides look details that exist only in the master. Text printed inside the images (logs, letters, timelines, sample lines) is used only where it agrees with 1–2. Other characters' small faces in the relationship panels are not reference, and Ross's least of all.
 
-   The images appear to be AI-generated. Use them as reference only, and never ship them or trace them into game assets (CLAUDE.md: no AI-generated images in the game; portraits are Blender busts from the CC0 Human Base Meshes).
+   The images appear to be AI-generated. Use them as reference only, and never ship them or trace them into game assets (CLAUDE.md: no AI-generated images in the game). The shipped radio portraits are a separate, later set Daniel made from one template (DECISIONS Q13), not these dossiers.
 4. `../NARRATIVE.md`: the earlier draft. It is superseded wherever the master differs.
 
 ## Tags used in the profiles
