@@ -104,7 +104,9 @@
   - Suites after G6c: regress 322/0 (R21 38 checks); the others as at the baseline.
   - Captures (Daniel's OK): `renders/last_light/g6c_*_menu.png`.
   - **Gotchas:** `--win` sizes are screen points on this Retina Mac, and macOS drops a size set while leaving the start-up fullscreen (main_fp re-applies it); the old captures' 1920×1205 frames were the screen's aspect, not 16:9. A 2-canvas-px rect can vanish in a window below the 1080-line canvas: snap to whole pixels, at least 2 render px. `portrait_test.gd` (not in the suite list) still asserts the Mary Ellen has no print and fails 2 checks since `d541d02`; it is stale, not touched by G6c.
-  - **Next:** Daniel's G6c checkpoint, then a local commit (G6c files only; never `capture_fp.gd`). Then G6b when the ending images arrive; the links when Daniel sends them (edit `godot/data/links.json` only).
+  - **Then:** Daniel's G6c checkpoint, then a local commit (G6c files only; never `capture_fp.gd`). Then G6b when the ending images arrive; the links when Daniel sends them (edit `godot/data/links.json` only).
+- **G6c committed** (`81e71c5`). **G6d started** (Daniel's cinematic title + exterior brief; plan `~/.claude/plans/pasted-content-id-ccb6-continue-the-nifty-alpaca.md`; record FINDINGS_LOG "G6d record"). Stages: A saves + audit (done, awaiting checkpoint), B lighthouse, C island/landing/walkway/boat, D storm, E title UI.
+  - **Saves:** tests, captures, autotests and benches now use `user://saves_test` (`SaveSystem.isolated()`); before that the suites overwrote the player's autosave.
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).

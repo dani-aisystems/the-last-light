@@ -205,6 +205,8 @@ func show_menu() -> void:
 	_wire_focus()
 	_entrance(logo_box, sub, seq)
 	menu_items[0].grab_focus.call_deferred()
+	if GameState.user_args.has("menu_hide"):
+		root.visible = false                 # G6d: exterior audit captures from the title world
 	var want := String(GameState.user_args.get("menu_focus", "")).to_lower()
 	for b in menu_items:
 		if want != "" and b.text.to_lower() == want:

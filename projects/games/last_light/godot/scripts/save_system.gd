@@ -4,17 +4,36 @@ extends Node
 ## "auto_prev", so a bad moment is never the only save. Slots 1-3 are old manual saves: still listed and
 ## loadable if they exist, never written. Saves are taken only between story beats (never mid-dialogue).
 
-const DIR := "user://saves"
+const DIR := "user://saves"               # the player's saves
+const TEST_DIR := "user://saves_test"     # tests, captures, autotests and benches
 const VERSION := 1
 const SLOTS := ["auto", "auto_prev", "1", "2", "3"]
 
+## Where saves go in this run. G6d (2026-11-09): the headless suites start human story games that
+## autosave, and story_test writes and deletes slots 2 and 3; they used the player's folder and replaced
+## Daniel's autosave. Every non-player run now has its own folder, so the player's saves are never touched.
+var dir := DIR
+
 
 func _ready() -> void:
-	DirAccess.make_dir_recursive_absolute(DIR)
+	dir = TEST_DIR if isolated() else DIR
+	DirAccess.make_dir_recursive_absolute(dir)
+
+
+## True for script runs (-s, the test suites) and capture / autotest / bench runs.
+static func isolated() -> bool:
+	var a := OS.get_cmdline_args()
+	if a.has("-s") or a.has("--script"):
+		return true
+	for u in OS.get_cmdline_user_args():
+		for k in ["--capture", "--autotest", "--bench"]:
+			if u == k or u.begins_with(k + "="):
+				return true
+	return false
 
 
 func path(slot: String) -> String:
-	return DIR.path_join("slot_%s.json" % slot)
+	return dir.path_join("slot_%s.json" % slot)
 
 
 func write(slot: String, data: Dictionary) -> bool:

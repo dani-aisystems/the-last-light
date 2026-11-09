@@ -83,6 +83,7 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 		cine_cam.far = 2000.0
 		add_child(cine_cam)
 		cine_cam.current = true
+		_cine_t = float(GameState.user_args.get("cine_t", "0"))   # G6d captures: a fixed point on the orbit
 		audio.set_menu(true)
 		outside.attract = true
 		return
@@ -791,10 +792,31 @@ func _process(delta: float) -> void:
 		var r := 120.0 - 10.0 * sin(_cine_t * 0.03)
 		if cine_hold:
 			return                              # main_fp's push-in owns the camera now
+		if _cine_view():
+			return
 		cine_cam.position = Vector3(sin(a) * r * CINE_NEAR, 9.0 + 1.5 * sin(_cine_t * 0.11), (cos(a) * r - 40.0) * CINE_NEAR)
 		cine_cam.look_at(Vector3(0, 17.0, 0), Vector3.UP)
 		cine_cam.global_rotate(Vector3.UP, cine_yaw())   # G6c: the tower in the right third, the menu left
 		cine_cam.rotation.z = 0.004 * sin(_cine_t * 0.7)
+
+
+## G6d audit captures (--cine_view=NAME with --menu_hide): fixed exterior close-ups from the title world.
+## Returns true when a view holds the camera.
+const CINE_VIEWS := {
+	"ext_top": [Vector3(12.7, 22.0, -27.2), Vector3(0, 22.4, 0), 38.0],       # the lantern and the band below it
+	"ext_landing": [Vector3(21.0, 9.0, -41.0), Vector3(8.7, 2.0, -16.3), 45.0],   # the landing (bearing 028)
+	"ext_door": [Vector3(15.0, 7.0, -16.0), Vector3(0, 5.0, 0), 45.0],         # the tower base, landing side
+}
+
+
+func _cine_view() -> bool:
+	var v: Array = CINE_VIEWS.get(String(GameState.user_args.get("cine_view", "")), [])
+	if v.is_empty():
+		return false
+	cine_cam.fov = v[2]
+	cine_cam.position = v[0]
+	cine_cam.look_at(v[1], Vector3.UP)
+	return true
 
 
 ## G6c (item 1): the title camera turns left by this much after aiming at the tower, so the lantern sits

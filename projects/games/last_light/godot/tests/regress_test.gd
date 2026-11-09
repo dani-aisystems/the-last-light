@@ -33,6 +33,7 @@ var skips: Array[String] = []
 var passes := 0
 var g: Node3D
 var dlg: Control
+var _real_saves := {}                   # G6d: the player's save files (name -> mtime) before the run
 
 
 func _initialize() -> void:
@@ -74,6 +75,7 @@ func _key(code: Key) -> void:
 
 func _run() -> void:
 	await process_frame
+	_real_saves = _save_mtimes("user://saves")
 	g = load("res://scripts/fp/game_fp.gd").new()
 	root.add_child(g)
 	g.start(7, "", false, true)          # story mode, human (no bot)
@@ -1386,6 +1388,7 @@ func _r12_brief_g2() -> void:
 	await _r19_ending_g6a()
 	await _r20_portraits()
 	await _r21_menu_g6c()
+	_r22_saves_isolated()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -2150,6 +2153,24 @@ func _r21_menu_g6c() -> void:
 	g.process_mode = Node.PROCESS_MODE_INHERIT
 	for c in hidden:
 		c.visible = true
+
+
+func _save_mtimes(d: String) -> Dictionary:
+	var out := {}
+	var abs_dir := ProjectSettings.globalize_path(d)
+	if DirAccess.dir_exists_absolute(abs_dir):
+		for f in DirAccess.get_files_at(abs_dir):
+			out[f] = FileAccess.get_modified_time(abs_dir.path_join(f))
+	return out
+
+
+## G6d R22 (saves): a test run saves into its own folder (user://saves_test); the player's saves in
+## user://saves are exactly as they were before the run (the suites used to replace Daniel's autosave).
+func _r22_saves_isolated() -> void:
+	print("R22 saves isolated from the player's")
+	var ss: Node = root.get_node("SaveSystem")
+	_check(ss.dir == ss.TEST_DIR, "a test run saves to %s (%s)" % [ss.TEST_DIR, ss.dir])
+	_check(_save_mtimes("user://saves") == _real_saves, "the player's saves are untouched by the run (%d files)" % _real_saves.size())
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

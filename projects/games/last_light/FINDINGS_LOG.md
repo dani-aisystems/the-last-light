@@ -309,6 +309,19 @@ Principles taken: the scene is the hero, opposite the type; the logo carries the
 
 **Not tested:** a real gamepad on the title (d-pad covered by injected events in R21); `OS.shell_open` with real links (no links yet; the press path is tested through `MenuLinks.open_hook`).
 
+## G6d record (2026-11-09; the cinematic title and the North Point exterior; in progress)
+Plan: `~/.claude/plans/pasted-content-id-ccb6-continue-the-nifty-alpaca.md`. Daniel's decisions: credit "Daniel Yanchev"; links Instagram `https://www.instagram.com/_d.yanchev_/` and `mailto:daniel.aisystems@gmail.com`, committed to the public repo (his choice); subtitle "NORTH POINT LIGHT · OUTER HEBRIDES / THE MIDDLE WATCH · 14–15 NOVEMBER 1971"; the boat menu-only, moored (canon has no keeper's boat and ch4 needs an empty landing); the base door turned to face the landing (about 40°) with a walkway; the hover glow replaces the tick.
+
+**Stage A (saves, audit):**
+- **Saves.** The headless suites autosaved into the player's `user://saves` and story_test wrote and deleted slots 2 and 3 there: Daniel's 6 Nov autosave was replaced on 2026-11-09. `SaveSystem.dir` is now `user://saves_test` for script (`-s`), capture, autotest and bench runs. regress R22: a run uses the test folder and leaves the player's files' mtimes unchanged.
+- **Audit hooks** (presenter-side): `--cine_view=ext_top|ext_landing|ext_door`, `--cine_t=SECONDS`, `--menu_hide`.
+- **Audit captures** (`renders/last_light/g6d_a_*`), confirming or correcting the code-level diagnosis:
+  - the band under the gallery (y 20–23) shows the watch room's cream interior paint on the outside: the room's own wall is the tower there (on the interior layer, lit only from inside);
+  - the "two white lights" are the room's lamps seen through the watch-room windows, blooming to white ovals (not the lantern lamp);
+  - the landing is a plain grey box; the noise-dome island is near-black with a hole beside the pier; the shore foam is a uniform bright ring;
+  - the tower base reads as a dark can on black ground; a stray pale quad lies on the ground; no door on the landing side (it faces south).
+- Suites: regress 324/0 (R22 +2), interaction 159/0, qa_sweep 1924, run_tests 95, g5 48, sim_v2 no gate failures, pytest 23; story 0 failures (one run timed out at 580 s, the rerun passed in 82 s).
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.
