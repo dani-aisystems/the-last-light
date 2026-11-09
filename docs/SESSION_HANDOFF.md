@@ -96,8 +96,8 @@
   - `capture_fp.gd`'s gameplay-film hunk and `film_fp.gd` belong to another session: never staged.
   - **G6a captures taken with Daniel's OK** (`renders/last_light/g6a_*`, sheet `g6a_sheet.png`); credits reflowed afterwards (line widths measured, not re-shot).
 - **A parallel session (PID 26206) was found working on item 22 and stopped by Daniel.** He then had this session **adopt its item 22 work** and add the Mary Ellen's card (`character-refs/ellen.png`) and his 1952 wall photograph (`character-refs/Picture-wall/`). Records: FINDINGS_LOG "Item 22 record", "Wall photograph". AI exceptions: DECISIONS Q11. Build v052. All suites green on the final tree (regress 284/0 with R20).
-  - **NOT TESTED:** the radio cards and the wall photo in game (one capture run, with Daniel's OK).
-  - **Commits pending Daniel's approval:** G6a; then item 22 + the wall photo as a second commit.
+  - **Approved and committed:** G6a `c5614ab`; item 22 + the wall photo `d541d02`. Captures `renders/last_light/g22_t*` (cards and wall photo in game; the Mary Ellen card checked headless only).
+  - **Next:** G6c (item 1 menu redesign; links later), then G6b when Daniel's ending panel images arrive.
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).
