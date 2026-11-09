@@ -47,9 +47,9 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (a new brass hand compass on the chart; the old one no longer existed; G; the needle points north within 1°; regress R15; captures `g3a*`). Held without arms until G3b |
 | 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Implemented in G3c (CC0 body, own 19-bone rig, guernsey / trousers / boots; legs and boots seen, arms and head shadow-only; walk synced, planted foot slides 1.4 cm a step; regress R17; captures `g3c2_*`). Approved 2026-11-08 |
 | 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Implemented in G3b (CC0 hand, own 16-bone rig, guernsey sleeve; grips for torch, compass, binoculars; regress R16; captures `g3b3_*`). Approved 2026-11-08 |
-| 15 | Photograph realism | Visual | P3 | S | Cabin pass 2 / G4 | Planned |
+| 15 | Photograph realism | Visual | P3 | S | Cabin pass 2 / G4 | G4c: nail and wire, 2° lean (shadow gap), paper roughness 0.7 + cockle normal, smudged glass (`g4c_t020`). 2× re-render deferred (no visible gain in the room) |
 | 16 | Generator / battery feedback | Bug (UX) | P0 | S | 2E / G2 | Planned |
-| 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
+| 17 | Cabin prop realism audit | Visual | P2 | M | Cabin pass 2 / G4 | G4a/G4c: the named simplifications fixed (papers seated, sill mug, eyepiece glass, extinguisher label 135°). Full per-prop wear pass still open |
 | 18 | Binoculars as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (B; FOV 72° to 10°, look sensitivity scaled, eyepiece mask, slow walk, torch out while up, E lowers first; R15; capture `g3a_t133`) |
 | 19 | Pipe smoking + exhaled smoke | Gameplay + VFX | P3 | M | 2E / G3 | **Dropped** (Daniel 2026-11-07: no pipe for Callum; his profile has none). Option for G4: Iain's pipe as a cabin object, not smoked |
 | 20 | Mission UI top-right | UI/UX | P1 | S | 2E / G2 | Implemented, then **superseded by G2b** (checkpoint 2026-11-06: contrast FAIL 1.1–1.5:1 over lit walls, `g25_panel_crops.png`; Daniel chose the cinematic duty system) |
@@ -236,6 +236,10 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | Iterations | Compression 4 let the shell shrink to 22 cm (now 40); the old turned-down collar floated as a bowl (removed); pockets sized to half the 12 cm front were narrower than the note; a local push over the note left a ledge |
 
 **Evidence:** `renders/last_light/g4b_*` (first pass), `g4b2_*` (v046 in game); v050 in Blender renders. Room 126,102 tris, 33 materials.
+
+## G4c record (2026-11-09; approved by Daniel)
+
+Photograph on a nail and wire, leaning 2° (2 / 14 mm gap); M_LL_Photo roughness 0.7 + seeded cockle normal; SM_PhotoGlass gets `LLMaterials.photo_glass()` (clear, smudge roughness mask); sill mug = the desk mug's `enamel_mug()` with dregs; binocular eyepiece glass; extinguisher label 135° × 12.5 cm; crate plank seams; rope turn jitter; Grant's label wrapped. Build v051, room 127,378 tris. **Evidence:** `renders/last_light/g4c_*`. **Open:** the 2× photo re-render (about 40 min of Cycles, only helps zoom in the viewer); item 17's full per-prop wear / bevel / dimension pass.
 
 ## Dependency map
 **Ordering constraints:**

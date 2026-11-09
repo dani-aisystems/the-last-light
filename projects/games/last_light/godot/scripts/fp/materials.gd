@@ -183,6 +183,49 @@ static func glass() -> StandardMaterial3D:
 	return s
 
 
+## G4c (item 15): the photograph's glass. Clearer than room glass (the print must read through it), a touch more
+## specular so the reflection probe gives a faint sheet of the room, and a seeded smudge/dust roughness mask
+## so that sheet breaks up instead of reading as a flat mirror.
+static func photo_glass() -> StandardMaterial3D:
+	var s := StandardMaterial3D.new()
+	s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	s.albedo_color = Color(0.7, 0.74, 0.76, 0.06)
+	s.metallic_specular = 0.7
+	s.roughness = 1.0
+	var n := FastNoiseLite.new()
+	n.seed = 15
+	n.frequency = 0.012
+	n.fractal_octaves = 4
+	var t := NoiseTexture2D.new()
+	t.width = 256
+	t.height = 256
+	t.seamless = true
+	t.noise = n
+	var ramp := Gradient.new()                       # mostly clean (roughness 0.05), smudges to 0.35
+	ramp.set_color(0, Color(0.05, 0.05, 0.05))
+	ramp.set_color(1, Color(0.35, 0.35, 0.35))
+	ramp.set_offset(0, 0.55)
+	t.color_ramp = ramp
+	s.roughness_texture = t
+	s.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return s
+
+
+## G4c (item 15): the print's paper: slight cockling from damp (a soft, seeded normal map).
+static func photo_cockle() -> NoiseTexture2D:
+	var n := FastNoiseLite.new()
+	n.seed = 1952
+	n.frequency = 0.006
+	n.fractal_octaves = 2
+	var t := NoiseTexture2D.new()
+	t.width = 512
+	t.height = 512
+	t.as_normal_map = true
+	t.bump_strength = 1.5
+	t.noise = n
+	return t
+
+
 static func lamp(color: Color) -> StandardMaterial3D:
 	var s := StandardMaterial3D.new()
 	s.albedo_color = color.darkened(0.6)

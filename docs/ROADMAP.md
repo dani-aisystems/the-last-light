@@ -82,7 +82,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 | G2 opening, missions, feedback, saves | 8, 9, 20, 16, 4, 27, 24 (decision) | 2E, 3D, 6 | 🟡 implemented and committed (`193fcf3`, `7ac1175`, test fix `a1ed964`); **all suites green 2026-11-06**; captures and checkpoint pending |
 | **G2b cinematic duty system** | replaces 9/20; supersedes Proposal 36; Duties part of 37 | 2E, 3D, 6 | 🟡 S1–S4 approved and committed (`b37cdfc`, `f21a5dc`, `b550e29`, `726f8c7`); S5 (all chapters) implemented, all suites green, closing checkpoint pending. Record: FINDINGS_LOG "G2b implementation record" |
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ✅ G3a `31afb9a`, G3b `63e965d`, G3c (2026-11-08); 19 dropped (no pipe) |
-| G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ⬜ |
+| G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ✅ G4a `44f1db1`, G4b `d50fec1`, G4c (2026-11-09); item 17 full wear pass open |
 | G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented and committed locally (`0b3e750`, all suites green); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
 | G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | ⬜ (1 needs Daniel's links; 22 paused until Daniel's portrait images; 34 can start) |
 

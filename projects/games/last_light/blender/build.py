@@ -1134,16 +1134,8 @@ def build_desk_detail(B):
     mx, my = uv_xy(DC["mug_uv"])
     mb3 = basis(r, o, u) @ rot_about((0, 0, 1), 35.0)
     mc = D(0.62, 0.0, back - 0.62)          # cabin pass: off the chart (IMG_3139), in front of the radar
-    mv = PA["mug_v"]
-    prof = [(0.0, 0.0, 0.0), (0.034, 0.0, 0.04), (0.0385, 0.003, 0.07), (0.0395, 0.010, 0.10), (0.040, 0.075, 0.66),
-            (0.0408, 0.079, mv["rim_v0"]), (0.0418, 0.0815, 0.76), (0.0412, 0.084, 0.80), (0.0395, 0.0832, mv["rim_v1"]),
-            (0.0388, 0.079, mv["inner_top"]), (0.0388, 0.006, mv["inner_bottom"]), (0.0, 0.005, 1.0)]
-    pm = B.bm("M_LL_Props")
-    lathe_uv(pm, B.uv(pm), mc, mb3, prof, 40, lambda uu, vv: region_uv("mug", uu, vv))
-    hp = [mc + mb3 @ Vector((0.0435 + 0.023 * math.cos(math.radians(a)), 0.0, 0.045 + 0.025 * math.sin(math.radians(a))))
-          for a in range(100, -101, -20)]
-    solid(B, "enamel_white", lambda bm: sweep(bm, hp, 0.0058, 8, ry=0.0021, n0=mb3.col[1]))
-    solid(B, "tea", lambda bm: cyl(bm, mc + mb3.col[2] * mv["tide_z"][-1], 0.0387, 0.0387, 0.001, 40, mb3))
+    enamel_mug(B, mc, mb3)
+    pm = B.bm("M_LL_Props")                  # the props atlas bucket, used below
     # ---- brass shell-case pencil pot with five things in it, each leaning on the rim at its own angle
     pc2 = D(-0.75, 0.0, back - 0.42)
     lathe(B.bm("M_LL_Brass", "SM_Props"), pc2, Matrix.Identity(3),
@@ -1297,6 +1289,7 @@ def build_desk_detail(B):
         solid(B, "rubber", lambda bm, s=s: cyl(bm, Np(s * 0.034, -0.094, 0.034), 0.0205, 0.0195, 0.012, 20, yb3), "PROP_binoculars")
         cyl(B.bm("M_LL_Iron", "PROP_binoculars"), Np(s * 0.058, 0.079, 0.031), 0.0318, 0.0318, 0.006, 24, yb3)
         cyl(B.bm("M_LL_Glass", "PROP_binoculars"), Np(s * 0.058, 0.0815, 0.031), 0.026, 0.026, 0.001, 24, yb3)
+        cyl(B.bm("M_LL_Glass", "PROP_binoculars"), Np(s * 0.034, -0.0985, 0.034), 0.0125, 0.0125, 0.001, 20, yb3)   # G4c: eyepiece glass
     solid(B, "hammertone", lambda bm: cyl(bm, Np(0.0, -0.032, 0.05), 0.009, 0.009, 0.075, 14, yb3), "PROP_binoculars")
     cyl(B.bm("M_LL_Iron", "PROP_binoculars"), Np(0.0, -0.052, 0.058), 0.012, 0.012, 0.016, 18, basis_z(nb3.col[0]))
     strap = bezier(Np(-0.06, -0.075, 0.04), Np(-0.15, -0.14, 0.0016), Np(0.07, -0.25, 0.0016), Np(0.062, -0.075, 0.04), 18)
@@ -1668,6 +1661,10 @@ def build_storage(B):
         for sx in (-1, 1):                                                          # corner bolt heads
             cyl(B.bm("M_LL_Iron", "SM_Storage"), dp(b, sx * (w / 2 - 0.02), z - 0.02, c - d / 2 - 0.001), 0.007, 0.007, 0.004, 6, bs)
     box(B.bm("M_LL_Wood", "SM_Storage"), dp(b, -0.38, 0.27, c), (0.5, 0.42, 0.36), bs)
+    for k in range(1, 4):                                           # G4c (item 10): plank seams, front and top
+        box(B.bm("M_LL_WoodDark", "SM_Storage"), dp(b, -0.38, 0.09 + k * 0.09, c - 0.2105), (0.496, 0.002, 0.004), bs, bevel=0.0)
+    for k in range(1, 4):
+        box(B.bm("M_LL_WoodDark", "SM_Storage"), dp(b, -0.38, 0.4505, c - 0.21 + k * 0.105), (0.496, 0.004, 0.002), bs, bevel=0.0)
     for k in range(3):
         box(B.bm("M_LL_WoodDark", "SM_Storage"), dp(b, -0.38, 0.12 + k * 0.13, c - 0.212), (0.5, 0.01, 0.03), bs)
     tz = 0.0025                                                     # G4a (item 10): it sat 2.5 mm into the board
@@ -1693,7 +1690,7 @@ def build_storage(B):
         t = i / 16.0
         layer = int(t // 4)
         frac = (t % 4) / 4.0
-        rr = 0.17 - 0.07 * (frac if layer % 2 == 0 else 1.0 - frac)
+        rr = 0.17 - 0.07 * (frac if layer % 2 == 0 else 1.0 - frac) + 0.004 * math.sin(i * 1.7 + layer) * math.sin(i * 0.31)   # G4c: hand-laid, not machine
         a = 2 * math.pi * t
         pts.append(rc0 + Vector((rr * math.cos(a), rr * math.sin(a), 0.014 + layer * 0.025)))
     sweep(B.bm("M_LL_Rope"), pts, 0.0135, 7)
@@ -1925,9 +1922,36 @@ def build_optic_drive(B):
 def build_photo(B):
     """The keepers' photograph above the battery rack. (The oak archive cabinet that stood beside the stair
     door was removed in Stage 1 iteration 3 at Daniel's request; the old logs are on the storage shelf.)"""
-    pb3, pc = face_frame(-105.0, 0.0, 1.85, back_dist(0.5, 0.0))
+    pb3, pc = face_frame(-105.0, 0.0, 1.85, back_dist(0.5, 0.0), tilt_deg=-2.0)   # G4c (item 15): top leans out
+    wall_c = pc
+    pc = pc + pb3.col[2] * 0.008               # the bottom rail 2 mm off the wall, the top 14 mm: a shadow gap
     photo_frame(B, pc, pb3)
+    r_, o_, u_ = wall_frame(-105.0)
+    nail = wall_c + u_ * 0.215 - o_ * 0.004                   # a picture nail 3 cm above the frame
+    cyl(B.bm("M_LL_Iron", "SM_RoomPhoto"), nail - o_ * 0.006, 0.0022, 0.0022, 0.012, 8, basis_z(-o_))
+    cyl(B.bm("M_LL_Iron", "SM_RoomPhoto"), nail - o_ * 0.0125, 0.0045, 0.0045, 0.0015, 10, basis_z(-o_))   # its head
+    for sx in (-1, 1):                                       # the wire, from screw eyes on the back to the nail
+        eye_ = pc + pb3 @ Vector((sx * 0.13, 0.09, -0.002))
+        seg_cyl(B.bm("M_LL_Iron", "SM_RoomPhoto"), eye_, nail - o_ * 0.006, 0.0008, 4)
     B.empty("IA_photo", pc + pb3.col[2] * 0.05, (0.22, 0.18, 0.05), pb3)
+
+
+def enamel_mug(B, mc, mb3, dregs=False):
+    """The keeper's enamel mug (white, blue rim, chips: the props atlas "mug" wrap): cold tea at ~55 %, or
+    (dregs) drunk, a dark ring left in the bottom. G4c: shared by the desk mug and the sill mug."""
+    mv = PA["mug_v"]
+    prof = [(0.0, 0.0, 0.0), (0.034, 0.0, 0.04), (0.0385, 0.003, 0.07), (0.0395, 0.010, 0.10), (0.040, 0.075, 0.66),
+            (0.0408, 0.079, mv["rim_v0"]), (0.0418, 0.0815, 0.76), (0.0412, 0.084, 0.80), (0.0395, 0.0832, mv["rim_v1"]),
+            (0.0388, 0.079, mv["inner_top"]), (0.0388, 0.006, mv["inner_bottom"]), (0.0, 0.005, 1.0)]
+    pm = B.bm("M_LL_Props")
+    lathe_uv(pm, B.uv(pm), mc, mb3, prof, 40, lambda uu, vv: region_uv("mug", uu, vv))
+    hp = [mc + mb3 @ Vector((0.0435 + 0.023 * math.cos(math.radians(a)), 0.0, 0.045 + 0.025 * math.sin(math.radians(a))))
+          for a in range(100, -101, -20)]
+    solid(B, "enamel_white", lambda bm: sweep(bm, hp, 0.0058, 8, ry=0.0021, n0=mb3.col[1]))
+    if dregs:
+        solid(B, "tea", lambda bm: cyl(bm, mc + mb3.col[2] * 0.0062, 0.03, 0.03, 0.0008, 32, mb3))
+    else:
+        solid(B, "tea", lambda bm: cyl(bm, mc + mb3.col[2] * mv["tide_z"][-1], 0.0387, 0.0387, 0.001, 40, mb3))
 
 
 def photo_frame(B, pc, pb3, pw=0.33):
@@ -2114,7 +2138,7 @@ def build_props(B):
     cyl(B.bm("M_LL_Whisky", "SM_Props"), bot + Vector((0, 0, 0.075)), 0.035, 0.035, 0.15, 16)
     cyl(B.bm("M_LL_Whisky", "SM_Props"), bot + Vector((0, 0, 0.175)), 0.012, 0.02, 0.05, 12)
     cyl(B.bm("M_LL_Red", "SM_Props"), bot + Vector((0, 0, 0.205)), 0.013, 0.013, 0.012, 12)
-    box(B.bm("M_LL_Paper", "SM_Props"), dp(sb_, -0.56, 1.19, sc + 0.084), (0.05, 0.002, 0.06), sbs)   # label
+    cyl(B.bm("M_LL_Paper", "SM_Props"), bot + Vector((0, 0, 0.07)), 0.0356, 0.0356, 0.06, 16)       # G4c: the label wraps the bottle
     # (S) the old vapour-burner kit from before electrification, and a box of spare lamp bulbs
     # G4a (item 10): the burner cut 1 cm into the red toolbox (r 0.06 at 0.55, the box ends at 0.5): now at
     # 0.58, 2 cm clear, on the board (top 0.6125); its feed tube drops to the board beside it, not onto the lid
@@ -2136,8 +2160,7 @@ def build_props(B):
     seg_cyl(B.bm("M_LL_EngineGreen", "SM_Props"), ks + ku * 0.09 + kr * 0.08, ks + ku * 0.15 + kr * 0.15, 0.012, 8)   # spout
     torus(B.bm("M_LL_Bakelite", "SM_Props"), ks + ku * 0.2, 0.06, 0.008, 16, 5, basis_z(kr))                       # handle
     mug = dp(kb + 4.5, 0, 0.95, R_IN - 0.04)
-    cyl(B.bm("M_LL_Ceramic", "SM_Props"), mug + Vector((0, 0, 0.045)), 0.035, 0.035, 0.09, 16)
-    torus(B.bm("M_LL_Ceramic", "SM_Props"), mug + Vector((0, 0, 0.05)) + kr * 0.04, 0.022, 0.006, 12, 5, basis_z(ko))
+    enamel_mug(B, mug, basis(kr, ko, ku) @ rot_about((0, 0, 1), -50.0), dregs=True)   # G4c (item 17): was a primitive cylinder
     # cabin pass (IMG_3136): the rubber torch LIES on the top shelf by the stair door; it is a real object the
     # keeper can take in a blackout, so it has its own meshes (PROP_torch*: station hides them) and IA_torch.
     # A 1970s two-D-cell rubber torch: knurled body, flared head, chrome bezel, reflector, glass, slide switch.
@@ -2443,15 +2466,16 @@ def build_extinguisher(B):
     box(iron, ep + eu * 0.53 + eo * 0.07, (0.03, 0.075, 0.01), basis(er, eo, eu))                       # hook under the shoulder, into the plate
     for k in range(4):                                       # wall plate screws
         cyl(brass, dp(e, 0, 0.47 + k * 0.1, R_IN - 0.0146), 0.005, 0.005, 0.002, 8, basis_z(fr))
-    # wrapped label (props atlas "ext_label"): a 70 degree band of the body's own radius, 13 cm tall
+    # wrapped label (props atlas "ext_label"): G4c (item 17): 135 degrees x 12.5 cm, the label's own 5:3 aspect
+    # (70 degrees x 13 cm squeezed its 400 x 240 px print to half its width)
     pm = B.bm("M_LL_Props")
     uvl = B.uv(pm)
     rows = []
     for j, vz in enumerate((0.0, 1.0)):
         row = []
         for i in range(9):
-            th = math.radians(-35 + 70 * i / 8)
-            pt = ep + eu * (0.22 + 0.13 * vz) + (fr * math.cos(th) + er * math.sin(th)) * 0.0887
+            th = math.radians(-67.5 + 135 * i / 8)
+            pt = ep + eu * (0.225 + 0.125 * vz) + (fr * math.cos(th) + er * math.sin(th)) * 0.0887
             row.append((pm.verts.new(pt), (i / 8, vz)))
         rows.append(row)
     for i in range(8):

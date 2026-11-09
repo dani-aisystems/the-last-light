@@ -194,7 +194,15 @@ func _swap_materials(mi: MeshInstance3D) -> void:
 				bm.roughness = 1.0
 			bm.metallic = 0.0
 			bm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+			if nm == "M_LL_Photo":                # G4c (item 15): matte-ish silver print, cockled by damp
+				bm.roughness = 0.7
+				bm.normal_enabled = true
+				bm.normal_texture = LLMaterials.photo_cockle()
+				bm.normal_scale = 0.35
 			mi.set_surface_override_material(i, bm)
+	if String(mi.name).begins_with("SM_PhotoGlass"):   # G4c (item 15): a print behind glass, not a flat pane
+		for i in mesh.get_surface_count():
+			mi.set_surface_override_material(i, LLMaterials.photo_glass())
 	# glass never casts shadows (lamp glass, gauge glass, the optic housing's glazing)
 	var all_glass := mesh.get_surface_count() > 0
 	for i in mesh.get_surface_count():
