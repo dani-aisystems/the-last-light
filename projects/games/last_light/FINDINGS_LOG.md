@@ -38,7 +38,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 3 | Beam circular end cap | Bug (visual) | P1 | S | 4 / G1 | Verified (captures g1_sheet_beam2: soft fade, no end disc; tuned once) |
 | 4 | Pause menu, autosave only, transcript | UI/UX + gameplay | P1 | M | 6 / G2 | Planned |
 | 5 | Door / floor white pixels | Bug (visual) | P1 | S | Cabin pass 2 / G1 | Verified (g1_sheet_door: base speckles gone, lit and dark) |
-| 6 | Coat stand, jackets, pocket note | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
+| 6 | Coat stand, jackets, pocket note | Visual | P2 | M | Cabin pass 2 / G4 | Implemented in G4b: baked Blender cloth drape (`coat_cloth.py`), patch pockets, the note seated by raycast (`g4b2_*`; final v050 checked in Blender renders) |
 | 7 | E key skips dialogue | Bug (input) | P0 | S | 2E / G1 | Verified (regress R11) |
 | 8 | Opening: enter, dark, torch, generator | Gameplay | P0 | M | 2E / G2 | Planned (decision D8) |
 | 9 | Missions with sub-objectives | Gameplay + UI | P0 | M | 2E / G2 | Planned |
@@ -225,6 +225,17 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | Tests | story `_orders_teach_valve`; regress R18 |
 
 **Evidence:** `renders/last_light/g4a_*`.
+
+## G4b record (2026-11-09; approved by Daniel)
+
+| Part | What changed |
+|---|---|
+| Cloth | `blender/coat_cloth.py`: a closed oilskin shell (48 × 28 verts, seeded 4 mm jitter) pinned at the back of the collar loop, colliding with the post; Blender cloth (mass 0.45, tension 30, compression 40, shear 5, bending 0.35), 120 frames, applied, 2 mm solidify. Deterministic (two runs, identical vertices). About 25 s per build |
+| Coat | Slim sleeves behind the front panels, a collar loop over the hook; the storm-flap seam and toggles raycast onto the folds |
+| Pockets / note | Patch pockets that follow the folds (smoothed), open at the top; the note's pocket 7 cm wide, lifted evenly to clear it; the folded note 4.5 × 4.5 cm, 0.5 mm clear of the highest fold, 2 cm out of the mouth, 8° turned, 4° lean on the lip |
+| Iterations | Compression 4 let the shell shrink to 22 cm (now 40); the old turned-down collar floated as a bowl (removed); pockets sized to half the 12 cm front were narrower than the note; a local push over the note left a ledge |
+
+**Evidence:** `renders/last_light/g4b_*` (first pass), `g4b2_*` (v046 in game); v050 in Blender renders. Room 126,102 tris, 33 materials.
 
 ## Dependency map
 **Ordering constraints:**

@@ -135,6 +135,7 @@ func view(name_: String) -> Array:
 		"cu_ext": return eye(106, 1.55, 106, 3.1, 1.45, 0.72) + [48.0, false, 0.02]      # extinguisher (IMG_3134)
 		"cu_lantern": return eye(128, 1.6, 128, 3.0, 1.45, 1.2) + [42.0, false, 0.02]    # storage shelf lantern (IMG_3135)
 		"cu_coat": return eye(149, 1.0, 150, 2.75, 1.55, 1.05) + [55.0, false, 0.02]     # coat rack (IMG_3137)
+		"cu_coat_note": return [Vector3(0.957, 21.10, 1.753), Vector3(1.173, 21.051, 2.148), 50.0, false, 0.02]   # G4b: IA_coat_note (v050) from 0.45 m, toward the room centre
 		"cu_sill_w": return eye(-30, 1.7, -32, 3.15, 1.45, 0.97) + [45.0, false, 0.02]  # west sill tin (IMG_3138)
 		"cu_optic_top": return eye(45, 1.3, 45, 2.78, 2.45, 1.3) + [50.0, false, 0.02]  # optic drive from above (IMG_3141)
 		# plan: the near plane clips everything above F+2.65 (beams, pipes, ceiling) for a clean top view

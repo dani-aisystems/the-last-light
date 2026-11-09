@@ -71,6 +71,9 @@
 - **G4a done; approved by Daniel 2026-11-09 and committed locally** (record in FINDINGS_LOG "G4a record"). Room material cap 33 (Daniel).
   - **Gotchas:** a test that fails to parse can still exit 0: read the `*_RESULT` line, never the exit code. Unseeded paper grain rewrites every doc PNG on `--docs` runs.
 - **Next: G4b**, the coat as baked Blender cloth with a real pocket, the note seated by raycast (item 6).
+- **G4b done; approved by Daniel 2026-11-09 and committed locally** (FINDINGS_LOG "G4b record"). The final v050 coat was checked in Blender renders, not re-shot in game.
+  - **Gotchas:** build.py now adds its own folder to `sys.path` (coat_cloth.py); the cloth sim adds about 25 s to every build; `cu_coat_note` uses absolute coordinates read from IA_coat_note (re-read them if the coat moves).
+- **Next: G4c** (item 15 photograph realism, item 17 prop audit, item 10 per-object shelf detail).
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).

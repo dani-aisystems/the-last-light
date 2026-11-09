@@ -22,6 +22,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 WS = HERE.parents[3]
 sys.path.insert(0, str(WS / "scripts"))
+sys.path.insert(0, str(HERE))                    # G4b: coat_cloth.py beside this script
 
 import bmesh  # noqa: E402
 import bpy  # noqa: E402
@@ -2248,46 +2249,130 @@ def build_coat_rack(B):
     cb3 = basis(cside, cfront, ou)
     top = hook + hdir * 0.02 + cfront * 0.075 + ou * 0.01   # collar loop on the hook, the coat's back toward the post
     oil = B.bm("M_LL_Oilskin", "SM_CoatRack")
-    YS = 0.42
-    rings = [(-0.02, 0.026), (-0.06, 0.05), (-0.12, 0.092), (-0.2, 0.138), (-0.3, 0.168), (-0.45, 0.176),
-             (-0.62, 0.18), (-0.78, 0.196), (-0.9, 0.212), (-0.98, 0.224)]
-    drape(oil, top, cb3, rings, 36, YS,
-          lambda th, t: 1.0 + t * (0.075 * math.sin(4 * th + 1.1) + 0.045 * math.sin(7 * th + 0.3)) + 0.02 * math.sin(11 * th) * t * t,
-          lambda th: 0.03 * math.sin(th) - 0.018 * math.cos(2 * th))     # front a little shorter, the sides dip
-    for sx in (-1, 1):                                       # sleeves: from inside the shoulder, a soft bend at the elbow
-        pts = bezier(top + cb3 @ Vector((sx * 0.11, 0.0, -0.16)), top + cb3 @ Vector((sx * 0.165, 0.01, -0.32)),
-                     top + cb3 @ Vector((sx * 0.175, 0.035, -0.5)), top + cb3 @ Vector((sx * 0.16, 0.03, -0.71)), 9)
-        for k in range(len(pts) - 1):                        # tapering segments (sweep has one radius)
-            rk = 0.047 - 0.008 * k / (len(pts) - 2)
+    # G4b (item 6): the body is a baked cloth drape (coat_cloth.py: a closed oilskin shell hung by its collar
+    # loop, colliding with the post, 2 mm thick); everything on it is seated by raycasting its final surface
+    import coat_cloth
+    from mathutils.bvhtree import BVHTree
+    solid_me, shell = coat_cloth.simulate_coat(top, cb3, base + ou * 0.4, base + ou * 1.78, 0.022, B.coll)
+    oil.from_mesh(solid_me)
+    bvh = BVHTree.FromPolygons([v.co.copy() for v in shell.vertices], [tuple(p_.vertices) for p_ in shell.polygons])
+    bpy.data.meshes.remove(solid_me)
+    bpy.data.meshes.remove(shell)
+    TH = coat_cloth.THICK
+
+    def front_hit(x, z):
+        """The coat's outer front surface at (x across, z down from the loop): point, outward normal."""
+        o_ = top + cb3 @ Vector((x, 0.6, z))
+        loc, nrm, _i, _d = bvh.ray_cast(o_, -cfront, 1.2)
+        if loc is None:
+            return None, None
+        nrm = nrm if nrm.dot(cfront) > 0 else -nrm
+        return loc + nrm * TH, nrm
+
+    def side_x(sx, z, y=0.01):
+        o_ = top + cb3 @ Vector((sx * 0.6, y, z))
+        loc, _n, _i, _d = bvh.ray_cast(o_, -cside * sx, 1.2)
+        return abs((loc - top).dot(cside)) + TH if loc is not None else 0.1
+    for sx in (-1, 1):                                       # sleeves: slim, hanging at the sides behind the front panels
+        zs_ = [-0.15 - 0.55 * k / 8 for k in range(9)]
+        pts = [top + cb3 @ Vector((sx * (side_x(sx, z, -0.03) - 0.012), -0.03 - 0.01 * k / 8, z)) for k, z in enumerate(zs_)]   # behind the front panels
+        for k in range(len(pts) - 1):
+            rk = 0.033 - 0.006 * k / (len(pts) - 2)
             dv = pts[k + 1] - pts[k]
-            cyl(oil, (pts[k] + pts[k + 1]) / 2, rk, rk + 0.0015, dv.length + 0.01, 14, basis_z(-dv))
+            cyl(oil, (pts[k] + pts[k + 1]) / 2, rk, rk + 0.001, dv.length + 0.008, 14, basis_z(-dv))
         cdv = pts[-1] - pts[-2]
-        torus(oil, pts[-1] + cdv.normalized() * 0.004, 0.039, 0.007, 14, 5, basis_z(cdv))   # turned cuff
-    lathe(oil, top - ou * 0.03, cb3, [(0.035, 0.03), (0.05, 0.035), (0.07, 0.012), (0.085, -0.03), (0.08, -0.04), (0.06, -0.01), (0.034, 0.012)], 22)   # turned-down collar
+        torus(oil, pts[-1] + cdv.normalized() * 0.003, 0.028, 0.005, 14, 5, basis_z(cdv))   # turned cuff
+    torus(oil, hook + ou * 0.004, 0.014, 0.0035, 12, 5, basis_z(cside))   # the collar loop over the hook
     dark = B.bm("M_LL_Bakelite", "SM_CoatRack")
-    fold = lambda th, t: 1.0 + t * (0.075 * math.sin(4 * th + 1.1) + 0.045 * math.sin(7 * th + 0.3)) + 0.02 * math.sin(11 * th) * t * t
-    def surf(x, z):                                          # the folded front surface: y at (x, z), as drape() builds it
-        zs = [zz for zz, _ in rings]
-        j = max(0, min(len(rings) - 2, max(k for k in range(len(zs)) if zs[k] >= z)))
-        f = (z - zs[j]) / (zs[j + 1] - zs[j])
-        r_ = rings[j][1] + (rings[j + 1][1] - rings[j][1]) * f
-        t = (j + f) / (len(rings) - 1)
-        th = math.acos(max(-1.0, min(1.0, x / max(r_, 1e-3))))
-        return r_ * fold(th, t) * math.sin(th) * YS
-    for z0, z1 in ((-0.16, -0.3), (-0.3, -0.45), (-0.45, -0.62), (-0.62, -0.78), (-0.78, -0.9)):   # storm flap seam, in pieces
-        zm = (z0 + z1) / 2
-        box(dark, top + cb3 @ Vector((0.0, surf(0.0, zm) + 0.002, zm)), (0.012, 0.006, abs(z1 - z0) + 0.01), cb3, bevel=0.0)
-    for zt in (0.24, 0.4, 0.56, 0.72):
-        cyl(B.bm("M_LL_WoodDark", "SM_CoatRack"), top + cb3 @ Vector((0.01, surf(0.01, -zt) + 0.006, -zt)), 0.007, 0.007, 0.028, 8, basis_z(cside))
-    for sx in (-1, 1):                                       # pocket flaps on the surface
-        pc = top + cb3 @ Vector((sx * 0.1, surf(sx * 0.1, -0.63) + 0.004, -0.63))
-        box(oil, pc, (0.14, 0.012, 0.055), cb3 @ rot_about((0, 1, 0), sx * 4.0), bevel=0.003)
-    # the stores note, folded twice, poking out of the right pocket (IA_coat_note opens it)
-    nc = top + cb3 @ Vector((0.1, surf(0.1, -0.585) - 0.002, -0.585))
-    nb3 = cb3 @ rot_about((0, 1, 0), -14.0)
+    z = -0.17
+    while z > -0.9:                                          # storm flap seam: short pieces that follow the folds
+        p_, n_ = front_hit(0.0, z)
+        if p_ is not None:
+            box(dark, p_ + n_ * 0.002, (0.01, 0.004, 0.027), basis(cside, n_, n_.cross(cside).normalized()), bevel=0.0)
+        z -= 0.025
+    for zt in (0.24, 0.4, 0.56, 0.72):                       # toggles, on the surface
+        p_, n_ = front_hit(0.012, -zt)
+        if p_ is not None:
+            cyl(B.bm("M_LL_WoodDark", "SM_CoatRack"), p_ + n_ * 0.006, 0.006, 0.006, 0.026, 8, basis_z(cside))
+
+    def pocket(cx, ztop, w, h=0.15, note=None):
+        """A patch pocket sewn onto the folds: a 2.4 mm slab that follows the surface 4 mm off it (smoothed),
+        lifted as a whole to clear the note where there is one; short walls close its sides and bottom onto the coat,
+        the top stays open. note: (centre, frame, half size) of the note's slab, kept clear by 2 mm."""
+        N = 8
+        grid = [[None] * (N + 1) for _ in range(N + 1)]
+        nrms = [[None] * (N + 1) for _ in range(N + 1)]
+        for i_ in range(N + 1):
+            for j_ in range(N + 1):
+                hp, hn = front_hit(cx + w * (i_ / N - 0.5), ztop - h * j_ / N)
+                assert hp is not None, "pocket off the coat at x %.3f" % cx
+                grid[i_][j_], nrms[i_][j_] = hp, hn
+        off = [[grid[a][b] + nrms[a][b] * 0.004 for b in range(N + 1)] for a in range(N + 1)]
+        for _ in range(3):                                   # smooth: a stiff patch bridges the small folds
+            off = [[(off[a][b] * 2 + sum((off[a2][b2] for a2, b2 in ((a - 1, b), (a + 1, b), (a, b - 1), (a, b + 1))
+                                          if 0 <= a2 <= N and 0 <= b2 <= N), Vector())) /
+                    (2 + sum(1 for a2, b2 in ((a - 1, b), (a + 1, b), (a, b - 1), (a, b + 1)) if 0 <= a2 <= N and 0 <= b2 <= N))
+                    for b in range(N + 1)] for a in range(N + 1)]
+        for a in range(N + 1):                               # never into the coat
+            for b in range(N + 1):
+                d = (off[a][b] - grid[a][b]).dot(nrms[a][b])
+                if d < 0.003:
+                    off[a][b] += nrms[a][b] * (0.003 - d)
+        if note:                                             # lift the whole patch evenly (a local push left a ledge)
+            nc_, nb_, hx, hz = note
+            lift = 0.0
+            for a in range(N + 1):
+                for b in range(N + 1):
+                    q = off[a][b] - nc_
+                    if abs(q.dot(nb_.col[0])) < hx + 0.012 and abs(q.dot(nb_.col[2])) < hz + 0.012:
+                        lift = max(lift, 0.0015 + 0.0032 - q.dot(nb_.col[1]))
+            off = [[off[a][b] + nb_.col[1] * lift for b in range(N + 1)] for a in range(N + 1)]
+        nav = sum((nrms[a][b] for a in range(N + 1) for b in range(N + 1)), Vector()).normalized()
+        F = [[oil.verts.new(off[a][b] + nav * 0.0012) for b in range(N + 1)] for a in range(N + 1)]
+        Bk = [[oil.verts.new(off[a][b] - nav * 0.0012) for b in range(N + 1)] for a in range(N + 1)]
+        for a in range(N):
+            for b in range(N):
+                oil.faces.new((F[a][b], F[a + 1][b], F[a + 1][b + 1], F[a][b + 1]))
+                oil.faces.new((Bk[a][b + 1], Bk[a + 1][b + 1], Bk[a + 1][b], Bk[a][b]))
+        ring = [(a, 0) for a in range(N)] + [(N, b) for b in range(N)] + [(a, N) for a in range(N, 0, -1)] + [(0, b) for b in range(N, 0, -1)]
+        for (a, b), (a2, b2) in zip(ring, ring[1:] + ring[:1]):
+            oil.faces.new((F[a][b], Bk[a][b], Bk[a2][b2], F[a2][b2]))
+        # walls: left (a = 0), right (a = N), bottom (b = N), from the slab's back down to the coat
+        for (a, b), (a2, b2) in [((0, b), (0, b + 1)) for b in range(N)] + [((N, b), (N, b + 1)) for b in range(N)] + \
+                                [((a, N), (a + 1, N)) for a in range(N)]:
+            lo = (grid[a][b] + grid[a2][b2]) / 2 + (nrms[a][b] + nrms[a2][b2]).normalized() * TH
+            hi = (off[a][b] + off[a2][b2]) / 2 - nav * 0.0012
+            along = (off[a2][b2] - off[a][b])
+            dpt = max(0.001, (hi - lo).dot(nav))
+            nrm_w = nav.cross(along.normalized()).normalized()
+            box(oil, lo + nav * (dpt / 2), (along.length + 0.002, 0.0012, dpt), basis(along.normalized(), nrm_w, nav), bevel=0.0)
+        return grid, nrms, nav
+
+    pz = -0.58                                              # pocket mouths, from where the drape actually hangs
+    hw = {sx: side_x(sx, pz - 0.075) for sx in (-1, 1)}
+    pw = min(0.11, 0.9 * min(hw.values()))                  # each pocket nearly half the front of the narrow drape
+    pocket(-0.52 * hw[-1], pz, pw)
+    # the stores note, folded twice, in the right pocket and poking 2 cm out of it: planar, its back 0.5 mm
+    # clear of the highest fold beneath it, turned 8 degrees in its plane, leaning out 4 degrees on the lip
+    ncx = 0.043                                             # the note's pocket: 7 cm wide, just right of the storm flap
+    npw = 0.07
+    samples = [front_hit(ncx + dx, pz + dz) for dx in (-0.03, -0.015, 0.0, 0.015, 0.03) for dz in (0.025, 0.01, -0.005, -0.02)]
+    samples = [sp for sp in samples if sp[0] is not None]
+    nav_n = sum((sn for _sp, sn in samples), Vector()).normalized()
+    c0, _n0 = front_hit(ncx, pz - 0.0025)                 # 4.5 cm tall: 2 cm out of the mouth, 2.5 cm inside
+    ax = (cside - nav_n * cside.dot(nav_n)).normalized()
+    az = nav_n.cross(ax).normalized()
+    if az.dot(ou) < 0:
+        ax, az = -ax, -az
+    nb3 = basis(ax, nav_n, az) @ rot_about((0, 1, 0), -8.0)   # 14 deg put its corners through the pocket's side walls
+    nb3 = rot_about(nb3.col[0], -4.0) @ nb3                 # top away from the coat
+    nc = c0 + nb3.col[2] * 0.0
+    clear = max((sp - nc).dot(nb3.col[1]) for sp, _sn in samples)
+    nc = nc + nb3.col[1] * (clear + 0.0005 + 0.0015)
+    pocket(ncx, pz, npw, note=(nc, nb3, 0.0225, 0.0225))
     pm = B.bm("M_LL_Props")
-    solid(B, "page_cream", lambda bm: box(bm, nc, (0.07, 0.003, 0.055), nb3, bevel=0.0), prefix="SM_CoatRack")
-    quad_uv(pm, B.uv(pm), nc + nb3.col[1] * 0.0017, basis(nb3.col[0], nb3.col[2], nb3.col[1]), 0.068, 0.053, region_rect("note_fold"))
+    solid(B, "page_cream", lambda bm: box(bm, nc, (0.045, 0.003, 0.045), nb3, bevel=0.0), prefix="SM_CoatRack")   # folded twice
+    quad_uv(pm, B.uv(pm), nc + nb3.col[1] * 0.0017, basis(nb3.col[0], nb3.col[2], nb3.col[1]), 0.043, 0.043, region_rect("note_fold"))
     B.empty("IA_coat_note", nc + cfront * 0.02, (0.06, 0.05, 0.05), cb3)
     # the sou'wester hangs by its brim from the front-LEFT hook, crown out, brim near vertical
     hk2 = base + ou * 1.62 + (front - orr).normalized() * 0.095
