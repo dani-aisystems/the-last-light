@@ -22,7 +22,7 @@ IMPORT_HINTS = ("-col", "_col", "-colonly", "_colonly", "-convcol", "_convcol", 
                 "-rigid", "_rigid", "-vehicle", "_vehicle", "-wheel", "_wheel", "-navmesh", "_navmesh",
                 "-occ", "_occ", "-occonly", "_occonly", "-noimp", "_noimp", "-loop", "_loop", "-cycle", "_cycle")
 
-BUDGET = {"tris_total": 200_000, "tris_per_mesh": 100_000, "meshes": 220, "materials": 32}
+BUDGET = {"tris_total": 200_000, "tris_per_mesh": 100_000, "meshes": 220, "materials": 33}   # 33: G4a note_046 (Daniel 2026-11-09)
 
 GL_TRIANGLES = 4
 

@@ -65,6 +65,12 @@
 - **G3c done; approved by Daniel 2026-11-08 and committed locally.** Record and evidence in FINDINGS_LOG "G3c record". G3 is complete.
   - **Gotchas:** bundle objects carry a layout offset in `matrix_world` (read it after `view_layer.update()`); Blender bone heat fails on the base body (use the distance weights in `body.py`); walk-sync and turn tests must step time themselves (real frames under load skip whole steps).
 - **Next: G4** (cabin assets: KEEPER'S ORDERS line 5, Iain's pipe as a cabin object (option), the D8 doc re-render), then G6.
+- **G4 decisions (Daniel, 2026-11-08):**
+  - staged: **G4a** fixes (shelf intersections, floating papers, KEEPER'S ORDERS line 5, the console note texture, D8 document renders, Iain's pipe line); **G4b** the coat as baked Blender cloth with a real pocket and the note seated by raycast; **G4c** the photograph and the rest of the prop audit;
+  - the desk pipe, ashtray and Skerry Flake tin stay as **Iain's pipe**, a memento, never smoked; one short inspect line drafted for Daniel's review.
+- **G4a done; approved by Daniel 2026-11-09 and committed locally** (record in FINDINGS_LOG "G4a record"). Room material cap 33 (Daniel).
+  - **Gotchas:** a test that fails to parse can still exit 0: read the `*_RESULT` line, never the exit code. Unseeded paper grain rewrites every doc PNG on `--docs` runs.
+- **Next: G4b**, the coat as baked Blender cloth with a real pocket, the note seated by raycast (item 6).
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).

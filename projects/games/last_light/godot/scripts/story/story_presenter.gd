@@ -252,7 +252,9 @@ func show_log_entry(entry: Dictionary) -> void:
 
 
 func _tick_log_card() -> void:
-	if _card_queue.is_empty() or (_card_tw and _card_tw.is_running()) or is_screen_held():
+	var busy: bool = _card_tw != null and _card_tw.is_running()
+	log_card.visible = busy and not is_document_open()          # G4a: never over (or through) a document
+	if _card_queue.is_empty() or busy or is_screen_held() or is_document_open():
 		return
 	var e: Dictionary = _card_queue.pop_front()
 	var bg: Texture2D = load(LogbookPages.DIR + "card_%s.png" % e["id"])
@@ -680,7 +682,8 @@ func _process(delta: float) -> void:
 	if _hint_t > 0.0:
 		_hint_t -= delta
 		hint.modulate.a = clampf(_hint_t, 0.0, 1.0)
-	duty_hud.tick(delta, is_screen_held())
+	duty_hud.tick(delta, is_screen_held() or is_document_open())
+	duty_hud.visible = not is_document_open()                  # G4a: the 82 % shade let the plate read through
 	_tick_log_card()
 	if _queued_thought != "" and not dialogue.is_active() and not is_screen_held():
 		var qt := _queued_thought

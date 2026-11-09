@@ -117,6 +117,7 @@ func view(name_: String) -> Array:
 		"cu_window": return eye(0, 1.4, 0, 3.42, 1.65, 1.75) + [55.0, false, 0.03]       # bay 0 glass
 		"cu_door": return eye(170, 0.2, 170, 2.0, 1.65, 1.1) + [55.0, false, 0.03]
 		"cu_shelf": return eye(128, 1.55, 128, 3.0, 1.6, 1.15) + [55.0, false, 0.03]     # storage shelf, old-log box
+		"cu_orders": return eye(128, 1.9, 128, 3.3, 1.75, 2.05) + [36.0, false, 0.02]    # G4a: KEEPER'S ORDERS, line 5
 		# --- Cabin repair (Iteration A): one matched close-up per defect in Daniel's screenshot brief ---
 		"cu_gauges": return eye(80, 2.15, 82, 2.85, 1.42, 1.17) + [34.0, false, 0.02]    # console hood dials (IMG_3117)
 		"cu_selectors": return eye(84, 1.95, 86, 2.6, 1.42, 0.9) + [36.0, false, 0.02]   # mode / intensity knobs

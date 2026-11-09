@@ -186,10 +186,11 @@ def notice(seed=0):
     d.text((256, 46), "KEEPER'S ORDERS", font=font("DIN Condensed Bold.ttf", 60), fill=(245, 240, 225), anchor="mm")
     lines = ["1. THE LIGHT SHALL BE KEPT", "    FROM SUNSET TO SUNRISE.", "2. RUN THE ENGINE TO CHARGE",
              "    BEFORE THE BATTERY FALLS", "    BELOW ONE QUARTER.", "3. A TRIPPED MAIN BREAKER", "    MAY BE RESET ONCE THE",
-             "    FAULT IS CLEARED.", "4. ANSWER EVERY CALL", "    ON CHANNEL 16."]
-    f = font("Courier New Bold.ttf", 30)
+             "    FAULT IS CLEARED.", "4. ANSWER EVERY CALL", "    ON CHANNEL 16.",
+             "5. FUEL VALVE OPEN", "    BEFORE START."]               # G4a (G2b decision): learned by failing, or read here
+    f = font("Courier New Bold.ttf", 27)                               # 12 lines now (was 10 at 30 px)
     for i, l in enumerate(lines):
-        d.text((24, 112 + i * 38), l, font=f, fill=INK)
+        d.text((24, 106 + i * 33), l, font=f, fill=INK)
     return aged(img, seed, 20)
 
 

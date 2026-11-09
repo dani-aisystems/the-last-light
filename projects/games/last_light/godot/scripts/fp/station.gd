@@ -90,6 +90,8 @@ var DEVICES := {
 	"photo53": {"kind": "doc", "prompt": "Pick up the photograph"},
 	"photo53desk": {"kind": "doc", "prompt": "Look at the photograph he left"},
 	"power_panel": {"kind": "info", "prompt": "Check the distribution board"},
+	"orders": {"kind": "info", "prompt": "Read the keeper's orders"},     # G4a: line 5 teaches the fuel valve
+	"pipe": {"kind": "info", "prompt": "Look at the pipe"},               # G4a: Iain's pipe (Daniel 2026-11-08)
 }
 ## Set by game_fp (Stage 2): documents only open in the story campaign; the door's prompt and whether
 ## pressing it does anything follow the chapter and the door state.
@@ -566,6 +568,10 @@ func inspect_line(id: String) -> String:
 			if sim.battery < sim.cfg.battery_warn:
 				return "%d percent. Low. They want charging." % b
 			return "%d percent. Holding." % b
+		"orders":
+			return "The orders. Five: fuel valve open before START."
+		"pipe":
+			return "Father's pipe. I've never lit it."                     # draft: for Daniel's review
 		"power_panel":
 			if not sim.main_breaker:
 				return "MAIN has tripped. Reset it once the load's down."

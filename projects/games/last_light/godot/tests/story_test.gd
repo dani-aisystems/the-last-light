@@ -69,6 +69,7 @@ func _run() -> void:
 		await _autosave_resumes()
 		await _kittiwake_power_out()
 		_opening_duties()
+		_orders_teach_valve()
 		_duty_escalation()
 	_station_log_canon()
 	await _save_roundtrip()
@@ -198,6 +199,21 @@ func _dfs(db: DialogueDB, id: String, st: StoryState, picks: Array, depth: int) 
 			return total
 		item = r.advance()
 	return 1
+
+
+## G4a: reading the KEEPER'S ORDERS board (line 5, "FUEL VALVE OPEN BEFORE START") makes the fuel valve
+## known, like a failed crank or the generator gauges (the G2b plan's third route).
+func _orders_teach_valve() -> void:
+	var o := _duty_rig(600.0)
+	var dir: StoryDirector = o[1]
+	var step: Callable = o[3]
+	step.call(1.0)
+	var before: bool = "fuel" in dir.state.duties["power"]["known"]
+	dir.state.flags["used_orders"] = 1        # what game_fp sets when the keeper reads the board (IA "orders")
+	step.call(0.5)
+	var after: bool = "fuel" in dir.state.duties["power"]["known"]
+	if before or not after:
+		fails.append("G4a: reading the keeper's orders should make the fuel valve known (before %s, after %s)" % [before, after])
 
 
 ## G2b (Daniel 2026-11-06): the opening is two duties, "power" and "light", completed from the real station

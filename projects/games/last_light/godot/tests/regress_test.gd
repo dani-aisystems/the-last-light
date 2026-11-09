@@ -1382,6 +1382,7 @@ func _r12_brief_g2() -> void:
 	await _r15_equipment()
 	await _r16_hands()
 	await _r17_body()
+	await _r18_cabin_g4a()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1784,6 +1785,22 @@ func _mesh_eye_clear(mi: MeshInstance3D, sk: Skeleton3D) -> float:
 			if absf(p.x) < 0.05 and absf(p.y) < 0.05 and p.z < 0.0:
 				nearest = minf(nearest, -p.z)
 	return nearest
+
+
+## G4a R18: the cabin fixes. The KEEPER'S ORDERS board and Iain's pipe are readable (info targets with a
+## thought) and the console note is the written note_046 (textured, seated on the plate). The shelf props
+## are merged into shared meshes, so their clearances are checked in the cu_shelf capture, not here.
+func _r18_cabin_g4a() -> void:
+	print("R18 G4a cabin")
+	var st = g.station
+	for id in ["orders", "pipe", "note"]:
+		_check(st._ia_bodies.has(id), "the %s can be looked at (interaction volume)" % id)
+	_check(st.inspect_line("orders").contains("Five: fuel valve open before START"), "the orders' line 5 reads as a thought (%s)" % st.inspect_line("orders"))
+	_check(st.inspect_line("pipe") != "", "Iain's pipe has its line (%s)" % st.inspect_line("pipe"))
+	var note_tex := false
+	for mi in st.room.find_children("*Note046*", "MeshInstance3D", true, false):
+		note_tex = true
+	_check(note_tex, "the console note carries the written note_046 texture")
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

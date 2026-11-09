@@ -57,16 +57,81 @@ def paper(w, h, seed, tone=PAPER, stains=3):
 
 
 def jitter_text(d, xy, text, font, fill, seed=0, slope=0.0):
-    """Hand-written look: per-word tiny baseline/rotation jitter."""
+    """Hand-written look: per-word tiny baseline/rotation jitter. Callum's hand gets the F15 glyphs."""
     rnd = random.Random(seed + len(text))
     x, y = xy
+    callum = _is_callum(font)
     for word in text.split(" "):
         dy = rnd.uniform(-1.6, 1.6) + slope * x
-        d.text((x, y + dy), word, font=font, fill=fill)
-        x += d.textlength(word + " ", font=font)
+        if callum:
+            x += _callum_word(d, (x, y + dy), word, font, fill) + d.textlength(" ", font=font)
+        else:
+            d.text((x, y + dy), word, font=font, fill=fill)
+            x += d.textlength(word + " ", font=font)
 
 
-def log_page(year, rows, seed, title_month):
+# ---- Callum's hand to the F15 specification (character-refs/REVIEW_FLAGS.md): upright with a slight
+# right slant, careful capitals, an open-topped 4 (Bradley Hand's own), a straight 1, a narrow 7 and a low
+# t-bar. Bradley Hand's 1 has a flag and foot, its 7 is wide and crossed, its t-bar is high, and it is
+# upright: those three glyphs are drawn as pen strokes and each word is sheared 6 degrees.
+CALLUM_SLANT = math.tan(math.radians(6.0))
+
+
+def _is_callum(font):
+    return str(getattr(font, "path", "")).endswith("Bradley Hand Bold.ttf")
+
+
+def _callum_word(d, xy, word, font, fill):
+    """Draw one word in Callum's hand onto d's image; returns its advance in pixels."""
+    size = font.size
+    sw = max(2, round(size * 0.085))                       # Bradley Hand Bold's stroke weight
+    asc = font.getbbox("4")[1]                             # digit top (from the text origin)
+    base = font.getbbox("4")[3]                            # baseline (digits sit on it)
+    xh = font.getbbox("x")[1]                              # x-height top
+    pad = int(size * 0.4)
+    h = int(size * 1.6)
+    w = int(font.getlength(word) + size + h * CALLUM_SLANT) + 2 * pad
+    layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    ld = ImageDraw.Draw(layer)
+    col = tuple(fill[:3]) + ((fill[3],) if len(fill) > 3 else (255,))
+
+    def stroke(a, b):
+        ld.line([a, b], fill=col, width=sw)
+        for p in (a, b):
+            ld.ellipse([p[0] - sw / 2, p[1] - sw / 2, p[0] + sw / 2, p[1] + sw / 2], fill=col)
+    cx = pad
+    for ch in word:
+        if ch == "1":                                      # a straight 1: one stroke, a hair of lean
+            adv = font.getlength("1") * 0.7
+            stroke((cx + adv * 0.55, asc + sw * 0.5), (cx + adv * 0.45, base - sw * 0.5))
+        elif ch == "7":                                    # a narrow 7, no crossbar
+            adv = font.getlength("7") * 0.72
+            stroke((cx + adv * 0.08, asc + sw * 0.6), (cx + adv * 0.88, asc + sw * 0.4))
+            stroke((cx + adv * 0.88, asc + sw * 0.4), (cx + adv * 0.36, base - sw * 0.5))
+        elif ch == "t":                                    # the low t-bar
+            adv = font.getlength("t")
+            ttop = font.getbbox("t")[1]
+            sx = cx + adv * 0.42
+            stroke((sx, ttop + sw * 0.5), (sx, base - sw * 1.2))
+            stroke((sx, base - sw * 1.2), (sx + adv * 0.35, base - sw * 0.6))
+            yb = xh + (base - xh) * 0.22
+            stroke((cx + adv * 0.08, yb), (cx + adv * 0.82, yb))
+        else:
+            ld.text((cx, 0), ch, font=font, fill=col)
+            adv = font.getlength(ch)
+        cx += adv
+    k = CALLUM_SLANT                                       # shear: the top of the word leans right
+    sheared = layer.transform(layer.size, Image.AFFINE, (1, k, -k * base, 0, 1, 0), resample=Image.BICUBIC)
+    img = d._image
+    x, y = int(round(xy[0])) - pad, int(round(xy[1]))
+    if img.mode == "RGBA":
+        img.alpha_composite(sheared, (max(0, x), max(0, y)))
+    else:
+        img.paste(sheared.convert("RGB"), (max(0, x), max(0, y)), sheared)
+    return cx - pad
+
+
+def log_page(year, rows, seed, title_month, size=27):
     W, H = 1500, 1050
     img = paper(W, H, seed)
     d = ImageDraw.Draw(img)
@@ -84,7 +149,7 @@ def log_page(year, rows, seed, title_month):
     y = y0 + 52
     for r in rows:
         hand, date, time, wind, wx, remark = r
-        f = hand(27)
+        f = hand(size)
         jitter_text(d, (60, y), date, f, INK, seed)
         jitter_text(d, (170, y), time, f, INK, seed + 1)
         jitter_text(d, (270, y), wind, f, INK, seed + 2)
@@ -261,6 +326,21 @@ def silver_print(raw, seed):
     return img
 
 
+def note_on_hood(img):
+    """The in-world copy of note_046 (the viewer's page is unchanged): a soft fold across the middle, a pin
+    hole under the tape, the faint ring of a mug set down on it once. Seeded, so the build is reproducible."""
+    out = img.copy().convert("RGB")
+    W, H = out.size
+    d = ImageDraw.Draw(out, "RGBA")
+    d.line([(0, H * 0.52), (W, H * 0.49)], fill=(120, 105, 80, 46), width=3)          # the fold's shadow
+    d.line([(0, H * 0.52 - 3), (W, H * 0.49 - 3)], fill=(255, 250, 235, 40), width=2)  # and its lit edge
+    d.ellipse([W // 2 - 5, 34, W // 2 + 5, 44], fill=(70, 60, 45, 150))                 # pin hole below the tape
+    cx, cy, r = int(W * 0.8), int(H * 0.74), 92
+    for k in range(5):                                                                 # a faint tea ring
+        d.ellipse([cx - r - k, cy - r - k, cx + r + k, cy + r + k], outline=(150, 110, 70, 26 - k * 4), width=3)
+    return out
+
+
 def photo(kind):
     W, H = 1100, 800
     rnd = random.Random(5 if kind == "keepers" else 8)
@@ -269,7 +349,8 @@ def photo(kind):
         framed = Image.new("RGB", (W + 80, H + 160), (236, 229, 212))
         framed.paste(img, (40, 40))
         fd = ImageDraw.Draw(framed)
-        jitter_text(fd, (60, H + 70), "Iain & Callum Mackay, North Point, May 1952", MORAG(34), PENCIL, 3)
+        fd.text((W // 2 + 40, H + 80), "Iain & Callum Mackay, North Point, May 1952", font=PRINT(30),
+                fill=(88, 80, 70), anchor="mm")              # D8 / I09: a printed mount caption, nobody's hand
         return framed
     img = Image.new("RGB", (W, H), (120, 100, 75))
     d = ImageDraw.Draw(img)
@@ -321,7 +402,14 @@ def photo(kind):
     framed = Image.new("RGB", (W + 80, H + 160), (238, 230, 210))
     framed.paste(img, (40, 40))
     fd = ImageDraw.Draw(framed)
-    jitter_text(fd, (60, H + 70), caption, MORAG(34) if kind == "keepers" else CALLUM(34), PENCIL, 3)
+    if kind == "keepers":
+        fd.text((W // 2 + 40, H + 80), caption, font=PRINT(30), fill=(88, 80, 70), anchor="mm")   # D8 / I09
+    else:
+        # D8 / I08: the canon back-of-print pencilling (docs text), in two hands that are not Callum's or
+        # Morag's: "Mary Ellen, July 1953. A. Ross, master." and beneath "Kenny B. on the hatch."
+        fd.text((60, H + 50), "On the back, in pencil:", font=PRINT(20), fill=(130, 120, 105))
+        jitter_text(fd, (60, H + 78), "Mary Ellen, July 1953.  A. Ross, master.", F("Apple Chancery.ttf", 32), PENCIL, 3)
+        jitter_text(fd, (90, H + 124), "Kenny B. on the hatch.", F("Chalkboard.ttc", 24), PENCIL, 9)   # clear of "July"
     return framed
 
 
@@ -706,7 +794,7 @@ def main():
         (C, "", "23.25", "SW 7", "Heavy rain", "Stornoway CG on Ch. 16. All well."),
     ]
     # Stage 3B (C10): the entries follow tonight's order (radio check 18.30, Kittiwake 18.50, Morag 23.25)
-    add("log_1971", "Station log, Sunday 14 November 1971", log_page(1971, rows71, 71, "NOVEMBER"),
+    add("log_1971", "Station log, Sunday 14 November 1971", log_page(1971, rows71, 71, "NOVEMBER", 26),
         "14.11.71 Sun. 16.22 SW 6, overcast, rain. Batteries flat. Engine started, on charge. / 16.40 Light exhibited. Lamp normal. / "
         "18.30 Radio check Stornoway CG. Gale warning, severe gale 9. / 18.50 Kittiwake (SY 37) brought in by North Sound "
         "on radio bearings. / 23.25 Stornoway CG on Ch. 16. All well.  (Hand: C. Mackay)")
@@ -715,9 +803,9 @@ def main():
         (C, "15.11", "01.30", "SW 9", "Rain, poor vis.", "Trawler observed standing in too close to East Gut. No response to light."),
         (C, "", "02.10", "SW 9", "Rain", "Light extinguished approx. 2 min (mantle failure). Relit 02.12."),
         (C, "", "02.30", "SW 9", "Rain", "Wreckage reported East Gut by Stornoway W/T. Mary Ellen (SY 214) believed lost."),
-        (IAIN, "", "", "", "", "I. Mackay, P.K."),
+        (C, "", "", "", "", "Signed I. Mackay, P.K."),     # D8 / I02: Callum wrote the signature too
     ]
-    page53 = log_page(1953, rows53, 53, "NOVEMBER")
+    page53 = log_page(1953, rows53, 53, "NOVEMBER", 29)   # F15: the 1953 hand a little larger than 1971's
     add("log_1953", "Station log, 14-15 November 1953", page53,
         "14.11 23.30: I. Mackay on watch. Light good. / 15.11 01.30: Trawler observed standing in too close to East Gut. No response to light. / "
         "02.10: Light extinguished approx. 2 min (mantle failure). Relit 02.12. / 02.30: Wreckage reported East Gut by Stornoway W/T. "
@@ -730,7 +818,9 @@ def main():
                    "Ross was a better man than me, and he was my friend. If you ever have the courage I did not, put it right.",
                    "", "Your father,", "Iain Mackay"]
     add("letter_1957", "Unsent letter, Christmas 1957", letter(letter_text, IAIN, 42, 57), "\n".join(letter_text))
-    add("note_046", "Maintenance note, light console", note_046(),
+    n46 = note_046()
+    note_on_hood(n46).save(TEX / "T_LL_Note046.png", optimize=True)    # G4a (item 11): the note on the console
+    add("note_046", "Maintenance note, light console", n46,
         "GEAR RACE - worn tooth at 046°. Sticks in heavy weather. FREE BY HAND: take the drive off, back her past the tooth, "
         "then put the drive in again. Reported to Board 4.3.49. I.M. / Reported again 9.12.53. C.M. / "
         "Reported again 2.2.63. Engineer says \"next refit\". C.M.")
@@ -757,7 +847,7 @@ def main():
         (C, "", "16.24", "SW 5", "Cloudy", "Light exhibited. Lamp normal."),
         (C, "", "21.00", "SW 6", "Showers", "Radio check Stornoway CG. All well."),
     ]
-    logbook_spread(log_page(1971, rows13, 70, "NOVEMBER"), log_page(1971, rows71, 71, "NOVEMBER")).save(
+    logbook_spread(log_page(1971, rows13, 70, "NOVEMBER", 26), log_page(1971, rows71, 71, "NOVEMBER", 26)).save(
         TEX / "T_LL_Logbook.png", optimize=True)
     add("coat_note", "Note in the oilskin pocket", coat_note(), "\n".join(COAT_NOTE))
     add("photo_1953", "Photograph: the Mary Ellen's crew, July 1953", photo("crew"),

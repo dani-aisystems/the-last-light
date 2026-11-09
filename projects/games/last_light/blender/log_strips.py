@@ -69,7 +69,7 @@ def page_log():
 
 def row_strip(e, seed):
     """One row as a transparent strip, full page width; returns (image, line count)."""
-    f = CALLUM(27)
+    f = CALLUM(26)                                   # F15: the 1971 hand (documents.py log_1971 at 26)
     probe = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
     lines = wrap(probe, e["text"], f, W - 680)
     h = ROW * max(1, len(lines)) + 16

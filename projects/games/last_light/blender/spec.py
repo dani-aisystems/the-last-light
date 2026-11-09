@@ -97,7 +97,8 @@ SPEC = {
     "desk_chart": {"w": 0.8, "h": 0.6, "rot_deg": 3.0, "mug_uv": [0.155, 0.285],
                    "ring_uv": [[0.135, 0.262], [0.80, 0.15]]},
     # T_LL_Props (2048 px): one material for every small prop (documents.py paints it, build.py maps it).
-    # Stage 1 iteration 5: the room is at its 32-material cap, so small-prop colour comes from flat swatches
+    # Stage 1 iteration 5: the room is at its material cap (32; 33 since G4a gave note_046 its own texture,
+    # Daniel 2026-11-09), so small-prop colour comes from flat swatches
     # here and roughness from T_LL_Props_rough.png (same layout). Rects are image px [x0, y0, x1, y1].
     "props_atlas": {
         "size": 2048,

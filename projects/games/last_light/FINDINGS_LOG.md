@@ -42,8 +42,8 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 7 | E key skips dialogue | Bug (input) | P0 | S | 2E / G1 | Verified (regress R11) |
 | 8 | Opening: enter, dark, torch, generator | Gameplay | P0 | M | 2E / G2 | Planned (decision D8) |
 | 9 | Missions with sub-objectives | Gameplay + UI | P0 | M | 2E / G2 | Planned |
-| 10 | Shelf items, per object | Visual | P2 | M | Cabin pass 2 / G4 | Planned |
-| 11 | Console note texture and writing | Visual | P2 | S | Cabin pass 2 / G4 | Planned |
+| 10 | Shelf items, per object | Visual | P2 | M | Cabin pass 2 / G4 | G4a: both intersections and the board contact fixed (`g4a_t020`); per-object wear and detail in G4c |
+| 11 | Console note texture and writing | Visual | P2 | S | Cabin pass 2 / G4 | Implemented in G4a: note_046 written on the hood (T_LL_Note046, fold, pin hole, tea ring), flush (`g4a_t028`) |
 | 12 | Compass as equipment | Gameplay | P2 | M | 2E / G3 | Implemented in G3a (a new brass hand compass on the chart; the old one no longer existed; G; the needle points north within 1°; regress R15; captures `g3a*`). Held without arms until G3b |
 | 13 | Visible player body | Visual + gameplay | P2 | L | 2E / G3 | Implemented in G3c (CC0 body, own 19-bone rig, guernsey / trousers / boots; legs and boots seen, arms and head shadow-only; walk synced, planted foot slides 1.4 cm a step; regress R17; captures `g3c2_*`). Approved 2026-11-08 |
 | 14 | Hand animations for equipment | Visual | P2 | L | 2E / G3 | Implemented in G3b (CC0 hand, own 16-bone rig, guernsey sleeve; grips for torch, compass, binoculars; regress R16; captures `g3b3_*`). Approved 2026-11-08 |
@@ -209,6 +209,22 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 **Evidence:** `renders/last_light/g3c_*` (before), `g3c2_*` (after); previews `renders/last_light/g3c/preview/`.
 **Frame time:** desk view 48 → 45 fps (−6 %), draw calls 536 → 630, one run on a loaded Mac (PARTIAL).
 **For Daniel's playtest:** the walk in motion; his shadow under each lamp.
+
+## G4a record (2026-11-08/09; approved by Daniel)
+
+| Part | What changed |
+|---|---|
+| Shelf (10) | Vapour burner moved to 0.58 (2 cm clear of the red toolbox), its feed tube to the board; bulb box at -0.005 (4 mm clear of the log box) on its board; toolbox and spares boxes lifted 2.5 mm onto the board |
+| Orders | KEEPER'S ORDERS line 5 "FUEL VALVE OPEN BEFORE START."; IA_orders, a thought, and `used_orders` discovers the fuel valve (story_test) |
+| Console note (11) | Own material M_LL_Note046 (room material cap 32 → 33, Daniel 2026-11-09) |
+| Papers (17) | Forecast and stores note at 0.2 mm (were 0.6 / 0.5 mm) |
+| Iain's pipe | Kept as Iain's, never lit (Daniel 2026-11-08): no ash, match or tobacco; IA_pipe, thought "Father's pipe. I've never lit it." (draft line) |
+| D8 / F15 | Callum's hand: straight 1, narrow 7, low t-bar, 6° slant (documents.jitter_text); 1953 at 29 px, 1971 at 26 px |
+| D8 / I02, I08, I09 | 1953 signature in Callum's hand; Mary Ellen photo with the canon back-of-print pencilling in two other hands; keepers' photo with a printed mount caption |
+| Presenter | The duty HUD and the log slip hide while a document is open (they read through the 82 % shade) |
+| Tests | story `_orders_teach_valve`; regress R18 |
+
+**Evidence:** `renders/last_light/g4a_*`.
 
 ## Dependency map
 **Ordering constraints:**

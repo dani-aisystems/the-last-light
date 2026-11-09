@@ -85,6 +85,7 @@ MATS = {
 TEXTURED = {"M_LL_Atlas": "T_LL_Atlas.png", "M_LL_Chart": "T_LL_Chart.png", "M_LL_Rose": "T_LL_Rose.png",
             "M_LL_Rug": "T_LL_Rug.png",
             "M_LL_Photo": "T_LL_Photo.png", "M_LL_Logbook": "T_LL_Logbook.png",   # documents.py (Iteration A)
+            "M_LL_Note046": "T_LL_Note046.png",                                  # documents.py (G4a, item 11)
             "M_LL_Props": "T_LL_Props.png"}                                    # documents.py (Stage 1 iteration 4)
 
 
@@ -1305,7 +1306,7 @@ def build_desk_detail(B):
     fb = rot_about(u, -14.0) @ bs
     fcc = D(0.82, 0.0, c - 0.25)
     nfx, nfy = 10, 9
-    fz = lambda y: 0.0006 + 0.006 * max(0.0, (y / (fh / 2) - 0.35) / 0.65) ** 2
+    fz = lambda y: 0.0002 + 0.006 * max(0.0, (y / (fh / 2) - 0.35) / 0.65) ** 2     # G4a: on the desk (was 0.6 mm up)
     jag = [0.0 if i in (0, nfx) else (0.0018 if i % 2 else -0.0012) for i in range(nfx + 1)]
     g = [[pm.verts.new(fcc + fb @ Vector((-fw / 2 + fw * i / nfx, -fh / 2 + fh * j / nfy + (jag[i] if j == nfy else 0.0),
                                           fz(-fh / 2 + fh * j / nfy)))) for j in range(nfy + 1)] for i in range(nfx + 1)]
@@ -1316,26 +1317,21 @@ def build_desk_detail(B):
                 lp[B.uv(pm)].uv = region_uv("forecast", a / nfx, b2 / nfy)
     # ---- the stores note, half under the radio (text upright for the keeper)
     nb = rot_about(u, 12.0) @ bs
-    quad_uv(pm, B.uv(pm), D(-0.52, 0.0005, 2.62), nb, 0.203, 0.33, region_rect("note"))
-    # ---- pipe resting in a brass ashtray, a little ash and a spent match
+    quad_uv(pm, B.uv(pm), D(-0.52, 0.0002, 2.62), nb, 0.203, 0.33, region_rect("note"))   # G4a: on the desk (was 0.5 mm up)
+    # ---- Iain's pipe (Daniel 2026-11-08: no pipe for Callum; this is his father's, kept, never lit) resting
+    # in a clean brass ashtray: no ash, no spent match, nothing in the bowl
     at = D(0.615, 0.0, c - 0.27)
     lathe(B.bm("M_LL_Brass", "SM_Props"), at, Matrix.Identity(3),
           [(0.0, 0.0), (0.05, 0.0), (0.055, 0.018), (0.051, 0.018), (0.046, 0.004), (0.0, 0.004)], 32)
-    solid(B, "ash_grey", lambda bm: cyl(bm, at + u * 0.0048, 0.028, 0.032, 0.0016, 14))
-    for k, (dx, dy) in enumerate(((0.012, 0.006), (-0.01, 0.012), (0.004, -0.014))):
-        solid(B, "ash_dark", lambda bm, dx=dx, dy=dy: sphere(bm, at + r * dx + o * dy + u * 0.0058, 0.0035, 8, 5))
-    m0, m1 = at + r * -0.02 + o * -0.02 + u * 0.0052, at + r * 0.025 + o * -0.008 + u * 0.0062
-    solid(B, "wood_raw", lambda bm: seg_cyl(bm, m0, m1, 0.0012, 4))
-    solid(B, "ash_dark", lambda bm: sphere(bm, m1, 0.0021, 6, 4))
     bowl = at + r * 0.008 + o * 0.012 + u * 0.004
     solid(B, "briar", lambda bm: lathe(bm, bowl, Matrix.Identity(3), [(0.0, 0.0), (0.014, 0.0), (0.0175, 0.012), (0.018, 0.03),
                                                                       (0.017, 0.042), (0.012, 0.042), (0.011, 0.012), (0.0, 0.012)], 24))
-    solid(B, "tobacco", lambda bm: cyl(bm, bowl + u * 0.036, 0.0112, 0.0112, 0.002, 16))
     sdir = (-r * 0.75 - o * 0.66).normalized()
     sh0, sh1 = bowl + u * 0.012 + sdir * 0.014, bowl + u * 0.016 + sdir * 0.05
     solid(B, "briar", lambda bm: seg_cyl(bm, sh0, sh1, 0.0065, 14))
     st1 = bowl + u * 0.041 + sdir * 0.118          # rests on the rim, mouthpiece lifted
     solid(B, "vulcanite", lambda bm: cyl(bm, (sh1 + st1) / 2, 0.0058, 0.0032, (st1 - sh1).length, 14, basis_z(sh1 - st1)))
+    B.empty("IA_pipe", at + u * 0.03, (0.07, 0.065, 0.035), bs)       # G4a: "Look at the pipe" (station.gd)
     # ---- tobacco tin by the logbook
     tb3 = bs @ rot_about((0, 0, 1), 75.0)
     tc = D(-0.995, 0.0, 2.30)
@@ -1673,22 +1669,23 @@ def build_storage(B):
     box(B.bm("M_LL_Wood", "SM_Storage"), dp(b, -0.38, 0.27, c), (0.5, 0.42, 0.36), bs)
     for k in range(3):
         box(B.bm("M_LL_WoodDark", "SM_Storage"), dp(b, -0.38, 0.12 + k * 0.13, c - 0.212), (0.5, 0.01, 0.03), bs)
-    box(B.bm("M_LL_Red"), dp(b, 0.25, 0.73, c), (0.5, 0.25, 0.24), bs)
-    box(B.bm("M_LL_Red"), dp(b, 0.25, 0.815, c), (0.506, 0.256, 0.012), bs)                             # lid seam band
+    tz = 0.0025                                                     # G4a (item 10): it sat 2.5 mm into the board
+    box(B.bm("M_LL_Red"), dp(b, 0.25, 0.73 + tz, c), (0.5, 0.25, 0.24), bs)
+    box(B.bm("M_LL_Red"), dp(b, 0.25, 0.815 + tz, c), (0.506, 0.256, 0.012), bs)                        # lid seam band
     for lx in (0.08, 0.42):
-        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, lx, 0.8, c - 0.1285), (0.03, 0.006, 0.045), bs)     # latches
-    seg_cyl(B.bm("M_LL_Iron"), dp(b, 0.12, 0.88, c), dp(b, 0.38, 0.88, c), 0.012)
+        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, lx, 0.8 + tz, c - 0.1285), (0.03, 0.006, 0.045), bs)  # latches
+    seg_cyl(B.bm("M_LL_Iron"), dp(b, 0.12, 0.88 + tz, c), dp(b, 0.38, 0.88 + tz, c), 0.012)
     for hx_ in (0.12, 0.38):
-        box(B.bm("M_LL_Iron"), dp(b, hx_, 0.865, c), (0.02, 0.03, 0.03), bs)             # handle posts on the lid
+        box(B.bm("M_LL_Iron"), dp(b, hx_, 0.865 + tz, c), (0.02, 0.03, 0.03), bs)        # handle posts on the lid
     for k in range(2):                                              # cabin pass: steel spares boxes, not bare cubes
         bx = -0.45 + k * 0.28
-        box(B.bm("M_LL_SteelPaint", "SM_Storage"), dp(b, bx, 0.72, c), (0.24, 0.32, 0.22), bs)
-        box(B.bm("M_LL_SteelPaint", "SM_Storage"), dp(b, bx, 0.79, c), (0.246, 0.326, 0.04), bs)          # lid lip
-        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx, 0.835, c), (0.09, 0.02, 0.012), bs)               # top handle
+        box(B.bm("M_LL_SteelPaint", "SM_Storage"), dp(b, bx, 0.72 + tz, c), (0.24, 0.32, 0.22), bs)
+        box(B.bm("M_LL_SteelPaint", "SM_Storage"), dp(b, bx, 0.79 + tz, c), (0.246, 0.326, 0.04), bs)     # lid lip
+        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx, 0.835 + tz, c), (0.09, 0.02, 0.012), bs)          # top handle
         for hx in (-0.035, 0.035):
-            box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx + hx, 0.8235, c), (0.012, 0.016, 0.014), bs)
-        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx, 0.77, c - 0.163), (0.03, 0.006, 0.05), bs)        # front hasp
-        box(B.bm("M_LL_Paper", "SM_Storage"), dp(b, bx, 0.71, c - 0.1615), (0.12, 0.003, 0.05), bs)      # stencilled plate
+            box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx + hx, 0.8235 + tz, c), (0.012, 0.016, 0.014), bs)
+        box(B.bm("M_LL_Iron", "SM_Storage"), dp(b, bx, 0.77 + tz, c - 0.163), (0.03, 0.006, 0.05), bs)   # front hasp
+        box(B.bm("M_LL_Paper", "SM_Storage"), dp(b, bx, 0.71 + tz, c - 0.1615), (0.12, 0.003, 0.05), bs) # stencilled plate
     rc0 = dp(b, 0.3, 0.0925, c)                                       # cabin pass: a coil of rope (it was two tori)
     pts = []
     for i in range(3 * 4 * 16 + 1):                                  # 3 layers x 4 turns, laid inward then outward
@@ -1718,6 +1715,7 @@ def build_storage(B):
     build_extinguisher(B)                                           # cabin pass (IMG_3134)
     nb3, nc = face_frame(b, 0, 2.05, back_dist(0.4, 0.0))
     quad_uv(B.bm("M_LL_Atlas"), B.uv(B.bm("M_LL_Atlas")), nc + nb3.col[2] * 0.005, nb3, 0.4, 0.4, atlas_cell_rect(CELLS["notice"]))
+    B.empty("IA_orders", nc + nb3.col[2] * 0.03, (0.2, 0.2, 0.03), nb3)   # G4a: read, it teaches the fuel valve
     cb3, cc = face_frame(100.0, 0.0, 2.2, back_dist(0.4, 0.0))
     cyl(B.bm("M_LL_WoodDark"), cc + cb3.col[2] * 0.02, 0.2, 0.2, 0.04, 32, cb3)
     disc_uv(B.bm("M_LL_Atlas"), B.uv(B.bm("M_LL_Atlas")), cc + cb3.col[2] * 0.042, cb3, 0.18, 40, CELLS["clock"])
@@ -1771,7 +1769,11 @@ def build_console(B):
     label(B, "MOTOR LOAD", on_hood(-0.05, -0.17), hb3, 0.12)
     label(B, "BEARING", on_hood(0.32, -0.19), hb3, 0.12)
     rivets(B, on_hood(-0.78, 0.19), on_hood(0.78, 0.19), 16, hb3)
-    box(B.bm("M_LL_Paper"), on_hood(-0.62, -0.05) + hb3.col[2] * 0.004, (0.16, 0.11, 0.002), hb3)
+    # G4a (item 11): note_046 itself, written, seated on the plate (it was a blank 2 mm box 3 mm off the hood)
+    nw, nh = 0.16, 0.16 * 640 / 900                             # the note's own 900 x 640 proportions
+    box(B.bm("M_LL_Paper"), on_hood(-0.62, -0.05) + hb3.col[2] * 0.0003, (nw, nh, 0.0006), hb3, bevel=0.0)
+    quad_uv(B.bm("M_LL_Note046"), B.uv(B.bm("M_LL_Note046")), on_hood(-0.62, -0.05) + hb3.col[2] * 0.00065, hb3,
+            nw * 0.995, nh * 0.995, (0.0, 0.0, 1.0, 1.0))
     B.empty("IA_note", on_hood(-0.62, -0.05) + hb3.col[2] * 0.03, (0.1, 0.08, 0.04), hb3)
 
     def on_top(x, y):
@@ -2113,11 +2115,15 @@ def build_props(B):
     cyl(B.bm("M_LL_Red", "SM_Props"), bot + Vector((0, 0, 0.205)), 0.013, 0.013, 0.012, 12)
     box(B.bm("M_LL_Paper", "SM_Props"), dp(sb_, -0.56, 1.19, sc + 0.084), (0.05, 0.002, 0.06), sbs)   # label
     # (S) the old vapour-burner kit from before electrification, and a box of spare lamp bulbs
-    vb = dp(sb_, 0.55, 0.613, sc)
+    # G4a (item 10): the burner cut 1 cm into the red toolbox (r 0.06 at 0.55, the box ends at 0.5): now at
+    # 0.58, 2 cm clear, on the board (top 0.6125); its feed tube drops to the board beside it, not onto the lid
+    vb = dp(sb_, 0.58, 0.6125, sc)
     cyl(B.bm("M_LL_Brass", "SM_Props"), vb + Vector((0, 0, 0.06)), 0.05, 0.06, 0.12, 20)
     sphere(B.bm("M_LL_Paper", "SM_Props"), vb + Vector((0, 0, 0.16)), 0.045, 12, 8)               # spare mantle
-    seg_cyl(B.bm("M_LL_Brass", "SM_Props"), vb + Vector((0.0, 0.0, 0.1)), dp(sb_, 0.45, 0.85, sc), 0.008, 8)
-    box(B.bm("M_LL_Paper", "SM_Props"), dp(sb_, 0.02, 1.17, sc - 0.02), (0.16, 0.14, 0.11), sbs)    # bulb box
+    seg_cyl(B.bm("M_LL_Brass", "SM_Props"), dp(sb_, 0.62, 0.70, sc - 0.03), dp(sb_, 0.645, 0.62, sc - 0.1), 0.008, 8)
+    # the bulb box passed 1.5 cm through the log box's wall (inner face 0.079) and floated 2.5 mm: x -0.005
+    # (4 mm clear), sitting on the board (top 1.1125)
+    box(B.bm("M_LL_Paper", "SM_Props"), dp(sb_, -0.005, 1.1675, sc - 0.02), (0.16, 0.14, 0.11), sbs)   # bulb box
     build_coat_rack(B)                                              # cabin pass (IMG_3137)
     # (C) kettle on an electric ring and a mug on the west window sill: the keeper's long night
     kb = -42.0
