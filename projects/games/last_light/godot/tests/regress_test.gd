@@ -2171,6 +2171,27 @@ func _r22_saves_isolated() -> void:
 	var ss: Node = root.get_node("SaveSystem")
 	_check(ss.dir == ss.TEST_DIR, "a test run saves to %s (%s)" % [ss.TEST_DIR, ss.dir])
 	_check(_save_mtimes("user://saves") == _real_saves, "the player's saves are untouched by the run (%d files)" % _real_saves.size())
+	# Stage B: the lighthouse. The base door faces the landing and the visitor's door sound is at it; the tower
+	# has its own lit skin round the watch room; the window sky-spill lights make no specular (the white
+	# discs on the panes that bloomed into "two white lights" from outside)
+	var lh: Node3D = load("res://assets/models/lighthouse.glb").instantiate()
+	root.add_child(lh)
+	var door := lh.find_child("SM_Door_SteelPaint", true, false) as MeshInstance3D
+	var skin := lh.find_child("SM_TowerSkin_TowerPaint", true, false) as MeshInstance3D
+	var dc := (door.global_transform * door.get_aabb()).get_center() if door else Vector3.ZERO
+	var door_b := fposmod(rad_to_deg(atan2(dc.x, -dc.z)), 360.0)
+	var snd: Vector3 = load("res://scripts/audio_director.gd").BASE_DOOR
+	var snd_b := fposmod(rad_to_deg(atan2(snd.x, -snd.z)), 360.0)
+	_check(door != null and absf(door_b - 35.0) < 3.0, "the base door faces the landing (bearing %.1f, want 35)" % door_b)
+	_check(absf(snd_b - door_b) < 3.0 and Vector2(snd.x, snd.z).distance_to(Vector2(dc.x, dc.z)) < 1.5,
+		"the visitor's base-door sound is at the door (%.1f vs %.1f)" % [snd_b, door_b])
+	var sa := (skin.global_transform * skin.get_aabb()) if skin else AABB()
+	_check(skin != null and sa.position.y <= 20.0 and sa.end.y >= 23.2, "the tower's own skin covers the watch room (y %.2f-%.2f)" % [sa.position.y, sa.end.y])
+	lh.queue_free()
+	var spec_ok: bool = not g.station.windows.is_empty()
+	for w in g.station.windows:
+		spec_ok = spec_ok and (w["light"] as Light3D).light_specular == 0.0
+	_check(spec_ok, "the window sky-spill lights make no specular (%d lights)" % g.station.windows.size())
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

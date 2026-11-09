@@ -322,6 +322,25 @@ Plan: `~/.claude/plans/pasted-content-id-ccb6-continue-the-nifty-alpaca.md`. Dan
   - the tower base reads as a dark can on black ground; a stray pale quad lies on the ground; no door on the landing side (it faces south).
 - Suites: regress 324/0 (R22 +2), interaction 159/0, qa_sweep 1924, run_tests 95, g5 48, sim_v2 no gate failures, pytest 23; story 0 failures (one run timed out at 580 s, the rerun passed in 82 s).
 
+**Stage B (the lighthouse; build v054, lighthouse.glb v037, 16k tris, validation 0 FAIL, 17 WARN explained, reimport OK):**
+- **The cream band, fixed at the cause:** `build_lighthouse` now has the tower's own skin round the watch room (`SM_TowerSkin_TowerPaint`, r 3.804–3.834, y 19.95–23.32, open at the three window bays between sill and head), on the exterior layer, so the moon, beam and lightning light it.
+- **The "two white lights", diagnosed with one factor off at a time** (`g6d_b_diag_*`):
+  - bulb emission off: no change (2,742 blown pixels in the window band → 2,741);
+  - room lights off: 2,620;
+  - bloom off: the halo went but a 2,600-pixel core stayed.
+  - The core was the mirror reflection, on each pane (rough 0.04), of the cold sky-spill spotlights just outside the windows (`light_specular` 0.25). Now 0 (a sky spill has no visible source): 217 blown pixels (−92 %). The windows read as warm lit rooms.
+- **The tower:** new grade `M_LL_TowerPaint` (NLB white paint) with tri_pbr weathering (vertical rain streaks round the axis, salt bloom at the foot, rust runs under the gallery; uniforms default off elsewhere). `M_LL_TowerTrim` is the buff porch trim.
+- **The entrance:** `spec.py` door bearing 180 → **35** (facing the landing). `build_entrance`:
+  - a porch with a 15 cm recess, buff jambs, head and plinth;
+  - a panelled painted-steel leaf with three strap hinges, a handle and a lock plate;
+  - a granite step and threshold, an iron canopy on brackets;
+  - a caged bulkhead lamp (`M_LL_DoorLamp`, emissive) with a warm unshadowed omni in `outside.gd`.
+  - `audio_director.BASE_DOOR` and the visitor's jetty path follow the door.
+- **The dome:** checked in the close-up and renders correctly; no change.
+- **regress R22 +4:** the door bearing 35 and the base-door sound at it, the skin covering y 20–23.2, the spill lights' zero specular. One R19 timing check ("Space before the panel's dwell") failed once and passed in two reruns: flaky under load.
+- **Captures:** `renders/last_light/g6d_b2_ext_top_menu.png`, `g6d_b2_ext_door_menu.png`, `g6d_b2_menu_menu.png`.
+- **Still to do:** the island (black, the noise dome), the landing (a grey box), the stray pale quad near the old jetty steps, the beam crossing the menu text (Stages C–E).
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.

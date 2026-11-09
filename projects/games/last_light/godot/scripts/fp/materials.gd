@@ -12,6 +12,10 @@ static var _cache := {}
 const GRADES := {
 	"M_LL_Concrete": ["painted_concrete", {"scale": 0.22, "desat": 1.0, "tint": Color(0.6, 0.57, 0.52), "contrast": 0.5, "brightness": 1.05, "rough_mul": 1.0, "normal_strength": 0.6, "grime_amount": 0.6}],  # Look 1: contrast 1.15 -> 0.5, peeled-paint splotches read as marble
 	"M_LL_ConcreteExt": ["painted_concrete", {"scale": 0.12, "desat": 1.0, "tint": Color(0.6, 0.6, 0.58), "contrast": 0.7, "wetness": 0.5, "normal_strength": 0.8}],
+	# G6d: the NLB tower, white paint over masonry, weathered by a North Atlantic winter (rain streaks, salt
+	# bloom at the foot, rust runs under the gallery); the buff trim of the porch and door surround
+	"M_LL_TowerPaint": ["painted_concrete", {"scale": 0.12, "desat": 1.0, "tint": Color(0.86, 0.85, 0.81), "contrast": 0.45, "wetness": 0.45, "normal_strength": 0.7, "streaks": 0.85, "salt": 0.7, "rust_runs": 0.6}],
+	"M_LL_TowerTrim": ["painted_concrete", {"scale": 0.2, "desat": 0.6, "tint": Color(0.74, 0.6, 0.38), "contrast": 0.6, "wetness": 0.4, "normal_strength": 0.6}],
 	"M_LL_Stone": ["cliff_side", {"scale": 0.25, "desat": 0.85, "tint": Color(0.42, 0.42, 0.43), "wetness": 0.6}],
 	"M_LL_Floor": ["painted_concrete", {"scale": 0.2, "desat": 1.0, "tint": Color(0.36, 0.34, 0.31), "contrast": 0.55, "rough_mul": 0.6, "normal_strength": 0.5}],  # Look 1: contrast 1.3 -> 0.55
 	"M_LL_Wood": ["distressed_painted_planks", {"scale": 1.1, "desat": 0.9, "tint": Color(0.48, 0.3, 0.18), "contrast": 1.6, "brightness": 0.9, "rough_mul": 0.8}],
@@ -143,6 +147,10 @@ static func get_mat(name: String) -> Material:
 		s.metallic = p[2]
 		if name == "M_LL_Brass":
 			s.metallic_specular = 0.6
+		m = s
+	elif name == "M_LL_DoorLamp":              # G6d: the bulkhead lamp over the base door, lit
+		var s := lamp(Color(1.0, 0.76, 0.48))
+		s.emission_energy_multiplier = 1.2
 		m = s
 	elif name == "M_LL_Glass":
 		m = glass()

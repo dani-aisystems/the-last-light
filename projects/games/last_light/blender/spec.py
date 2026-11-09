@@ -54,7 +54,10 @@ SPEC = {
     "tower": {
         "base_z": 3.5, "top_z": 20.0, "radius_base": 4.8, "radius_top": 3.8, "segments": 48,
         "gallery": {"z": 20.0, "radius": 5.0, "thickness": 0.25, "rail_h": 1.05, "posts": 36},
-        "door": {"bearing": 180.0, "width": 1.1, "height": 2.3},
+        # G6d (Daniel 2026-11-09): the base door turned from 180 (south, away from the landing and never seen
+        # from the title) to face the landing (bearing 028, r 18.5); 35 lets the walkway climb the rock in a
+        # gentle curve. Godot: audio_director.BASE_DOOR follows it.
+        "door": {"bearing": 35.0, "width": 1.1, "height": 2.3, "recess": 0.15},
         "stair_windows": [[150.0, 8.0], [-150.0, 12.5], [160.0, 16.0]],   # bearing, z centre
         "exhaust_bearing": -150.0,
     },

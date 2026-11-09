@@ -19,6 +19,7 @@ var beam_pivot: Node3D
 var beam_light: SpotLight3D
 var beam_cone: MeshInstance3D
 var lamp_glow: OmniLight3D
+var door_lamp: OmniLight3D               # G6d: the bulkhead lamp over the base door
 var optic: Node3D
 var rain: GPUParticles3D
 var ship_views := {}
@@ -462,6 +463,18 @@ func _lighthouse() -> void:
 				n.material_override = LLMaterials.glass()
 		if String(n.name) == "PT_optic":
 			optic = n
+	# G6d: the bulkhead lamp over the base door (blender build_entrance: 6.13 m out on bearing 35, 6.18 m
+	# up): a small warm pool on the door, the step and the walkway's last boards. No shadow (cost).
+	door_lamp = OmniLight3D.new()
+	door_lamp.position = Vector3(6.13 * 0.5736, 6.18, -6.13 * 0.8192)
+	door_lamp.light_color = Color(1.0, 0.74, 0.46)
+	door_lamp.omni_range = 7.0
+	door_lamp.omni_attenuation = 1.4
+	door_lamp.light_energy = 1.6
+	door_lamp.light_volumetric_fog_energy = 0.6
+	door_lamp.shadow_enabled = false
+	door_lamp.light_cull_mask = EXTERIOR_ONLY
+	add_child(door_lamp)
 	lamp_glow = OmniLight3D.new()
 	lamp_glow.position = Vector3(0, LANTERN_Y, 0)
 	lamp_glow.light_color = Color(1.0, 0.76, 0.45)

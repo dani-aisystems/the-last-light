@@ -54,6 +54,9 @@ MATS = {
     # name: (base hex, roughness, metallic, extra). Godot swaps most of these for textured PBR by name.
     "M_LL_Concrete": ("#7D7A73", 0.85, 0.0, {}),
     "M_LL_ConcreteExt": ("#8A8780", 0.9, 0.0, {}),
+    "M_LL_TowerPaint": ("#D8D4CA", 0.85, 0.0, {}),   # G6d: NLB white-painted tower (Godot: tri_pbr, streaks, salt)
+    "M_LL_TowerTrim": ("#B8955A", 0.8, 0.0, {}),     # G6d: NLB buff trim (porch, door surround)
+    "M_LL_DoorLamp": ("#F2D9A8", 0.3, 0.0, {}),      # G6d: the bulkhead lamp's glass (Godot: warm emissive)
     "M_LL_Stone": ("#5E5A54", 0.9, 0.0, {}),
     "M_LL_Floor": ("#3E3C38", 0.45, 0.0, {}),
     "M_LL_Wood": ("#4A3020", 0.6, 0.0, {}),
@@ -2615,7 +2618,7 @@ def railing(bm, radius, z0, h, posts):
 
 def build_lighthouse(B):
     T = S["tower"]
-    conc = B.bm("M_LL_ConcreteExt", "SM_Tower")
+    conc = B.bm("M_LL_TowerPaint", "SM_Tower")
     segs = T["segments"]
     cyl(conc, (0, 0, (T["base_z"] + T["top_z"]) / 2), T["radius_base"], T["radius_top"], T["top_z"] - T["base_z"], segs)
     stone = B.bm("M_LL_Stone", "SM_Tower")
@@ -2624,17 +2627,26 @@ def build_lighthouse(B):
     for z in (8.0, 14.0):
         rr = T["radius_base"] + (T["radius_top"] - T["radius_base"]) * (z - T["base_z"]) / (T["top_z"] - T["base_z"])
         cyl(conc, (0, 0, z), rr + 0.08, rr + 0.08, 0.25, segs)
-    D = T["door"]
-    r, o, u = wall_frame(D["bearing"])
     rb = T["radius_base"]
-    porch = o * (rb + 0.5) + u * (T["base_z"] + 1.4)
-    box(conc, porch, (D["width"] + 1.0, 1.4, 2.8), basis(r, o, u))
-    box(B.bm("M_LL_Iron", "SM_Tower"), porch + u * 1.55, (D["width"] + 1.3, 1.6, 0.18), basis(r, o, u))
-    box(B.bm("M_LL_SteelPaint", "SM_Tower"), o * (rb + 1.21) + u * (T["base_z"] + D["height"] / 2), (D["width"], 0.04, D["height"]), basis(r, o, u))
+    build_entrance(B, T, conc, rb)
     for bearing, zc in T["stair_windows"]:
         rr = rb + (T["radius_top"] - rb) * (zc - T["base_z"]) / (T["top_z"] - T["base_z"])
         r2, o2, u2 = wall_frame(bearing)
         box(B.bm("M_LL_Iron", "SM_Tower"), o2 * (rr - 0.05) + u2 * zc, (0.45, 0.3, 0.8), basis(r2, o2, u2))
+    # G6d: the tower's own skin round the watch room. The room's wall (watch_room.glb, interior layer, cream
+    # room paint) was the tower's outside from F to the roof: from the title it read as a cream band lit only
+    # from inside. This thin exterior shell (lighthouse.glb, lit by the moon, beam and lightning) covers it,
+    # open at the three window bays between sill and head.
+    W = R["window"]
+    skin = B.bm("M_LL_TowerPaint", "SM_TowerSkin")
+    N = R["segments"]
+    for i in range(N):
+        b0, b1 = -180 + 360 * i / N, -180 + 360 * (i + 1) / N
+        if in_window((b0 + b1) / 2):
+            ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, -0.05, W["sill"])
+            ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, W["top"], H + 0.22)
+        else:
+            ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, -0.05, H + 0.22)
     for i in range(32):
         a = 2 * math.pi * i / 32
         d = Vector((math.sin(a), math.cos(a), 0))
@@ -2694,6 +2706,67 @@ def build_lighthouse(B):
             bmesh.ops.create_cone(bm, cap_ends=False, segments=16, radius1=0.65, radius2=0.65, depth=0.025, matrix=m4(Vector((0, 0, z))))
     B.part("PT_optic", "M_LL_Lens", (0, 0, L["optic_z"]), Matrix.Identity(3), optic)
     B.empty("LIGHT_lamp", (0, 0, L["optic_z"]), (0.1, 0.1, 0.1), kind="SPHERE")
+
+
+def build_entrance(B, T, paint, rb):
+    """G6d: the base door, facing the landing. A porch in the tower's paint with buff trim; the door sits in
+    a recess with jambs and a lintel; a panelled painted-steel leaf with three strap hinges, a lever handle
+    and a lock plate; a granite step and threshold; the iron canopy above. Bucket SM_Door_* so Godot (and
+    regress R22) can find it."""
+    D = T["door"]
+    r, o, u = wall_frame(D["bearing"])
+    bs = basis(r, o, u)
+    z0 = T["base_z"]
+    w, h, rec = D["width"], D["height"], D["recess"]
+    pw, ph = w + 1.0, 2.8                  # porch width and height
+    back, front = rb - 0.2, rb + 1.2        # porch depth (from the tower axis)
+    face = front - rec                      # the plane the door hangs in
+    trim = B.bm("M_LL_TowerTrim", "SM_Door")
+    # porch body behind the door plane, then the front frame round the recess
+    box(paint, o * ((back + face) / 2) + u * (z0 + ph / 2), (pw, face - back, ph), bs)
+    side = (pw - w) / 2
+    for s_ in (-1, 1):
+        box(paint, o * (face + rec / 2) + r * (s_ * (w / 2 + side / 2)) + u * (z0 + ph / 2), (side, rec, ph), bs)
+    box(paint, o * (face + rec / 2) + u * (z0 + h + (ph - h) / 2), (w, rec, ph - h), bs)
+    # buff surround: jambs and a head moulding proud of the porch face, a plinth band round the porch foot
+    for s_ in (-1, 1):
+        box(trim, o * (front + 0.015) + r * (s_ * (w / 2 + 0.06)) + u * (z0 + h / 2 + 0.05), (0.12, 0.03, h + 0.1), bs)
+    box(trim, o * (front + 0.02) + u * (z0 + h + 0.12), (w + 0.36, 0.04, 0.14), bs)
+    box(trim, o * (front + 0.01) + u * (z0 + 0.15), (pw + 0.02, 0.02, 0.3), bs)
+    for s_ in (-1, 1):
+        box(trim, o * ((back + front) / 2) + r * (s_ * (pw / 2 + 0.01)) + u * (z0 + 0.15), (0.02, front - back, 0.3), bs)
+    # the door leaf: painted steel with two raised panels, set 25 mm into the recess
+    steel = B.bm("M_LL_SteelPaint", "SM_Door")
+    leaf = o * (face + 0.025)
+    box(steel, leaf + u * (z0 + h / 2), (w - 0.04, 0.05, h - 0.03), bs)
+    for zc, ph_ in ((z0 + 0.62, 0.86), (z0 + 1.66, 0.98)):
+        box(steel, leaf + o * 0.03 + u * zc, (w - 0.34, 0.012, ph_), bs)
+    # strap hinges (hinge side = left seen from outside), handle, lock plate
+    iron = B.bm("M_LL_Iron", "SM_Door")
+    for zc in (z0 + 0.25, z0 + h / 2, z0 + h - 0.3):
+        box(iron, leaf + o * 0.032 + r * (-(w / 2) + 0.2) + u * zc, (0.36, 0.008, 0.05), bs)
+        cyl(iron, leaf + o * 0.03 + r * (-(w / 2) + 0.01) + u * zc, 0.018, 0.018, 0.1, 10)
+    hx = r * (w / 2 - 0.13)
+    box(iron, leaf + o * 0.034 + hx + u * (z0 + 1.0), (0.06, 0.01, 0.2), bs)
+    box(iron, leaf + o * 0.06 + hx + r * (-0.05) + u * (z0 + 1.05), (0.14, 0.02, 0.025), bs)
+    # granite step and threshold
+    stone = B.bm("M_LL_Stone", "SM_Door")
+    box(stone, o * (front + 0.3) + u * (z0 - 0.09), (w + 0.7, 0.62, 0.18), bs)
+    box(stone, o * (face + rec / 2 + 0.02) + u * (z0 + 0.015), (w + 0.04, rec + 0.06, 0.03), bs)
+    # a caged bulkhead lamp over the door (Godot: outside.gd hangs a small warm light at DOOR_LAMP)
+    lamp_at = o * (front + 0.13) + u * (z0 + h + 0.38)
+    box(iron, o * (front + 0.03) + u * (z0 + h + 0.38), (0.16, 0.04, 0.22), bs)
+    sphere(B.bm("M_LL_DoorLamp", "SM_DoorLamp"), lamp_at, 0.075, 12, 8)
+    for k in range(4):
+        a = math.pi * k / 4
+        seg_cyl(iron, lamp_at + r * (0.09 * math.cos(a)) + o * (0.09 * math.sin(a)) - u * 0.09,
+                lamp_at + r * (0.09 * math.cos(a)) + o * (0.09 * math.sin(a)) + u * 0.09, 0.006, 4)
+    cyl(iron, lamp_at + u * 0.1, 0.1, 0.07, 0.03, 12)
+    # iron canopy on two brackets
+    box(B.bm("M_LL_Iron", "SM_Tower"), o * ((back + front) / 2 + 0.2) + u * (z0 + ph + 0.15), (pw + 0.3, front - back + 0.4, 0.12), bs)
+    for s_ in (-1, 1):
+        seg_cyl(iron, o * (front - 0.05) + r * (s_ * (w / 2 + 0.25)) + u * (z0 + ph - 0.4),
+                o * (front + 0.15) + r * (s_ * (w / 2 + 0.25)) + u * (z0 + ph + 0.1), 0.02, 6)
 
 
 # ------------------------------------------------------------------ main

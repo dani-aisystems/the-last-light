@@ -323,7 +323,11 @@ func _make_window_lights() -> void:
 		sp.light_size = 0.25
 		sp.light_cull_mask = LAYER_INTERIOR
 		sp.light_volumetric_fog_energy = 0.0
-		sp.light_specular = 0.25       # lightning lit the varnish as white blobs (chair spindles)
+		# lightning lit the varnish as white blobs (chair spindles), so 0.25; G6d: even 0.25 put a sharp white
+		# disc on each pane of window glass (rough 0.04) seen from OUTSIDE, which bloomed into the "two white
+		# lights" of the title shot (diagnosed with --lamp_diag: not the bulbs, not the room lights). A sky
+		# spill has no visible source: no specular at all.
+		sp.light_specular = 0.0
 		sp.light_energy = 0.0
 		sp.visible = false
 		add_child(sp)

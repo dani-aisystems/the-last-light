@@ -276,15 +276,21 @@ func knock(door: Vector3) -> void:
 		_later(i * 1.15, func(): sfx_at("knock", door + Vector3(0, 1.3, 0), 2.0, 4.0))
 
 
+## G6d: the base door faces the landing (blender/spec.py tower.door.bearing 35, the porch front 6.0 m out,
+## Godot north = -Z): the visitor walks up from the pier head to it. regress R22 checks it against the GLB.
+const BASE_DOOR_BEARING := 35.0
+const BASE_DOOR := Vector3(6.0 * 0.5736, 4.0, -6.0 * 0.8192)   # sin / cos 35
+
+
 ## The visitor's approach, placed in space: jetty (north-east below), base door (deep below), stair.
 func footsteps(stage: String, door: Vector3) -> void:
 	match stage:
 		"jetty":
 			var p := Vector3(11.3, 2.0, -21.2)
 			for i in 10:
-				_later(i * 0.62, func(): sfx_at("step_metal_%d" % (i % 4), p.lerp(Vector3(4, 3.5, 4), i / 10.0), -10.0, 8.0))
+				_later(i * 0.62, func(): sfx_at("step_metal_%d" % (i % 4), p.lerp(BASE_DOOR + Vector3(0, -0.5, 0), i / 10.0), -10.0, 8.0))
 		"base_door":
-			sfx_at("door_base", Vector3(0, 4.0, 5.0), 0.0, 10.0)
+			sfx_at("door_base", BASE_DOOR, 0.0, 10.0)
 		"stair":
 			# iron spiral stair: steps climb toward the door over ~12 s, a pause half way
 			for i in 18:
