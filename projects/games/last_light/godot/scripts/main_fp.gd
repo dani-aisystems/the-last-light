@@ -349,29 +349,24 @@ func _open_load() -> void:
 			row.add_child(del)
 
 
+## G6a (item 34): the rolling credits (CreditsRoll). After an ending they follow the closing card on warm
+## black with the credits music, then return to the title; from the menu they roll over it and close.
 func _open_credits(ending := false) -> void:
 	if ending:
 		_clear()
-		menu = CanvasLayer.new()
-		add_child(menu)
-		var bg := ColorRect.new()
-		bg.color = Color(0.01, 0.015, 0.025)
-		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		menu.add_child(bg)
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	var v := _panel("THE LAST LIGHT", 1000, 820)
-	var txt := RichTextLabel.new()
-	txt.bbcode_enabled = true
-	txt.custom_minimum_size = Vector2(900, 640)
-	txt.add_theme_font_override("normal_font", UIStyle.serif())
-	txt.add_theme_font_override("italics_font", UIStyle.serif_italic())
-	UIStyle.track(txt, 21)
-	txt.text = FileAccess.get_file_as_string("res://data/credits.txt")
-	v.add_child(txt)
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	add_child(layer)
 	if ending:
-		var b := UIStyle.button("Return to the title")
-		b.pressed.connect(show_menu)
-		v.add_child(b)
+		menu = layer                       # _clear() (show_menu) frees it
+	var roll := CreditsRoll.new().setup(ending)
+	layer.add_child(roll)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	roll.finished.connect(func():
+		if ending:
+			show_menu()
+		else:
+			layer.queue_free())
 
 
 func _open_options() -> void:

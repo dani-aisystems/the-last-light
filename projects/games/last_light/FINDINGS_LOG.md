@@ -33,7 +33,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 ## Summary table
 | ID | Title | Type | Pri | Cx | Stage / group | Status |
 |---|---|---|---|---|---|---|
-| 1 | Main menu redesign + links | UI/UX | P2 | M | 6 / G6 | Research Needed |
+| 1 | Main menu redesign + links | UI/UX | P2 | M | 6 / G6 | Planned (G6c; links later: `links.json`, strip hidden while empty) |
 | 2 | Plugins and add-ons research | Research | P3 | S | 6 / docs | Implemented (recommendation below) |
 | 3 | Beam circular end cap | Bug (visual) | P1 | S | 4 / G1 | Verified (captures g1_sheet_beam2: soft fade, no end disc; tuned once) |
 | 4 | Pause menu, autosave only, transcript | UI/UX + gameplay | P1 | M | 6 / G2 | Planned |
@@ -66,7 +66,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 | 31 | Power-failure design brainstorm | Research | — | — | P | Recommendation only (not approved) |
 | 32 | Kittiwake progression softlock | Bug (progression) | P0 | S | 2E / G1 | Verified (story_test power-out scenario) |
 | 33 | Menu and loading music | Audio | P2 | S | 5 / G5 | Shortlist ready (`audio/MUSIC_SHORTLIST.md`); awaiting Daniel's pick |
-| 34 | Cinematic ending panels + rolling credits | Presentation | P1 | L | 5 / G6 | Planned |
+| 34 | Cinematic ending panels + rolling credits | Presentation | P1 | L | 5 / G6 | G6a implemented (flow, P3 log pages, rolling credits, corrected credits; story `_ending_sequence`, regress R19); panel art G6b awaits Daniel's images |
 | 35 | Secondary characters and radio encounters | Proposal | — | — | 3D / P | Awaiting approval: `PROPOSAL_35_RADIO_CAST.md` |
 | 36 | Opening tutorial and onboarding | Proposal | — | — | 2E / P | Awaiting approval: `PROPOSAL_36_TUTORIAL.md` |
 | 37 | Journal and historical records | Proposal | — | — | 3D / P | Awaiting approval: `PROPOSAL_37_JOURNAL.md` |
@@ -240,6 +240,21 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 ## G4c record (2026-11-09; approved by Daniel)
 
 Photograph on a nail and wire, leaning 2° (2 / 14 mm gap); M_LL_Photo roughness 0.7 + seeded cockle normal; SM_PhotoGlass gets `LLMaterials.photo_glass()` (clear, smudge roughness mask); sill mug = the desk mug's `enamel_mug()` with dregs; binocular eyepiece glass; extinguisher label 135° × 12.5 cm; crate plank seams; rope turn jitter; Grant's label wrapped. Build v051, room 127,378 tris. **Evidence:** `renders/last_light/g4c_*`. **Open:** the 2× photo re-render (about 40 min of Cycles, only helps zoom in the viewer); item 17's full per-prop wear / bevel / dimension pass.
+
+## G6a record (2026-11-09; awaiting Daniel's checkpoint)
+
+| Part | What changed |
+|---|---|
+| Sequence | `scripts/story/ending_sequence.gd`: after the fade to warm black, four panels (`StoryDirector.ending_panels()`: P1 wheel, P2 Gut / ledge, P3 log page by truth and confession, P4 by ending, Nothing to Report split on the reunion), crossfading; the ending's conditional lines read beside P4; then the closing card (title, the two unconditional lines). Space or a click moves on only after each dwell (`data/ending/panels.json`); **E no longer advances the ending** (item 7). A missing image shows a labelled stand-in plate |
+| Director | `collect_lines_split` (body = up to the last conditional line, closing = the rest; nothing added or dropped); `ending_panels()` is empty until the ending card sets the `ending` flag; `ENDING_HOLD_S` 240 → 600 s |
+| Game | J, H and every other gameplay key are ignored during the ending (pause still works); sim chatter is logged, never shown, and held chatter is dropped |
+| P3 | `blender/ending_pages.py`: the log_strips page with tonight's five canon rows plus the 06.30 entry read from `ch6_final_log` (three variants), cropped to the written part, seeded |
+| Grade | `shaders/panel_grade.gdshader` (palette map, ink edge, shadow halftone, grain, vignette; `strength` per panel, `--ending_grade=` override for captures) |
+| Credits | `scripts/ui/credits_roll.gd`: rolls up on warm black, Space faster, Esc to the end, "Return to the title" / "Back"; after an ending the `music_menu` pad on the Music bus fades in and out. `data/credits.txt`: "A game by Daniel Yanchev", the AI line cut, Human Base Meshes added, the 12 Poly Haven sets the build uses, the macOS-fonts line made factual |
+| Captures | `--ending_step=p1 / p2 / p3 / p4 / card / full` on the existing `ending_<id>` states (presenter-side; `capture_fp.gd` untouched) |
+| Tests | story `_ending_sequence` (6 cases) + per-campaign panel and line checks; regress R19 (19 checks); pytest `test_last_light_ending.py` (entries match ch6.dlg, PNGs match the renderer) |
+
+**Suites:** story 0 failures; regress 275/0; interaction 159/0 (12 warnings); qa_sweep 1,924; sim_v2 no gate failures; run_tests 95; g5 48; pytest 23.
 
 ## Dependency map
 **Ordering constraints:**
@@ -816,7 +831,7 @@ Photograph on a nail and wire, leaning 2° (2 / 14 mm gap); M_LL_Photo roughness
   2. the *Iona Star* outcome (through the Gut, or upright on the sand ledge: variant by `saved`);
   3. the log page in Callum's hand (correction, or "Light exhibited throughout": variant by `told_truth`);
   4. one ending-specific panel taken from the existing epilogue lines: the inquiry with Morag's notebook (Correction), Ross in a chair with Elspeth's hand (Heard Together), the black boat leaving on the morning tide or the Stornoway pier (Nothing to Report), or the second inquiry (Light Exhibited).
-- **Visuals:** Blender renders of the existing scene, ships and CC0 base-mesh figures, graded to a consistent illustrated-print style (ink and halftone grade, the period palette). **No AI-generated images.** The text is the existing epilogue lines, unchanged.
+- **Visuals (revised by Daniel 2026-11-09, DECISIONS Q11):** P1, P2 and P4 are images Daniel supplies (the one exception to the no-AI-images rule); P3 is the log page rendered by `blender/ending_pages.py` in Callum's hand. All go through one shared shader grade (`shaders/panel_grade.gdshader`: period palette, light ink and halftone, per panel in `data/ending/panels.json`). The text is the existing epilogue lines, unchanged.
 - **Flow:**
   - after the existing final beat: panel 1 fades in;
   - its lines reveal beside it; Space advances only after the dwell;

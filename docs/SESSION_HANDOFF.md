@@ -76,6 +76,25 @@
 - **Next: G4c** (item 15 photograph realism, item 17 prop audit, item 10 per-object shelf detail).
 - **G4c done; approved by Daniel 2026-11-09 and committed locally** (FINDINGS_LOG "G4c record"). **G4 is complete.**
 - **Next: G6** (items 1 menu external links, 22 radio character profiles, 34): item 1 needs Daniel's links; 22 is paused until Daniel's portrait images (and the "no AI images" check on how they were made); 34 can start. Inspect first, then ask Daniel.
+- **G6 decisions (Daniel, 2026-11-09; DECISIONS Q11, Q12):**
+  - staged **G6a** (34 flow + rolling credits, stand-in panels), **G6c** (item 1 menu redesign; the link strip reads `godot/data/links.json`, hidden until Daniel sends the links), **G6b** (34 panel art when Daniel's images arrive);
+  - the P1/P2/P4 ending images come from Daniel (AI-built): the one exception to the no-AI rule; the credits drop the "no AI-generated images or voices" line and say nothing about AI; item 22 still gets the how-were-they-made check;
+  - one light shared shader grade; credits music = the synth `music_menu` pad until item 33; "A game by Daniel Yanchev"; a factual macOS-fonts credit line, with the OFL re-render as its own ROADMAP task.
+  - Plan: `~/.claude/plans/pasted-content-id-5833-continue-the-quirky-chipmunk.md`.
+- **Item 22 radio portraits (portrait session, 2026-11-09): built, tests green, NOT yet seen in game and NOT committed.**
+  - Daniel's ChatGPT prints are allowed for the radio card (DECISIONS Q13). The Blender bust probe is shelved.
+  - Pipeline: `tools/py projects/games/last_light/blender/portraits_prepare.py` crops `character-refs/<id>/` sources (explicit `SOURCES` map) to 512x640 prints in `godot/assets/portraits/<id>_<expr>.png`.
+  - `Speakers.portrait(id, expr)` tries `<id>_<expr>`, then `<id>_neutral`, then "" (the line drawing stays for Corrie May, Lowestoft Star and the Mary Ellen caller; VISITOR gets none).
+  - `dialogue_ui`: card 152x190 with a 136x170 print in a paper border, a dark plate under the signal meter, and `expr` carried through `_resolved`.
+  - 20 `.dlg` lines are tagged (Morag worried, Rory scared, Elspeth cold, Hector sorry, Callum guarded).
+  - Still to make: Callum grief, Morag hurt, Rory grin, Elspeth moved, Hector warm.
+  - Tests: new `tests/portrait_test.gd` (48 pass). On HEAD plus only these files: regress 256/0, story, run_tests 95, sim_v2 (5 seeds) and pytest all pass. The main tree's regress currently fails 19 checks (GameState compile error) from the parallel G6 session's uncommitted work, not from this change.
+  - Files: `speakers.gd`, `dialogue_ui.gd`, ch1–ch5 `.dlg`, `portrait_test.gd`, `portraits_prepare.py`, `assets/portraits/`.
+- **G6a implemented, uncommitted, awaiting Daniel's checkpoint** (FINDINGS_LOG "G6a record"). Baseline at `55c0689` re-verified first (all as handed over). After G6a: story 0, regress 275/0, interaction 159/0, qa_sweep 1,924, sim_v2 no gate failures, run_tests 95, g5 48, pytest 23.
+  - **Captures not taken yet** (need Daniel's OK for one batched silent `tools/godot_bg` run): `ending_<id>` with `--ending_step=p1/p2/p3/p4/card`, `--ending_grade=0`, plus the credits.
+  - **Gotchas:** `class_name` scripts can't name the `GameState` autoload under `-s` (use `EndingSequence.user_arg`); E no longer advances the ending card (regress R10 now presses Space).
+  - `capture_fp.gd`'s gameplay-film hunk and `film_fp.gd` belong to another session: never staged.
+  - **G6a captures taken with Daniel's OK** (`renders/last_light/g6a_*`, sheet `g6a_sheet.png`); credits reflowed afterwards (line widths measured, not re-shot).
 - **G3a plan, for reference:**
   1. `pipeline.sh`: `documents.py` becomes opt-in (`--docs`), so asset runs stop churning the doc PNGs.
   2. `build.py`: the compass and binoculars get their own mesh buckets (`PROP_compass`, `PROP_binoculars`) plus `IA_compass` / `IA_binoculars`; then run the pipeline (validate, reimport).

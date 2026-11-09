@@ -85,8 +85,8 @@ A first-person narrative lighthouse-keeper game: **Godot 4.7.2** (`tools/godot`)
   - `tools/py -m pytest -q`
 - **Visual QA:** `tools/godot_bg --path projects/games/last_light/godot -- --capture=NAME --shots=menu,60@fp_desk,120@focus_radio --bot=expert`. View the PNGs in `renders/last_light/` with Read.
 - **Rules agreed with Daniel:**
-  - no AI-generated images or voices; dialogue is text plus synthesised radio sound;
-  - portraits are Blender busts from the CC0 Human Base Meshes;
+  - no AI-generated images or voices; dialogue is text plus synthesised radio sound (one exception: the item 34 ending panels Daniel supplies, DECISIONS Q11);
+  - radio portraits are Daniel's ChatGPT images, a second exception (DECISIONS Q13): `blender/portraits_prepare.py` turns `character-refs/<id>/` into `godot/assets/portraits/<id>_<expr>.png`;
   - CC0 downloads only with his OK;
   - local milestone commits OK, **never push**;
   - ask before deleting legacy code or large assets.

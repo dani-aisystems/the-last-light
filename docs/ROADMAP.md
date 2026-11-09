@@ -84,7 +84,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ✅ G3a `31afb9a`, G3b `63e965d`, G3c (2026-11-08); 19 dropped (no pipe) |
 | G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ✅ G4a `44f1db1`, G4b `d50fec1`, G4c (2026-11-09); item 17 full wear pass open |
 | G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented and committed locally (`0b3e750`, all suites green); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
-| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | ⬜ (1 needs Daniel's links; 22 paused until Daniel's portrait images; 34 can start) |
+| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | 🟡 staged (Daniel 2026-11-09): **G6a** 34 flow + rolling credits, implemented, all suites green, checkpoint pending; **G6c** item 1 menu redesign (links later, `links.json`); **G6b** 34 panel art when Daniel's images arrive; 22 paused. Record: FINDINGS_LOG "G6a record" |
 
 **Daniel's decisions (2026-11-06):**
 - Docs first, then G1 to G6.
@@ -92,9 +92,11 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 - Item 12: the floor rose stays; the chart compass is the pickup.
 - Audio: SFX synthesised; music from a CC0 shortlist.
 
+**New task (G6, Daniel 2026-11-09):** re-render the in-game documents, dial labels and log strips with OFL fonts (`documents.py`, `textures.py`, `log_strips.py`, `ending_pages.py` use macOS system fonts today: Bradley Hand, Snell Roundhand, Noteworthy, American Typewriter, Georgia, DIN Condensed, Apple Chancery, Chalkboard). It retunes Callum's hand (G4a F15), so it is its own stage; the credits line changes with it.
+
 **Decisions still open:**
 - D8 (how the dark opening fits the 41 % lines);
-- the links for item 1;
+- the links for item 1 (the strip is built to stay hidden until they arrive);
 - the character profiles (22, 3C);
 - proposals 35–37;
 - item 31.

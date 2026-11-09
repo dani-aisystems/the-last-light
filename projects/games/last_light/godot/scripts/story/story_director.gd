@@ -51,7 +51,7 @@ const ENDINGS := {
 const HOLD_SAFETY_S := 8.0             # a lost tween can never strand the story
 const POWER_HINT_S := [8.0, 45.0]      # item 32: first and repeat delay of the "no power" hint
 const DAYTANK_CONV := "sys_daytank"    # item 32: Callum's line when the day tank is pumped up once
-const ENDING_HOLD_S := 240.0           # the ending card is read at the player's pace
+const ENDING_HOLD_S := 600.0           # the ending card is read at the player's pace (G6a: four panels, then the card)
 
 var sim: KeeperSim
 var state := StoryState.new()
@@ -86,6 +86,10 @@ var _hold_limit := HOLD_SAFETY_S
 var _pending_chapter := 0
 var _optional_running := ""            # id of the optional radio call in progress ("" = none)
 var ending_lines: Array = []           # the epilogue as shown on the ending card (also kept for tests)
+## G6a (item 34): the same lines split for the panel sequence. `body` are the conditional lines (they read
+## beside the ending's own panel), `closing` the unconditional tail (place, date, "The light was kept.").
+var ending_body: Array = []
+var ending_closing: Array = []
 # Brief item 32 (Kittiwake softlock, 2026-11-06): a radio conversation never plays on a dead set. It waits
 # here, the story holds, and a hint says what to fix; it starts the moment the radio has power again.
 var _radio_wait := ""                  # id of the radio conversation waiting for power ("" = none)
@@ -706,7 +710,10 @@ func compute_ending() -> String:
 ## story holds until the card has been read; headless it only records them.
 func _ending_card(conv_id: String) -> void:
 	ending_id = compute_ending()
-	ending_lines = collect_lines(conv_id)
+	var split := collect_lines_split(conv_id)
+	ending_body = split["body"]
+	ending_closing = split["closing"]
+	ending_lines = ending_body + ending_closing
 	for t in ending_lines:
 		state.history.append({"speaker": "", "name": "", "text": t, "mode": "thought", "look": "thought",
 			"chapter": state.chapter, "conv": conv_id, "clock": sim.clock_text() if sim else ""})
@@ -719,23 +726,56 @@ func _ending_card(conv_id: String) -> void:
 
 ## The visible lines of a conversation for the current state, in order (choices are not expected).
 func collect_lines(conv_id: String) -> Array:
+	var split := collect_lines_split(conv_id)
+	return split["body"] + split["closing"]
+
+
+## G6a: the visible lines, split into `body` (every line up to the last conditional one) and `closing`
+## (the unconditional lines after it). For ch6_epilogue that is the ending's own lines, then the place and
+## date and "The light was kept.". Nothing is added, dropped or reordered: body + closing == the lines.
+func collect_lines_split(conv_id: String) -> Dictionary:
 	var out: Array = []
+	var cond: Array = []
 	var r := DialogueRunner.new(db, state)
 	var hist := state.history.size()
 	if not r.start(conv_id):
-		return out
+		return {"body": [], "closing": []}
 	var item := r.advance()
 	var guard := 0
 	while item["type"] != "end" and guard < 500:
 		guard += 1
 		if item["type"] == "line":
 			out.append(String(item["text"]))
+			var steps: Array = r.conv.get("steps", [])
+			cond.append(r.ip >= 1 and r.ip <= steps.size() and String(steps[r.ip - 1].get("if", "")) != "")
 		elif item["type"] == "choice":
 			item = r.choose(0)
 			continue
 		item = r.advance()
 	state.history.resize(hist)             # the runner logged them; the card adds them itself
-	return out
+	var cut := out.size()
+	while cut > 0 and not cond[cut - 1]:
+		cut -= 1
+	return {"body": out.slice(0, cut), "closing": out.slice(cut)}
+
+
+## G6a (item 34): the four panels of this campaign's ending sequence, in order. Empty until the ending card
+## has fixed the ending (the `ending` flag), so the sequence can never start before the campaign ends.
+##   P1 two men to one wheel · P2 the Iona Star (through the Gut / on the sand ledge) · P3 the log page in
+##   Callum's hand (the correction, with or without the confession to Ross / "Light exhibited throughout")
+##   · P4 the ending's own panel (Nothing to Report splits on the Stornoway pier reunion).
+func ending_panels() -> Array:
+	if not state.has_flag("ending"):
+		return []
+	var eid := String(state.flags["ending"])
+	var truth := state.has_flag("told_truth")
+	var p3 := ("p3_correction_ross" if state.has_flag("confessed_to_ross") else "p3_correction") if truth else "p3_exhibited"
+	var p4: String = {"correction": "p4_correction", "heard_together": "p4_heard_together",
+		"nothing_to_report": "p4_nothing_pier" if state.has_flag("reunion") else "p4_nothing_tide",
+		"light_exhibited": "p4_light_exhibited"}.get(eid, "")
+	if p4 == "":
+		return []
+	return ["p1_wheel", "p2_gut" if state.saved("Iona Star") else "p2_ledge", p3, p4]
 
 
 func _route_sim(events: Array) -> void:

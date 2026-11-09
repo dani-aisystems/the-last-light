@@ -71,6 +71,7 @@ func _run() -> void:
 		_opening_duties()
 		_orders_teach_valve()
 		_duty_escalation()
+	_ending_sequence()
 	_station_log_canon()
 	await _save_roundtrip()
 	_save_files()
@@ -632,6 +633,7 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 			fails.append("campaign %s: the station log was written %s, expected %s" % [label, dir.state.log_written, all_rows])
 		if dir.ending_lines.size() < 3 or String(ended[1].get("title", "")) == "":
 			fails.append("campaign %s: ending card '%s' has no title or too few lines %s" % [label, eid, dir.ending_lines])
+		_check_ending_panels(dir, label)
 		if sc.has("expect") and eid != sc["expect"]:
 			fails.append("campaign %s reached '%s', expected '%s'" % [label, eid, sc["expect"]])
 		if eid == "nothing_to_report" and dir.state.has_flag("reunion"):
@@ -650,6 +652,70 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 		ended[1].get("ending", "?"), int(guard), rounded, dir.state.rescues])
 	if ended[0]:
 		print("  CARD %s: %s" % [ended[1].get("title", ""), " | ".join(dir.ending_lines)])
+	dir.queue_free()
+
+
+## G6a (item 34): what a finished campaign hands the ending sequence. Four panels that match how it ended
+## (P2 by the Iona Star, P3 by the truth and the confession, P4 by the ending and the reunion), and every
+## epilogue line exactly once: the ending's own lines beside P4, then the two closing lines on the card.
+func _check_ending_panels(dir: StoryDirector, label: String) -> void:
+	var st: StoryState = dir.state
+	var want := ["p1_wheel", "p2_gut" if st.saved("Iona Star") else "p2_ledge",
+		("p3_correction_ross" if st.has_flag("confessed_to_ross") else "p3_correction") if st.has_flag("told_truth") else "p3_exhibited",
+		{"correction": "p4_correction", "heard_together": "p4_heard_together",
+		"nothing_to_report": "p4_nothing_pier" if st.has_flag("reunion") else "p4_nothing_tide",
+		"light_exhibited": "p4_light_exhibited"}[dir.ending_id]]
+	var got := dir.ending_panels()
+	if got != want:
+		fails.append("campaign %s: ending panels %s, expected %s" % [label, got, want])
+	if dir.ending_body + dir.ending_closing != dir.ending_lines:
+		fails.append("campaign %s: the panel lines and the card lines are not the epilogue in order" % label)
+	if dir.ending_closing != ["North Point Light. Fifteenth of November, nineteen seventy-one.", "The light was kept."]:
+		fails.append("campaign %s: the closing card lines are %s" % [label, dir.ending_closing])
+	if dir.ending_body.is_empty():
+		fails.append("campaign %s: no lines beside the ending's panel" % label)
+	var seen := {}
+	for t in dir.ending_lines:
+		if seen.has(t):
+			fails.append("campaign %s: the epilogue line '%s' appears twice" % [label, t])
+		seen[t] = true
+
+
+## G6a (item 34): the panel list for every ending and variant, set directly on a director's state, and no
+## panels at all before the ending card has fixed the ending (the sequence can't start early).
+func _ending_sequence() -> void:
+	var o := _duty_rig(600.0)
+	var dir: StoryDirector = o[1]
+	var st: StoryState = dir.state
+	if not dir.ending_panels().is_empty():
+		fails.append("G6a: ending panels before the ending card: %s" % [dir.ending_panels()])
+	var cases := [
+		[{"told_truth": 1, "confessed_to_ross": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction_ross", "p4_correction"]],
+		[{"told_truth": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction", "p4_correction"]],
+		[{"told_truth": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_correction", "p4_heard_together"]],
+		[{"kept_lie": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_tide"]],
+		[{"kept_lie": 1, "reunion": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_pier"]],
+		[{"kept_lie": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_exhibited", "p4_light_exhibited"]],
+	]
+	for c in cases:
+		st.flags = c[0].duplicate()
+		st.rescues = {"Iona Star": c[1]}
+		if not dir.ending_panels().is_empty():
+			fails.append("G6a: panels before the ending card with %s" % [c[0]])
+		dir._ending_card("ch6_epilogue")
+		if dir.ending_panels() != c[2]:
+			fails.append("G6a: %s / %s gave panels %s, expected %s" % [c[0], c[1], dir.ending_panels(), c[2]])
+		if dir.ending_body + dir.ending_closing != dir.collect_lines("ch6_epilogue") or dir.ending_closing.size() != 2:
+			fails.append("G6a: %s / %s split the epilogue wrongly (%d + %d)" % [c[0], c[1], dir.ending_body.size(), dir.ending_closing.size()])
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/ending/panels.json"))
+	for c in cases:
+		for id in c[2]:
+			if not data["panels"].has(id):
+				fails.append("G6a: panels.json has no entry for %s" % id)
+	for id in ["p3_correction_ross", "p3_correction", "p3_exhibited"]:
+		if not ResourceLoader.exists("res://assets/ending/%s.png" % id):
+			fails.append("G6a: the log page panel %s is missing (blender/ending_pages.py)" % id)
+	print("G6A ending sequence: %d cases" % cases.size())
 	dir.queue_free()
 
 

@@ -1131,7 +1131,7 @@ func _r10_narrative_mechanics() -> void:
 		t += 1
 	_check(not d.is_held() and g.presenter.fade.color.a < 0.05, "the hold is released when the fade has lifted (%d frames)" % t)
 	dlg.close()
-	# --- d) the ending card: title, the lines one by one, input moves it on, then it releases the story
+	# --- d) the ending card: title, the lines one by one, Space moves it on (G6a: never E), then it releases
 	var lines := ["The Board opened a new inquiry in the spring.", "North Point Light. Fifteenth of November, nineteen seventy-one.", "The light was kept."]
 	var done := [false]
 	g.presenter.show_ending("correction", "Correction", lines)
@@ -1141,7 +1141,7 @@ func _r10_narrative_mechanics() -> void:
 	t = 0
 	while g.presenter.is_ending_open() and t < 2400:
 		if t > 30 and t % 25 == 0:
-			_key(KEY_E)
+			_key(KEY_SPACE)
 		await process_frame
 		t += 1
 	_check(not g.presenter.is_ending_open() and g.presenter.ending_box.get_child_count() == lines.size(),
@@ -1383,6 +1383,7 @@ func _r12_brief_g2() -> void:
 	await _r16_hands()
 	await _r17_body()
 	await _r18_cabin_g4a()
+	await _r19_ending_g6a()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1801,6 +1802,122 @@ func _r18_cabin_g4a() -> void:
 	for mi in st.room.find_children("*Note046*", "MeshInstance3D", true, false):
 		note_tex = true
 	_check(note_tex, "the console note carries the written note_046 texture")
+
+
+## G6a R19 (item 34): the ending sequence and the rolling credits. No panels before the ending card; the
+## four panels of a truth + saved + confessed campaign in order, then the ending's lines beside P4 and the
+## closing card; Space before a panel's dwell is ignored, after it moves on; E, 1-4, F / G / B, J, L and H
+## do nothing; sim radio chatter is logged but never shown; the credits roll on warm black with the music
+## on the Music bus, Esc jumps to the end, and its button finishes.
+func _wait_until(cond: Callable, max_frames: int) -> int:
+	var t := 0
+	while not cond.call() and t < max_frames:
+		await process_frame
+		t += 1
+	return t
+
+
+func _r19_ending_g6a() -> void:
+	print("R19 G6a ending sequence and credits")
+	var pr = g.presenter
+	var dir: StoryDirector = g.director
+	var st: StoryState = dir.state
+	var keep_flags: Dictionary = st.flags.duplicate(true)
+	var keep_rescues: Dictionary = st.rescues.duplicate(true)
+	var keep_hist := st.history.size()
+	if dlg.is_active():
+		dlg.close()
+	st.flags["told_truth"] = 1
+	st.flags["confessed_to_ross"] = 1
+	st.rescues["Iona Star"] = "saved"
+	_check(dir.ending_panels().is_empty(), "no ending panels before the ending card")
+	dir._ending_card("ch6_epilogue")
+	var want := ["p1_wheel", "p2_gut", "p3_correction_ross", "p4_correction"]
+	_check(dir.ending_panels() == want, "a truth + saved + confessed campaign gets %s (%s)" % [want, dir.ending_panels()])
+	await _wait_until(func(): return pr.ending_seq.current_id == "p1_wheel", 900)
+	var seq: EndingSequence = pr.ending_seq
+	_check(pr.is_ending_open() and seq.playing and seq.current_id == "p1_wheel", "the first panel follows the fade to warm black")
+	_check(not seq.has_image("p1_wheel") and seq._slot.get_meta("standin", false), "p1 (art pending) shows its stand-in plate")
+	# the gameplay keys do nothing during the sequence
+	var held0: String = g.player.equipment.held if g.player.equipment else ""
+	for k in [KEY_E, KEY_1, KEY_2, KEY_4, KEY_F, KEY_G, KEY_B, KEY_J, KEY_L, KEY_H]:
+		_key(k)
+		await _frames(2)
+	_check(seq.current_id == "p1_wheel" and seq.early_presses == 0, "E, 1-4, F, G, B, J, L, H never move the ending on")
+	_check((g.player.equipment.held if g.player.equipment else "") == held0 and not g.ui.logbook.visible
+		and not (g.backlog and g.backlog.visible) and not pr.is_document_open(), "... and open nothing (held '%s')" % held0)
+	# sim chatter during the ending: logged, not shown
+	g.sim.main_breaker = true
+	g.sim.battery = 80.0
+	var subs0: int = g.ui._sub_items.size()
+	var hist0 := st.history.size()
+	g._comms_radio("Kittiwake", "R19 test chatter", false, "position", null)
+	await _frames(3)
+	_check(g.ui._sub_items.size() == subs0 and st.history.size() == hist0 + 1 and g._comms_queue.is_empty(),
+		"sim radio chatter is logged but never shown over the ending (%d -> %d subtitles)" % [subs0, g.ui._sub_items.size()])
+	# the dwell: Space at once is ignored; after the dwell it moves on
+	await _wait_until(func(): return seq._slot.modulate.a >= 0.99, 300)
+	_key(KEY_SPACE)
+	await _frames(3)
+	_check(seq.current_id == "p1_wheel" and seq.early_presses == 1, "Space before the panel's dwell is ignored (%d)" % seq.early_presses)
+	await create_timer(float(seq.panel_info("p1_wheel")["dwell"]) + 0.2).timeout
+	_key(KEY_SPACE)
+	await _frames(4)
+	_check(seq.current_id == "p2_gut", "Space after the dwell moves on to the Iona Star panel (%s)" % seq.current_id)
+	# P3 is the real log page (blender/ending_pages.py), graded
+	await _wait_until(func(): return seq.current_id == "p3_correction_ross", 1800)
+	_check(seq.has_image("p3_correction_ross") and seq._slot is TextureRect and seq._slot.material is ShaderMaterial,
+		"P3 is the rendered log page through the panel grade")
+	# the rest plays by itself (Space every 0.5 s after the dwells), then the closing card, then the release
+	var t := 0
+	while pr.is_ending_open() and t < 7200:
+		if t % 30 == 0:
+			_key(KEY_SPACE)
+		await process_frame
+		t += 1
+	_check(not pr.is_ending_open(), "the sequence and the closing card finish and release the story (%d frames)" % t)
+	_check(seq.shown == want, "every panel was shown, in order (%s)" % [seq.shown])
+	_check(seq.lines_shown == dir.ending_body.size() and dir.ending_body.size() > 0, "the ending's lines read beside P4 (%d)" % seq.lines_shown)
+	var card_n := 0
+	for c in pr.ending_box.get_children():
+		if not c.is_queued_for_deletion():
+			card_n += 1
+	_check(card_n == dir.ending_closing.size() and pr.ending_title.text.begins_with("C O R R E C T I O N"),
+		"the closing card shows the title and the %d closing lines (%d)" % [dir.ending_closing.size(), card_n])
+	pr.hide_ending()
+	# the rolling credits
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	root.add_child(layer)
+	var roll := CreditsRoll.new().setup(true)
+	layer.add_child(roll)
+	await _frames(3)
+	_check(roll.music != null and roll.music.bus == "Music" and roll.music.playing, "the credits music plays on the Music bus")
+	_check(roll.text.text.contains("Daniel Yanchev") and roll.text.text.contains("Human Base Meshes")
+		and not roll.text.text.contains("AI-generated") and not roll.text.text.contains("Stage 3C"), "the credits text is the corrected one")
+	var s0 := roll.scroll
+	await create_timer(0.5).timeout
+	_check(roll.scroll > s0 + 5.0 and not roll.at_end, "the credits roll up by themselves (%.0f -> %.0f px)" % [s0, roll.scroll])
+	var esc := InputEventAction.new()
+	esc.action = "pause"
+	esc.pressed = true
+	roll._unhandled_input(esc)
+	await _frames(2)
+	_check(roll.at_end and roll.end_button.visible and roll.end_button.text == "Return to the title", "Esc jumps to the end: 'Return to the title'")
+	var fin := [false]
+	roll.finished.connect(func(): fin[0] = true)
+	roll.end_button.pressed.emit()
+	await create_timer(1.8).timeout
+	_check(fin[0], "its button finishes the credits (main_fp returns to the title)")
+	layer.queue_free()
+	st.flags = keep_flags
+	st.rescues = keep_rescues
+	st.history.resize(keep_hist)
+	dir.ending_id = ""
+	dir.ending_lines = []
+	dir.ending_body = []
+	dir.ending_closing = []
+	g.player.enabled = true
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

@@ -41,7 +41,12 @@ var ending_root: Control
 var ending_bg: ColorRect
 var ending_title: Label
 var ending_box: VBoxContainer
+var ending_seq: EndingSequence             # G6a (item 34): the four panels before the closing card
 var _ending_open := false
+var _end_dwell := 0.0
+var _static_n := 0                         # captures: shots taken so far with --ending_steps
+var _cap_roll: CreditsRoll                 # captures: a frozen credits roll (step credits@PX)
+var _end_total := 0.0
 var _end_wait := 0.0
 var _end_skip := false
 var _end_guard := 0
@@ -432,6 +437,8 @@ func _build_ending() -> void:
 	ending_bg.color = Color(0.035, 0.026, 0.02, 0.0)          # warm black
 	ending_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ending_root.add_child(ending_bg)
+	ending_seq = EndingSequence.new()
+	ending_root.add_child(ending_seq)
 	var col := VBoxContainer.new()
 	col.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 	col.offset_left = -560
@@ -463,9 +470,11 @@ func is_ending_open() -> bool:
 	return _ending_open
 
 
-## The ending card (§15.5): a slow fade from the dawn view to warm black, the title in spaced capitals,
-## then each epilogue line in italic serif, one at a time (input or about four seconds each). The last two
-## lines (the place and date, and "The light was kept.") are set apart. Releases the story at the end.
+## The ending (§15.5, G6a item 34): a slow fade from the dawn view to warm black, then the four panels of
+## this campaign (EndingSequence; the ending's own lines read beside the fourth), then the closing card:
+## the title in spaced capitals and the closing lines (place and date, "The light was kept."), one at a
+## time. Space or a click moves on, never before the dwell; E and every other key do nothing. Releases the
+## story at the end. Without panels (the ending flag not set, e.g. a test card) every line is on the card.
 func show_ending(_id: String, title: String, lines: Array) -> void:
 	_ending_open = true
 	for c in ending_box.get_children():
@@ -477,40 +486,97 @@ func show_ending(_id: String, title: String, lines: Array) -> void:
 	var tw := create_tween()
 	tw.tween_property(ending_bg, "color:a", 1.0, 2.4)
 	await tw.finished
+	var panels: Array = director.ending_panels() if director else []
+	var card_lines: Array = lines
+	if not panels.is_empty():
+		var split := _split_ending(lines)
+		await ending_seq.play(panels, split[0])
+		card_lines = split[1]
 	tw = create_tween()
 	tw.tween_property(ending_title, "modulate:a", 1.0, 1.4)
 	await tw.finished
-	await _ending_pause(1.2)
-	for i in lines.size():
-		var l := _ending_line(lines, i)
+	await _ending_pause(1.2, 0.6)
+	var tail := maxi(0, card_lines.size() - 2)
+	for i in card_lines.size():
+		var l := _ending_line(card_lines, i, tail)
 		l.modulate.a = 0.0
 		ending_box.add_child(l)
 		var t2 := create_tween()
-		t2.tween_property(l, "modulate:a", 1.0 if i < lines.size() - 2 else 0.9, 1.0)
-		await _ending_pause(maxf(4.0, String(lines[i]).length() * 0.05))
-	await _ending_pause(2.5)
+		t2.tween_property(l, "modulate:a", 1.0 if i < tail else 0.9, 1.0)
+		await _ending_pause(maxf(4.0, String(card_lines[i]).length() * 0.05), 1.5)
+	await _ending_pause(2.5, 1.0)
 	_ending_open = false
 	_release()
 
 
-## Captures (3B): the card as it looks once every line is up, no animation.
+## [body, closing]: the director's split when these are its lines, otherwise the last two are the closing.
+func _split_ending(lines: Array) -> Array:
+	if director and director.ending_lines == lines and not director.ending_closing.is_empty():
+		return [director.ending_body, director.ending_closing]
+	var n := maxi(0, lines.size() - 2)
+	return [lines.slice(0, n), lines.slice(n)]
+
+
+## Captures: the ending as it looks once settled, no animation. `--ending_step=` picks the moment:
+## p1 / p2 / p3 (the panel alone), p4 (default: the ending's panel with its lines beside it), card (the
+## closing card), full (the pre-G6 card: title and every line), credits@PX (the roll, frozen PX in).
+## `--ending_steps=a,b,c` gives one step per ending_<id> shot, in shot order, so one run covers them all;
+## a step may end in /G to set the grade strength for that shot (p3/0: the log page as rendered).
 func show_ending_static(title: String, lines: Array) -> void:
 	for c in ending_box.get_children():
 		c.queue_free()
+	ending_seq.clear()
 	ending_title.text = spaced_caps(title)
-	ending_title.modulate.a = 1.0
 	ending_bg.color.a = 1.0
 	ending_root.visible = true
 	dialogue.visible = false
-	for i in lines.size():
-		var l := _ending_line(lines, i)
-		l.modulate.a = 1.0 if i < lines.size() - 2 else 0.9
+	var eid := ""
+	for k in StoryDirector.ENDINGS:
+		if StoryDirector.ENDINGS[k] == title:
+			eid = k
+	var truth := eid in ["correction", "heard_together"]
+	var saved := eid in ["correction", "nothing_to_report"]
+	var panels := ["p1_wheel", "p2_gut" if saved else "p2_ledge", "p3_correction_ross" if truth else "p3_exhibited",
+		{"correction": "p4_correction", "heard_together": "p4_heard_together", "nothing_to_report": "p4_nothing_tide",
+		"light_exhibited": "p4_light_exhibited"}.get(eid, "p4_correction")]
+	var split := _split_ending(lines)
+	var step := EndingSequence.user_arg("ending_step", "p4")
+	var steps := EndingSequence.user_arg("ending_steps", "")
+	if steps != "":
+		var list := steps.split(",")
+		step = list[_static_n % list.size()]
+		_static_n += 1
+	ending_seq.grade_override = -1.0
+	if "/" in step:
+		ending_seq.grade_override = float(step.get_slice("/", 1))
+		step = step.get_slice("/", 0)
+	var card_lines: Array = []
+	if step.begins_with("credits"):
+		_cap_roll = CreditsRoll.new().setup(false)
+		ending_root.add_child(_cap_roll)
+		_cap_roll.freeze_at(float(step.get_slice("@", 1)) if "@" in step else 600.0)
+		ending_title.modulate.a = 0.0
+		return
+	match step:
+		"p1", "p2", "p3":
+			ending_seq.show_static(panels[int(step.substr(1)) - 1], [])
+		"card":
+			card_lines = split[1]
+		"full":
+			card_lines = lines
+		_:
+			ending_seq.show_static(panels[3], split[0])
+	ending_title.modulate.a = 1.0 if not card_lines.is_empty() else 0.0
+	var tail := maxi(0, card_lines.size() - 2)
+	for i in card_lines.size():
+		var l := _ending_line(card_lines, i, tail)
+		l.modulate.a = 1.0 if i < tail else 0.9
 		ending_box.add_child(l)
 
 
-## One epilogue line: italic serif; the last two (place and date, "The light was kept.") smaller, in amber.
-func _ending_line(lines: Array, i: int) -> Label:
-	var tail := i >= lines.size() - 2
+## One closing-card line: italic serif; from `tail` on (place and date, "The light was kept.") smaller, amber.
+func _ending_line(lines: Array, i: int, tail_from := -1) -> Label:
+	var tail := i >= (lines.size() - 2 if tail_from < 0 else tail_from)
 	var l := UIStyle.label(String(lines[i]), 24 if not tail else 21, UIStyle.AMBER if tail else UIStyle.INK,
 		UIStyle.serif_italic())
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -520,6 +586,10 @@ func _ending_line(lines: Array, i: int) -> Label:
 
 
 func hide_ending() -> void:
+	ending_seq.clear()
+	if _cap_roll:
+		_cap_roll.queue_free()
+		_cap_roll = null
 	ending_root.visible = false
 	ending_bg.color.a = 0.0
 	dialogue.visible = true
@@ -527,8 +597,10 @@ func hide_ending() -> void:
 		c.queue_free()
 
 
-func _ending_pause(secs: float) -> void:
+func _ending_pause(secs: float, dwell := 0.0) -> void:
 	_end_wait = secs
+	_end_total = secs
+	_end_dwell = dwell
 	_end_skip = false
 	_end_guard = Engine.get_process_frames()
 	while _end_wait > 0.0 and not _end_skip:
@@ -635,11 +707,14 @@ func _zoom_at(factor: float, at: Vector2) -> void:
 ## GUI control that swallowed mouse buttons before _unhandled_input, so right click never closed it, R8).
 func _input(event: InputEvent) -> void:
 	if _ending_open:
-		var press: bool = event.is_action_pressed("interact") or (event is InputEventKey and event.pressed and not event.echo \
+		# G6a: Space (dialogue_next: Space, pad RT) or a click moves the ending on, never E (item 7)
+		var press: bool = event.is_action_pressed("dialogue_next") or (event is InputEventKey and event.pressed and not event.echo \
 			and event.keycode == KEY_SPACE) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if press and Engine.get_process_frames() - _end_guard > 20:
-			_end_skip = true
 		if press:
+			if ending_seq.playing:
+				ending_seq.press()
+			elif Engine.get_process_frames() - _end_guard > 20 and _end_total - _end_wait >= _end_dwell:
+				_end_skip = true
 			get_viewport().set_input_as_handled()
 		return
 	if not doc_root.visible:

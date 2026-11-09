@@ -431,6 +431,8 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if attract or _ended or player == null:
 		return
+	if story_mode and presenter and presenter.is_ending_open() and not event.is_action_pressed("pause"):
+		return                                # G6a: the ending sequence takes no gameplay input (J, H, ...)
 	if event.is_action_pressed("back") and ui.logbook.visible:     # pad B closes the logbook too
 		ui.toggle_logbook()
 		player.enabled = true
@@ -743,6 +745,8 @@ func _comms_radio(from: String, text: String, outgoing: bool, kind: String, ship
 		if kind == "piloting" and director and director.story_voices(from):
 			return                               # e.g. Rory tells it himself in ch1_rory_in
 		director.log_radio(from, text, outgoing)
+		if presenter and presenter.is_ending_open():
+			return                               # G6a: logged, never shown over the ending sequence
 		if _story_speaking() or not _comms_queue.is_empty():
 			_comms_queue.append({"from": from, "text": text, "outgoing": outgoing})
 			return
@@ -762,6 +766,9 @@ func _story_speaking() -> bool:
 func _tick_comms(delta: float) -> void:
 	_comms_gap -= delta
 	if _comms_queue.is_empty() or _comms_gap > 0.0 or _story_speaking():
+		return
+	if presenter and presenter.is_ending_open():
+		_comms_queue.clear()                     # G6a: lines held from before the ending are not shown over it
 		return
 	var c: Dictionary = _comms_queue.pop_front()
 	_show_comms(c["from"], c["text"], c["outgoing"])

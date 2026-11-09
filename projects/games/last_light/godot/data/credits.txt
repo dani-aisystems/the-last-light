@@ -3,25 +3,44 @@ North Point Light, Outer Hebrides, 14-15 November 1971
 
 [i]A story of a light that went out, and a man who wrote it down.[/i]
 
+
+[font_size=26]A game by[/font_size]
+Daniel Yanchev
+
+
 [font_size=26]Made with[/font_size]
-Godot Engine 4.7 (MIT)  ·  Blender 5.2 (GPL) for every model in the lighthouse and the watch room
-Story, dialogue, code, models, documents, textures of dials and charts, and every sound:
-made for this game in this workspace (no AI-generated images or voices).
+Godot Engine 4.7 (MIT)  ·  Blender 5.2 (GPL)
+Story, dialogue, code, models, documents, dials and charts, and every sound effect:
+made for this game.
+Music: synthesised for this game.
+
 
 [font_size=26]Third-party assets[/font_size]
+The keeper's hands and body are built on the Human Base Meshes v1.4.1 by Blender Studio,
+CC0 1.0 Public Domain.
+
 Scanned PBR textures from Poly Haven (polyhaven.com), CC0 1.0 Public Domain:
-cliff_side · coast_land_rocks_01 · sparse_grass · painted_concrete · rusty_painted_metal · distressed_painted_planks
+cliff_side  ·  coast_land_rocks_01  ·  sparse_grass
+painted_concrete  ·  rusty_painted_metal  ·  distressed_painted_planks
+oak_veneer_01  ·  dark_wooden_planks  ·  green_metal_rust
+metal_plate_02  ·  plastered_wall_02  ·  concrete_floor_worn_001
 
-These and the 2k interior sets are logged with their sources in assets/ASSET_LICENSES.md.
 
-Typefaces (SIL Open Font License 1.1, bundled with the game):
-Libre Baskerville by Pablo Impallari and Rodrigo Fuenzalida  ·  Source Sans 3 by Paul D. Hunt for Adobe
-Courier Prime by Alan Dague-Greene for Quote-Unquote Apps  ·  Cedarville Cursive by Kimberly Geswein
-(the in-game documents are still rendered with Apple macOS fonts until they are re-rendered in Stage 3C)
+[font_size=26]Typefaces[/font_size]
+SIL Open Font License 1.1, bundled with the game:
+Libre Baskerville by Pablo Impallari and Rodrigo Fuenzalida
+Source Sans 3 by Paul D. Hunt for Adobe
+Courier Prime by Alan Dague-Greene for Quote-Unquote Apps
+Cedarville Cursive by Kimberly Geswein
+
+The handwriting and print on the in-game documents, dials and labels
+were rendered with macOS system fonts.
+
 
 [font_size=26]Cast (in order of appearance)[/font_size]
 Callum Mackay, principal keeper  ·  Morag Fraser, Stornoway Coastguard
 Rory Bain, Kittiwake  ·  Hector Macleod, Gannet  ·  Elspeth Ross, Iona Star
 The man at the door
+
 
 [i]The characters, vessels, the North Point Light and the events of 1953 are fictional.[/i][/center]
