@@ -1385,6 +1385,7 @@ func _r12_brief_g2() -> void:
 	await _r18_cabin_g4a()
 	await _r19_ending_g6a()
 	await _r20_portraits()
+	await _r21_menu_g6c()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -1948,6 +1949,207 @@ func _r20_portraits() -> void:
 	await _frames(2)
 	_check(dlg._portrait == null, "a caller with no print keeps the line drawing")
 	dlg.close()
+
+
+## G6c R21 (item 1, "Still Water"): the title menu. The lantern sits at about 0.69 of the width at 16:9,
+## 16:10 and 21:9 along the orbit, right of the column; the rank shows in brightness (the top item full
+## parchment, the rest quiet; no Continue without a save); one highlight only (hover takes the focus; a
+## hovered item that lost the focus to the keyboard is not lit); panels lock the column and give the
+## focus back on close, as the credits do; the corner signature always shows, the links only from a
+## file with valid entries (https / mailto), resting at 45 % alpha; no overlap at text sizes 0.8-1.5;
+## keyboard and pad reach every item and the links; Reduce motion shows everything at once, no glow.
+func _r21_mouse_to(c: Control) -> void:
+	var m := InputEventMouseMotion.new()
+	m.position = c.get_global_rect().get_center()
+	m.global_position = m.position
+	root.push_input(m)
+
+
+func _r21_lit(main: Node) -> Array:
+	var lit := []
+	for b in main.menu_items:
+		var c: Color = b.get_theme_color("font_color")
+		if c.is_equal_approx(UIStyle.AMBER) or (b.is_hovered() and b.get_theme_color("font_hover_color").is_equal_approx(UIStyle.AMBER)):
+			lit.append(b.text)
+	return lit
+
+
+func _r21_marks(main: Node) -> Array:
+	return main.menu_items.filter(func(b): return b.mark > 0.5).map(func(b): return b.text)
+
+
+func _r21_build(main: Node, args: Dictionary) -> void:
+	var ga: Dictionary = root.get_node("GameState").user_args
+	for k in ["menu_fake_save", "menu_nosave", "links"]:
+		ga.erase(k)
+	ga.merge(args, true)
+	if main.is_inside_tree():
+		main.show_menu()
+	else:
+		root.add_child(main)              # _ready -> show_menu()
+	await create_timer(2.2).timeout       # the entrance (logo 2.0 s, items from 0.9 s, corner from 1.6 s)
+	await _frames(3)
+
+
+func _r21_menu_g6c() -> void:
+	print("R21 G6c title menu")
+	var st_node: Node = root.get_node("Settings")
+	var ga: Dictionary = root.get_node("GameState").user_args
+	var hidden := []
+	for c in g.find_children("*", "CanvasLayer", true, false):
+		if c.visible:
+			hidden.append(c)
+			c.visible = false
+	g.process_mode = Node.PROCESS_MODE_DISABLED
+	root.size = Vector2i(1920, 1080)
+	var main: Node = load("res://scripts/main_fp.gd").new()
+	# 1) no save, the shipped (empty) links file
+	await _r21_build(main, {"menu_nosave": "1"})
+	var texts: Array = main.menu_items.map(func(b): return b.text)
+	_check(texts == ["New Game", "Load Game", "Options", "Credits", "Quit"], "no save: no Continue (%s)" % [texts])
+	_check(main.menu_items[0].top and main.menu_items.slice(1).all(func(b): return not b.top), "no save: New Game is the top item")
+	_check(main.menu_corner.signature.visible and main.menu_corner.signature.text == "A GAME BY DANIEL YANCHEV"
+		and not main.menu_corner.links_box.visible and main.menu_corner.buttons.is_empty(), "the shipped links.json: the signature alone, no links")
+	# 2) a save, the test links (three valid, http: and javascript: rejected)
+	await _r21_build(main, {"menu_fake_save": "1", "links": "res://tests/fixtures/links_r21.json"})
+	var items: Array = main.menu_items
+	texts = items.map(func(b): return b.text)
+	_check(texts == ["Continue", "New Game", "Load Game", "Options", "Credits", "Quit"], "a save: Continue first (%s)" % [texts])
+	_check(items[0].top and items.slice(1).all(func(b): return not b.top), "only Continue is a top item")
+	var by_tone := true
+	for b in items:
+		if b.has_focus():
+			continue
+		by_tone = by_tone and b.tone_color().is_equal_approx(UIStyle.INK if b.top else UIStyle.INK_QUIET)
+	_check(by_tone and items.all(func(b): return b.get_theme_font_size("font_size") <= UIStyle.px(UIStyle.MENU_TOP)),
+		"the rank is brightness: the top item full parchment, the rest quiet, all small")
+	_check(main.menu_meta != null and main.menu_meta.text.begins_with("CH. I · THE WATCH · 20.20"), "the save line is a typed log line (%s)" % (main.menu_meta.text if main.menu_meta else ""))
+	_check(main.save_line({"story": {"chapter": 3, "play_seconds": 3700}, "chapter_title": "The Storm", "clock": "01:05", "saved_at": "2026-11-07T23:59:10"})
+		== "CH. III · THE STORM · 01.05 · 61 MIN PLAYED · SAVED 7 NOV 23.59", "save_line formats any save")
+	var cor: MenuLinks = main.menu_corner
+	_check(cor.buttons.size() == 3 and cor.links_box.visible and cor.divider.visible, "the test file: three links (%d)" % cor.buttons.size())
+	_check(MenuLinks.load_links("res://tests/fixtures/links_r21.json").map(func(e): return e["url"]).all(func(u): return u.begins_with("https://") or u.begins_with("mailto:")),
+		"http: and javascript: links are rejected")
+	_check(cor.buttons.all(func(b): return absf(b.modulate.a - MenuLinks.REST_ALPHA) < 0.01), "the links rest at 45 % alpha")
+	# framing: the lantern at 0.69 of the width along the orbit, at three aspects, right of the column
+	var bg = main.menu_bg
+	for s in [Vector2i(1920, 1080), Vector2i(1920, 1200), Vector2i(2560, 1080)]:
+		root.size = s
+		var xs := []
+		for t in [0.0, 47.0, 133.0]:
+			bg._cine_t = t
+			await _frames(2)
+			xs.append(bg.lantern_screen_x())
+		var col_end: float = main.menu_col.get_global_rect().end.x / main.menu_col.get_viewport_rect().size.x
+		_check(xs.all(func(x): return absf(x - 0.69) <= 0.04), "%dx%d: the lantern at 0.69 of the width (%s)" % [s.x, s.y, xs.map(func(x): return snappedf(x, 0.001))])
+		_check(xs.all(func(x): return x > col_end + 0.05), "%dx%d: the lantern is clear of the column (ends at %.2f)" % [s.x, s.y, col_end])
+	root.size = Vector2i(1920, 1080)
+	await _frames(3)
+	# one highlight: hover takes the focus; the keyboard moves it; a hovered item that lost it is not lit
+	var opt: MenuItem = items[3]
+	var cred: MenuItem = items[4]
+	_r21_mouse_to(opt)
+	await _frames(2)
+	_check(opt.has_focus(), "hovering Options gives it the focus")
+	await create_timer(0.3).timeout
+	_check(_r21_lit(main) == ["Options"] and _r21_marks(main) == ["Options"], "one highlight after the hover (lit %s, ticks %s)" % [_r21_lit(main), _r21_marks(main)])
+	_key(KEY_DOWN)
+	await _frames(2)
+	await create_timer(0.3).timeout
+	_check(cred.has_focus() and _r21_lit(main) == ["Credits"] and _r21_marks(main) == ["Credits"],
+		"keyboard down with the pointer still on Options: only Credits is lit (lit %s, ticks %s)" % [_r21_lit(main), _r21_marks(main)])
+	_r21_mouse_to(items[2])
+	await _frames(2)
+	await create_timer(0.3).timeout
+	_check(_r21_lit(main) == ["Load Game"] and _r21_marks(main) == ["Load Game"], "hover again: only Load Game (lit %s)" % [_r21_lit(main)])
+	# the beam glow follows the beam (and only on the focused tick)
+	items[2].glow_source = func() -> float: return 1.0
+	await _frames(3)
+	_check(items[2].glow > 0.9 and items[1].glow == 0.0, "the focused tick glows with the beam (%.2f)" % items[2].glow)
+	# panels: Options locks the column; Esc closes it and gives the focus back to Options
+	opt.grab_focus()
+	opt.pressed.emit()
+	await _frames(3)
+	_check(main.panel != null and items.all(func(b): return b.focus_mode == Control.FOCUS_NONE)
+		and cor.buttons.all(func(b): return b.focus_mode == Control.FOCUS_NONE), "an open panel locks the column and the links")
+	var esc := InputEventAction.new()
+	esc.action = "pause"
+	esc.pressed = true
+	main._unhandled_input(esc)
+	await _frames(3)
+	_check(main.panel == null and opt.has_focus() and items.all(func(b): return b.focus_mode == Control.FOCUS_ALL), "Esc closes Options and the focus is back on Options")
+	cred.grab_focus()
+	cred.pressed.emit()
+	await _frames(3)
+	_check(main.credits_roll != null and items.all(func(b): return b.focus_mode == Control.FOCUS_NONE), "the credits lock the column")
+	main.credits_roll.finished.emit()
+	await _frames(3)
+	_check(cred.has_focus() and items.all(func(b): return b.focus_mode == Control.FOCUS_ALL), "after the credits the focus is back on Credits")
+	# the links: hover lifts one to full alpha; pressing it opens its URL (through the test hook)
+	var opened := []
+	MenuLinks.open_hook = func(u: String): opened.append(u)
+	var l0: Button = cor.buttons[0]
+	_r21_mouse_to(l0)
+	await _frames(2)
+	await create_timer(0.3).timeout
+	_check(l0.has_focus() and l0.modulate.a > 0.99 and _r21_lit(main).is_empty(), "hovering a link lifts it to full alpha and takes the focus (%.2f)" % l0.modulate.a)
+	l0.pressed.emit()
+	_check(opened == ["https://example.com/instagram"], "pressing a link opens its URL (%s)" % [opened])
+	MenuLinks.open_hook = Callable()
+	# layout: no overlap, all on screen, at text sizes 0.8 / 1.0 / 1.5 and 16:9 / 16:10
+	for s in [Vector2i(1920, 1080), Vector2i(1920, 1200)]:
+		root.size = s
+		for k in [0.8, 1.0, 1.5]:
+			UIStyle.set_text_scale(k, self)
+			await _frames(4)
+			var a: Rect2 = main.menu_col.get_global_rect()
+			var b2: Rect2 = cor.get_global_rect()
+			var vp: Rect2 = main.menu_col.get_viewport_rect()
+			_check(not a.intersects(b2) and vp.encloses(a) and vp.encloses(b2), "%dx%d text %.1f: column %s and corner %s apart, on screen" % [s.x, s.y, k, a, b2])
+	UIStyle.set_text_scale(float(st_node.v["subtitle_size"]), self)
+	root.size = Vector2i(1920, 1080)
+	await _frames(3)
+	# navigation: keyboard and pad reach every item, then the links; up comes back
+	items[0].grab_focus()
+	await _frames(2)
+	var seen := [items[0].text]
+	for i in 8:
+		if i < 4:
+			_key(KEY_DOWN)
+		else:
+			_pad_button(JOY_BUTTON_DPAD_DOWN, true)
+			_pad_button(JOY_BUTTON_DPAD_DOWN, false)
+		await _frames(2)
+		var fo := main.get_viewport().gui_get_focus_owner()
+		seen.append(fo.text if fo is Button else "?")
+	_check(seen == ["Continue", "New Game", "Load Game", "Options", "Credits", "Quit", "INSTAGRAM", "TRAILER", "CONTACT"],
+		"down (keys, then d-pad) walks the menu and then the links (%s)" % [seen])
+	cor.buttons[0].grab_focus()
+	_key(KEY_UP)
+	await _frames(2)
+	_check(items[5].has_focus(), "up from the links comes back to Quit")
+	# Reduce motion: everything at once, no glow
+	var keep_rm = st_node.v.get("reduce_motion", false)
+	st_node.v["reduce_motion"] = true
+	ga.erase("links")
+	ga["menu_fake_save"] = "1"
+	main.show_menu()
+	await create_timer(1.1).timeout
+	await _frames(2)
+	var root_a: float = main.menu.get_child(0).modulate.a
+	_check(root_a > 0.99 and main.menu_items.all(func(b): return b.modulate.a > 0.99 and b.rise == 0.0), "Reduce motion: the whole menu is up after 1.1 s (%.2f)" % root_a)
+	main.menu_items[0].glow_source = func() -> float: return 1.0
+	main.menu_items[0].grab_focus()
+	await _frames(3)
+	_check(main.menu_items[0].glow == 0.0 and main.menu_items[0].mark == 1.0, "Reduce motion: the tick shows at once and never glows")
+	st_node.v["reduce_motion"] = keep_rm
+	for k in ["menu_fake_save", "menu_nosave", "links"]:
+		ga.erase(k)
+	main.queue_free()
+	await _frames(3)
+	g.process_mode = Node.PROCESS_MODE_INHERIT
+	for c in hidden:
+		c.visible = true
 
 
 ## G2b R14: the logbook shows only the rows written so far (never tonight's future), the pencil Duties

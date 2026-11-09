@@ -33,7 +33,7 @@ Paths are relative to `projects/games/last_light/`. `g/` means `godot/`.
 ## Summary table
 | ID | Title | Type | Pri | Cx | Stage / group | Status |
 |---|---|---|---|---|---|---|
-| 1 | Main menu redesign + links | UI/UX | P2 | M | 6 / G6 | Planned (G6c; links later: `links.json`, strip hidden while empty) |
+| 1 | Main menu redesign + links | UI/UX | P2 | M | 6 / G6 | Implemented (G6c "Still Water", awaiting Daniel's checkpoint; links later: `links.json` ships empty) |
 | 2 | Plugins and add-ons research | Research | P3 | S | 6 / docs | Implemented (recommendation below) |
 | 3 | Beam circular end cap | Bug (visual) | P1 | S | 4 / G1 | Verified (captures g1_sheet_beam2: soft fade, no end disc; tuned once) |
 | 4 | Pause menu, autosave only, transcript | UI/UX + gameplay | P1 | M | 6 / G2 | Planned |
@@ -271,6 +271,44 @@ Photograph on a nail and wire, leaning 2° (2 / 14 mm gap); M_LL_Photo roughness
 ## Wall photograph (2026-11-09, Daniel)
 The May 1952 print of Iain and Callum is now Daniel's image (`character-refs/Picture-wall/Vintage Maritime Portrait by the Sea.png`, the bare print; the other copy had its mount and caption baked in, with a malformed "Iain"). `documents.photo("keepers")` fits it at full height (1000 × 800, never stretched) inside the unchanged 1180 × 960 mount, ages it with `silver_print` (no creases: one crossed Callum's face, and the print is behind glass) and keeps the canon printed caption. Only `photo_keepers.png` and `T_LL_Photo.png` were re-rendered (no `--docs` churn). Build v052: room 127,378 tris, validation 0 FAIL, reimport OK; the in-game texture equals the new print. The old Blender render (`photo_render.py`) stays as the fallback. **In the room:** `renders/last_light/g22_t090_cu_photo.png`: the print reads under the glass, Iain's arm round Callum, the caption legible.
 
+## G6c record (2026-11-09; item 1, "Still Water"; awaiting Daniel's checkpoint)
+
+**Research** (title screens viewed as screenshots in image search, nothing downloaded):
+
+| Game | What the menu does |
+|---|---|
+| Still Wakes the Deep | Live storm sea, the rig in the right ⅔; a large logo top-left; tiny caps items under it; legal text tiny bottom-right |
+| Dear Esther LE | Tiny serif items, dim grey, the selected one brighter; Credits on its own, bottom-right |
+| SOMA | Logo top-left, small caps, a slim bar on the selection; unavailable items dimmed |
+| Firewatch / Ethan Carter | Selection by colour only (orange / amber) |
+| Edith Finch | Diegetic notebook; publisher marks tiny in the corners |
+
+Principles taken: the scene is the hero, opposite the type; the logo carries the weight and the items rank by order and brightness; one quiet selection device in the scene's colour; secondary material tiny in a corner.
+
+**Decisions (Daniel):** the hybrid "Still Water" (restraint and layout, a faint beam-synced glow on the marker, the save as a typed log line); no Continue without a save; the signature "A game by Daniel Yanchev" always bottom-right; generic own-drawn icons (camera, envelope, play). Mid-build, Daniel: **"Make the lighthouse closer, the menu larger font size."**
+
+| Part | What changed |
+|---|---|
+| Camera | `game_fp.gd`: the orbit at 0.62 of its old distance (about 98 m; the tower about 29 % of the frame height), then a yaw of `atan(0.38 · tan(fov/2) · aspect)` puts the lantern at 0.69 of the width at any aspect; `lantern_screen_x()`, `beam_facing()`; `cine_hold` while the push-in runs. The push-in slerps from the offset framing (no snap) |
+| Column | `main_fp.show_menu`: a `MarginContainer` (text at 6.5 % of the width, top at 16 %), the logo at 640 px, a letterspaced bold-caps subtitle, Continue (with a save) and New Game, a gap, Load / Options / Credits / Quit. Type scale `UIStyle.MENU_*`: 32 / 27 px items, 17 px subtitle and save line, 15 px corner |
+| Items | New `ui/menu_item.gd` (`MenuItem`): no box in any state; the top item full parchment, the rest `INK_QUIET`; the focused item amber with a 16 px amber tick in the gutter (child rects, eased each frame from `has_focus()`, snapped to whole pixels and at least 2 window px tall); the tick's halo swells as the beam faces the camera (off with Reduce motion or Reduce flashing) |
+| Save line | `save_line()`: `CH. I · THE WATCH · 20.20 · 22 MIN PLAYED · SAVED 6 NOV 12.01` in Courier Prime |
+| One highlight | `UIStyle.focus_follows_hover()`: hover takes the focus, only the focus is lit. Used by the title, the Load / Options / confirm panels and the pause menu; gameplay buttons unchanged. The ROADMAP Stage 6 "double highlight" is fixed |
+| Focus | Panels and the credits lock the column and the links; closing them gives the focus back to the item that opened them (it was lost before: keys and pad went dead). Esc or pad B closes a title panel. The confirm dialog focuses "No" |
+| Corner | New `ui/menu_links.gd` (`MenuLinks`): the signature always; links from `data/links.json` (`https://` and `mailto:` only; icons drawn in code and scaled with the text) at 45 % alpha, 100 % on hover or focus, `OS.shell_open`. `links.json` ships as `{"links": []}`. A soft dark gradient lines the bottom edge so the corner reads over the near reef |
+| Motion | The logo fades in (2.0 s), the subtitle at 0.6 s, the items rise 8 px and fade in turn from 0.9 s (70 ms apart), the corner at 1.6 s. New Accessibility option **Reduce motion** (`Settings.reduce_motion`): one plain fade, no glow, no tick slide |
+| Small windows | The subtitle, save line and corner keep at least 12 render px (capped below the items) when the window is smaller than the 1080-line canvas |
+| Capture hooks | Presenter-side user args in `main_fp`: `--links=PATH`, `--menu_focus=<item>`, `--menu_nosave`, `--menu_fake_save`, `--win=WxH` (in screen points on Retina; re-applied after start-up, because macOS drops a size set while leaving the start-up fullscreen). `capture_fp.gd` untouched |
+| Tests | regress **R21** (38 checks: framing at 16:9 / 16:10 / 21:9 along the orbit, the hierarchy with and without a save, one highlight through hover and keys, panel and credits focus return, the corner with the shipped file and a fixture `tests/fixtures/links_r21.json` incl. rejected `http:` / `javascript:`, no overlap at text 0.8–1.5, keys and d-pad through every item and link, Reduce motion) |
+
+**Captures** (Daniel's OK; `renders/last_light/g6c_169_menu.png`, `g6c_1610_menu.png`, `g6c_219_menu.png`, `g6c_720_menu.png`; baseline `g1_after2_menu.png`):
+- The lantern at 0.69 of the width in every frame; the logo leads; one highlight.
+- Peak glyph contrast on the final 16:9 frame: Continue 17.6:1, the other items 8.0–8.3:1, focused 13.1:1, subtitle 5.5:1, save line 6.9:1, links (45 % rest) 4.8:1, signature 2.8:1 (then raised from 0.64 to 0.85 alpha; not re-captured).
+- Found and fixed through the captures: the subtitle and signature too faint (2.4:1 and 1.6:1 at first); the logo's glyphs 8 px right of the text edge; the tick lost in a 0.67× window (a 2 px rect on a half pixel: diagnosed with a one-off debug print, now pixel-snapped); the corner over a lit rock after the camera came closer (bottom gradient).
+- `g6c_1610` and `g6c_219` were taken before the closer camera and the larger type; `g6c_169` and `g6c_720` show the final state.
+
+**Not tested:** a real gamepad on the title (d-pad covered by injected events in R21); `OS.shell_open` with real links (no links yet; the press path is tested through `MenuLinks.open_hook`).
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.
@@ -292,6 +330,7 @@ The May 1952 print of Iain and Callum is now Daniel's image (`character-refs/Pic
 ---
 
 ## 1. Main menu: UI/UX redesign and external links
+- **Status (2026-11-09):** implemented as G6c "Still Water" (record above); the links wait for Daniel.
 - **Type:** UI/UX improvement plus research. **Intended result:** keep the live background; place the lighthouse in the right third and the menu on the left; better hierarchy and typography; a bottom-right link strip (Instagram, links, contact) that feels part of the design.
 - **Current (C):**
   - The background is a live attract-mode game (`g/scripts/main_fp.gd:69-121`). The cine camera orbits about 158 m out at a bearing of about 017°, looking at (0, 17, 0) (`g/scripts/fp/game_fp.gd:668-675`), so the tower is centred and fills about 17 % of the frame height.

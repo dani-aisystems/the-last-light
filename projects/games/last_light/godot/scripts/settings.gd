@@ -25,6 +25,7 @@ var v := {
 	"head_bob": true,            # Stage 2C: subtle walking head motion (off for comfort)
 	# accessibility
 	"subtitles": true, "subtitle_size": 1.0, "text_speed": 42.0, "reduce_flashing": false,
+	"reduce_motion": false,      # G6c: the title menu without its entrance, tick slide or beam glow
 	"hold_to_crank": true,       # START button: hold (true) or press-to-toggle cranking (false)
 	# G2b (Daniel 2026-11-06): how much the game tells the keeper. 0 Minimal (the world and the logbook),
 	# 1 Standard (a short duty line, then hints when stuck), 2 Full (the duty and its steps always shown)

@@ -618,7 +618,7 @@ func _modal(title: String, body: String, buttons: Array) -> Control:
 		v.add_child(b)
 	var first: Button = null
 	for pair in buttons:
-		var btn := UIStyle.button(pair[0])
+		var btn := UIStyle.focus_follows_hover(UIStyle.button(pair[0]))   # G6c: one highlight
 		btn.pressed.connect(pair[1])
 		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		v.add_child(btn)

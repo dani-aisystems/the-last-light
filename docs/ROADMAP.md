@@ -84,7 +84,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 | G3 body and equipment | 13, 14, 12, 18, 19 | 2E | ✅ G3a `31afb9a`, G3b `63e965d`, G3c (2026-11-08); 19 dropped (no pipe) |
 | G4 cabin assets | 6, 10, 11, 15, 17 | Cabin pass 2 | ✅ G4a `44f1db1`, G4b `d50fec1`, G4c (2026-11-09); item 17 full wear pass open |
 | G5 weather and audio | 29, 30, 33 | 4, 5 | 🟡 29 and 30 implemented and committed locally (`0b3e750`, all suites green); 33 shortlist ready, awaiting Daniel's pick; bolt capture and listening pending; checkpoint awaiting approval |
-| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | 🟡 staged (Daniel 2026-11-09): **G6a** 34 flow + rolling credits, implemented, all suites green, checkpoint pending; **G6c** item 1 menu redesign (links later, `links.json`); **G6b** 34 panel art when Daniel's images arrive; 22 paused. Record: FINDINGS_LOG "G6a record" |
+| G6 menu, profiles, ending | 1, 22, 34 | 6, 3C, 5 | 🟡 staged (Daniel 2026-11-09): **G6a** 34 flow + rolling credits, implemented, all suites green, checkpoint pending; **G6c** item 1 menu redesign: implemented ("Still Water": the tower in the right third and closer, small-to-mid serif items ranked by brightness, one highlight, the signature and `links.json` corner, Reduce motion; regress R21), checkpoint pending; the links wait for Daniel; **G6b** 34 panel art when Daniel's images arrive; 22 paused. Record: FINDINGS_LOG "G6a record" |
 
 **Daniel's decisions (2026-11-06):**
 - Docs first, then G1 to G6.
@@ -105,7 +105,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 - Stage 5 "music arc" and "audio in the credits" are covered by 33 and 34.
 - Stage 5 "player footsteps" are not in this brief. They stay in Stage 5, though G3's walk animation is the natural trigger.
 - Stage 6 "Pause: Options, Load and Quit; confirm before leaving" is covered by 4. "Load" becomes Continue from the autosave, since manual saves are removed.
-- Stage 6 "the double highlight in the main menu" is covered by 1.
+- Stage 6 "the double highlight in the main menu" is covered by 1: fixed in G6c (`UIStyle.focus_follows_hover`).
 
 ## Approved decisions (Daniel, 2026-11-04)
 | Topic | Decision |
@@ -207,7 +207,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 
 **Logged for later stages (not blockers):**
 - Documents open with **no sound**. `paper_slide.wav` exists → Stage 5.
-- UIStyle uses the hover style for keyboard focus too, which causes the double highlight in the main menu → Stage 6.
+- UIStyle uses the hover style for keyboard focus too, which causes the double highlight in the main menu → Stage 6. **Fixed in G6c** (hover takes the focus; only the focus is lit).
 - `horn_fishing.wav` is mastered hot (RMS −9.3 dBFS, though it plays at −14 dB). `click_button.wav` has a tiny DC offset → Stage 5.
 - At 1.0× the tallest radio line exactly fills its 222 px slot; at 1.5× the panel grows to 349 px → Stage 3 (consider a shorter line length).
 - 2026-11-04: **Daniel approved Stage 0** (iteration 0.2) and kept **High as the default preset** until Stage 1a reworks shadows and GI.
@@ -960,7 +960,7 @@ The work groups cut across stages. Each group ends with a checkpoint in the four
 
 **Stage 6: menus, effects and polish**
 - Pause: Options, Load and Quit; confirm before leaving to the main menu.
-- Slider hitch (`settings.gd:63-71`); the double highlight in the main menu.
+- Slider hitch (`settings.gd:63-71`); the double highlight in the main menu (fixed in G6c).
 - Spray, exhaust, sparks, ship fade-outs.
 - Final optimisation: ocean LOD, radar at 30 Hz, menu cost.
 - Re-export the `.app`.

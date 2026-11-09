@@ -27,6 +27,9 @@ var audio: Node
 var visitor_fig: Node3D
 var cine_cam: Camera3D
 var _cine_t := 0.0
+var cine_hold := false                 # G6c: true while main_fp's push-in tween drives the camera
+const CINE_LANTERN_NDC := 0.38         # G6c: the lantern at 0.69 of the width (the right third)
+const CINE_NEAR := 0.62                # G6c (Daniel: "closer"): the orbit at 0.62 of its old distance, ~98 m
 var _ended := false
 var _paused := false
 var backlog: Control                       # Stage 3A dialogue history (story mode)
@@ -786,9 +789,43 @@ func _process(delta: float) -> void:
 		# slow push-in on the lighthouse from the sea (menu)
 		var a := 2.75 + 0.03 * sin(_cine_t * 0.05)
 		var r := 120.0 - 10.0 * sin(_cine_t * 0.03)
-		cine_cam.position = Vector3(sin(a) * r, 9.0 + 1.5 * sin(_cine_t * 0.11), cos(a) * r - 40.0)
+		if cine_hold:
+			return                              # main_fp's push-in owns the camera now
+		cine_cam.position = Vector3(sin(a) * r * CINE_NEAR, 9.0 + 1.5 * sin(_cine_t * 0.11), (cos(a) * r - 40.0) * CINE_NEAR)
 		cine_cam.look_at(Vector3(0, 17.0, 0), Vector3.UP)
+		cine_cam.global_rotate(Vector3.UP, cine_yaw())   # G6c: the tower in the right third, the menu left
 		cine_cam.rotation.z = 0.004 * sin(_cine_t * 0.7)
+
+
+## G6c (item 1): the title camera turns left by this much after aiming at the tower, so the lantern sits
+## at CINE_LANTERN_NDC of the half-width right of centre (0.69 of the width) at any aspect: Godot keeps
+## the vertical FOV, so the horizontal half-angle grows with the aspect.
+func cine_yaw() -> float:
+	var vp := get_viewport().get_visible_rect().size
+	var aspect := vp.x / maxf(vp.y, 1.0)
+	return atan(CINE_LANTERN_NDC * tan(deg_to_rad(cine_cam.fov) * 0.5) * aspect)
+
+
+## Where the lantern is on screen, as a fraction of the width (tests, captures). -1 without the camera.
+func lantern_screen_x() -> float:
+	if cine_cam == null or outside == null or outside.beam_pivot == null:
+		return -1.0
+	var p := cine_cam.unproject_position(outside.beam_pivot.global_position)   # the lantern (LANTERN_Y)
+	return p.x / get_viewport().get_visible_rect().size.x
+
+
+## 0..1: how squarely the rotating beam points at the title camera (horizontal angle, sharpened so it
+## only swells as the beam sweeps past). The menu's lamp tick glows with it.
+func beam_facing() -> float:
+	if cine_cam == null or outside == null or outside.beam_pivot == null:
+		return 0.0
+	var f: Vector3 = -outside.beam_pivot.global_transform.basis.z
+	var to_cam: Vector3 = cine_cam.global_position - outside.beam_pivot.global_position
+	f.y = 0.0
+	to_cam.y = 0.0
+	if f.length() < 0.001 or to_cam.length() < 0.001:
+		return 0.0
+	return pow(maxf(f.normalized().dot(to_cam.normalized()), 0.0), 10.0)
 
 
 func show_end(stats: Dictionary, best: bool) -> void:

@@ -18,6 +18,17 @@ const SAFE := Color("#6fe39a")
 const DANGER := Color("#ff5a45")
 const PANEL := Color(0.04, 0.06, 0.09, 0.78)
 const LINE := Color(0.91, 0.87, 0.78, 0.25)
+const INK_QUIET := Color(0.914, 0.886, 0.812, 0.64)   # G6c: the title's secondary items
+const INK_SUB := Color(0.914, 0.886, 0.812, 0.85)     # G6c: the title's letterspaced subtitle
+const INK_FAINT := Color(0.914, 0.886, 0.812, 0.60)   # G6c: the save line, the signature (>= 3:1 measured)
+
+## G6c "Still Water" title type scale (base px, scaled by Text size). The logo carries the weight; the
+## items stay small and rank by brightness, not size (references: Still Wakes the Deep, Dear Esther).
+const MENU_TOP := 32        # Continue, or New Game with no save (Daniel: larger, 2026-11-09)
+const MENU_ITEM := 27       # the other items
+const MENU_META := 17       # the typed save line (Courier Prime)
+const MENU_SUB := 17        # the letterspaced subtitle
+const MENU_CORNER := 15     # the signature and the links
 
 const FONT_DIR := "res://assets/fonts/"
 const GROUP := "ui_text"
@@ -69,6 +80,16 @@ static func sans_italic() -> Font:
 
 static func sans_semibold() -> Font:
 	return _variant("sans_sb", "source_sans_3/SourceSans3[wght].ttf", 600, PackedStringArray(["Avenir Next", "Helvetica Neue", "Arial", "sans-serif"]))
+
+
+## Letterspaced sans caps (G6c: the title's subtitle, signature and links).
+static func caps() -> Font:
+	if not _fonts.has("caps"):
+		var fv := FontVariation.new()
+		fv.base_font = _variant("sans_b", "source_sans_3/SourceSans3[wght].ttf", 700, PackedStringArray(["Avenir Next", "Helvetica Neue", "Arial", "sans-serif"]))
+		fv.spacing_glyph = 3                # bold: thin 13-16 px strokes measured under 3:1 at semibold
+		_fonts["caps"] = fv
+	return _fonts["caps"]
 
 
 static func typewriter() -> Font:
@@ -188,4 +209,23 @@ static func button(text: String, size: int = 28) -> Button:
 	b.add_theme_stylebox_override("focus", hover)
 	b.add_theme_stylebox_override("pressed", hover)
 	track(b, size)
+	return b
+
+
+## G6c: one highlight in a menu. The hover box and colour were the focus ones, so a hovered button and
+## the keyboard-focused one both lit up (ROADMAP Stage 6 "double highlight"). Now hover takes the focus,
+## and only the focus draws the highlight: a button still under the pointer after the keyboard moved on
+## goes back to its normal look. For menus only; gameplay buttons that never hold focus (radio panel,
+## replies) keep their own behaviour.
+static func focus_follows_hover(b: Button) -> Button:
+	var normal := b.get_theme_stylebox("normal")
+	var base := b.get_theme_color("font_color")
+	var hi := b.get_theme_color("font_focus_color")
+	b.add_theme_stylebox_override("hover", normal)
+	b.add_theme_color_override("font_hover_color", base)
+	b.mouse_entered.connect(func():
+		if b.focus_mode != Control.FOCUS_NONE and not b.disabled and b.is_visible_in_tree() and not b.has_focus():
+			b.grab_focus())
+	b.focus_entered.connect(func(): b.add_theme_color_override("font_hover_color", hi))
+	b.focus_exited.connect(func(): b.add_theme_color_override("font_hover_color", base))
 	return b
