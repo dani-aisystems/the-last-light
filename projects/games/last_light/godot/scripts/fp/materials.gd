@@ -44,6 +44,9 @@ const PLAIN := {
 	"M_LL_ClothBlue": [Color(0.12, 0.17, 0.3), 0.85, 0.0],      # Admiralty Tide Tables
 	"M_LL_Whisky": [Color(0.4, 0.19, 0.05), 0.12, 0.0],         # the half bottle of Grant's
 	"M_LL_Oilskin": [Color(0.32, 0.27, 0.12), 0.3, 0.0],       # oilskin coat and sou'wester (= visitor_figure.gd)
+	# G6d: the keeper's boat on the title (both two-sided: its open shell is seen inside and out)
+	"M_LL_BoatPaint": [Color(0.3, 0.36, 0.4), 0.55, 0.0],
+	"M_LL_BoatWood": [Color(0.3, 0.21, 0.13), 0.65, 0.0],
 }
 
 
@@ -147,6 +150,8 @@ static func get_mat(name: String) -> Material:
 		s.metallic = p[2]
 		if name == "M_LL_Brass":
 			s.metallic_specular = 0.6
+		if name.begins_with("M_LL_Boat"):
+			s.cull_mode = BaseMaterial3D.CULL_DISABLED
 		m = s
 	elif name == "M_LL_DoorLamp":              # G6d: the bulkhead lamp over the base door, lit
 		var s := lamp(Color(1.0, 0.76, 0.48))

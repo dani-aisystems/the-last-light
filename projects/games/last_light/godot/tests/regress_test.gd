@@ -2036,6 +2036,12 @@ func _r21_menu_g6c() -> void:
 	_check(cor.buttons.all(func(b): return absf(b.modulate.a - MenuLinks.REST_ALPHA) < 0.01), "the links rest at 45 % alpha")
 	# framing: the lantern at 0.69 of the width along the orbit, at three aspects, right of the column
 	var bg = main.menu_bg
+	# G6d stage C: the title's keeper's boat, moored by its painter alongside the landing
+	var tb: Node3D = bg.outside.title_boat
+	_check(tb != null and tb.global_position.distance_to(Vector3(7.67, 0, -20.3)) < 2.5 and absf(tb.global_position.y) < 1.5,
+		"the title has the keeper's boat alongside the landing (%s)" % (tb.global_position if tb else "none"))
+	_check(bg.outside._rope.size() == 12 and bg.outside._rope[0].global_position.distance_to(tb.global_transform * bg.outside._boat_bow) < 0.6,
+		"its painter runs from the bow ring")
 	for s in [Vector2i(1920, 1080), Vector2i(1920, 1200), Vector2i(2560, 1080)]:
 		root.size = s
 		var xs := []
@@ -2171,6 +2177,12 @@ func _r22_saves_isolated() -> void:
 	var ss: Node = root.get_node("SaveSystem")
 	_check(ss.dir == ss.TEST_DIR, "a test run saves to %s (%s)" % [ss.TEST_DIR, ss.dir])
 	_check(_save_mtimes("user://saves") == _real_saves, "the player's saves are untouched by the run (%d files)" % _real_saves.size())
+	# Stage C: the island. island.glb brings its own landing (no procedural pier), the shore foam follows its
+	# real coastline, and in the story the landing is empty: no title boat (the visitor's launch is ch4's)
+	_check(g.outside.island_glb and g.outside.find_child("SM_Landing*", true, false) != null, "the island model brings the landing and walkway")
+	_check(g.outside._coast.size() == 360 and Array(g.outside._coast).min() > 15.0 and Array(g.outside._coast).max() < 30.0,
+		"the shore foam follows the island's coast (%.1f-%.1f m)" % [Array(g.outside._coast).min(), Array(g.outside._coast).max()])
+	_check(g.outside.title_boat == null, "in the story the landing is empty (no title boat)")
 	# Stage B: the lighthouse. The base door faces the landing and the visitor's door sound is at it; the tower
 	# has its own lit skin round the watch room; the window sky-spill lights make no specular (the white
 	# discs on the panes that bloomed into "two white lights" from outside)

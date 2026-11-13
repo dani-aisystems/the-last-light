@@ -86,6 +86,7 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 		_cine_t = float(GameState.user_args.get("cine_t", "0"))   # G6d captures: a fixed point on the orbit
 		audio.set_menu(true)
 		outside.attract = true
+		outside.setup_title()                  # G6d: the moored keeper's boat (title only)
 		return
 	player = preload("res://scripts/fp/player.gd").new()
 	player.station = station
@@ -806,6 +807,7 @@ const CINE_VIEWS := {
 	"ext_top": [Vector3(12.7, 22.0, -27.2), Vector3(0, 22.4, 0), 38.0],       # the lantern and the band below it
 	"ext_landing": [Vector3(21.0, 9.0, -41.0), Vector3(8.7, 2.0, -16.3), 45.0],   # the landing (bearing 028)
 	"ext_door": [Vector3(15.0, 7.0, -16.0), Vector3(0, 5.0, 0), 45.0],         # the tower base, landing side
+	"ext_walk": [Vector3(17.0, 8.0, -4.0), Vector3(5.0, 3.4, -9.5), 48.0],      # the walkway, landing to door
 }
 
 

@@ -34,6 +34,10 @@ void fragment() {
 	float s = smoothstep(2.4, 0.4, w_pos.y);
 	vec3 col = mix(rock, grass, g);
 	col = mix(col, shore, s * (1.0 - g));
+	// G6d: the tide band, dark olive-brown wrack and weed from the waterline to about a metre up, always wet
+	float weed = smoothstep(1.15, 0.35, w_pos.y) * smoothstep(-1.6, -0.4, w_pos.y);
+	col = mix(col, vec3(0.085, 0.08, 0.04) * (0.6 + 0.8 * lr), weed * 0.85);
+	s = max(s, weed);
 	float wetness = clamp(wet * (0.55 + s), 0.0, 1.0);
 	ALBEDO = col * (1.0 - 0.4 * wetness);
 	ROUGHNESS = mix(0.9, 0.25, wetness * (1.0 - g));

@@ -20,6 +20,12 @@ var beam_light: SpotLight3D
 var beam_cone: MeshInstance3D
 var lamp_glow: OmniLight3D
 var door_lamp: OmniLight3D               # G6d: the bulkhead lamp over the base door
+var island_glb := false                  # G6d: island.glb (Blender exterior.py) brings its own landing + walkway
+var title_boat: Node3D                   # G6d: the keeper's boat, title screen only (setup_title)
+var _coast := PackedFloat32Array()       # G6d: island.glb's coast radius per degree of bearing (shore foam)
+var _boat_bow := Vector3.ZERO            # the bow ring, boat-local
+var _rope: Array[MeshInstance3D] = []
+const BOAT_GLB := "res://assets/models/boat.glb"
 var optic: Node3D
 var rain: GPUParticles3D
 var ship_views := {}
@@ -60,10 +66,11 @@ func setup(k: KeeperSim) -> void:
 	sim = k
 	_noise_tex = _noise(256, 0.02, false)
 	_environment()
+	_island()                            # G6d: before the ocean, whose shore foam follows its coastline
 	_ocean()
-	_island()
 	_reefs()
-	_jetty()
+	if not island_glb:
+		_jetty()                         # the old procedural stand-in, only without island.glb
 	_lighthouse()
 	_beam()
 	_rain()
@@ -304,13 +311,17 @@ func _shore_field() -> ImageTexture:
 	var circles: Array = []
 	for r in sim.layout.reefs:
 		circles.append([r["pos"], r["r"]])
-	circles.append([Vector2.ZERO, sim.layout.island_radius + 2.0])
+	if _coast.is_empty():
+		circles.append([Vector2.ZERO, sim.layout.island_radius + 2.0])
 	for y in N:
 		for x in N:
 			var p := Vector2(rect.x + (x + 0.5) / N * rect.z, rect.y + (y + 0.5) / N * rect.w)
 			var best := 99.0
 			for c in circles:
 				best = minf(best, p.distance_to(c[0]) - c[1])
+			if not _coast.is_empty():                # the real coastline (island.glb), not a circle
+				var bi := int(fposmod(rad_to_deg(atan2(p.x, -p.y)), 360.0)) % 360
+				best = minf(best, p.length() - _coast[bi])
 			img.set_pixel(x, y, Color(clampf(1.0 - best / 11.0, 0.0, 1.0), 0, 0))
 	return ImageTexture.create_from_image(img)
 
@@ -318,7 +329,11 @@ func _shore_field() -> ImageTexture:
 func _island() -> void:
 	var model := "res://assets/models/island.glb"
 	if ResourceLoader.exists(model):
-		add_child(load(model).instantiate())
+		var isl: Node3D = load(model).instantiate()
+		add_child(isl)
+		_apply_mats(isl)
+		island_glb = isl.find_child("SM_Landing*", true, false) != null
+		_coast_from(isl.find_child("SM_Island_Terrain", true, false) as MeshInstance3D)
 		return
 	# procedural stand-in: rugged dome with cliffs, rises to the tower plinth (3.5 m)
 	var st := SurfaceTool.new()
@@ -351,14 +366,57 @@ func _island() -> void:
 	st.generate_normals()
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
-	var m := ShaderMaterial.new()
-	m.shader = load("res://shaders/terrain.gdshader")
-	m.set_shader_parameter("rock_a", load("res://assets/textures/cliff_side_diff.png"))
-	m.set_shader_parameter("rock_n", load("res://assets/textures/cliff_side_nor_gl.png"))
-	m.set_shader_parameter("grass_a", load("res://assets/textures/sparse_grass_diff.png"))
-	m.set_shader_parameter("shore_a", load("res://assets/textures/coast_land_rocks_01_diff.png"))
-	mi.material_override = m
+	mi.material_override = _terrain_mat()
 	add_child(mi)
+
+
+var _terrain_m: ShaderMaterial
+
+
+func _terrain_mat() -> ShaderMaterial:
+	if _terrain_m == null:
+		_terrain_m = ShaderMaterial.new()
+		_terrain_m.shader = load("res://shaders/terrain.gdshader")
+		_terrain_m.set_shader_parameter("rock_a", load("res://assets/textures/cliff_side_diff.png"))
+		_terrain_m.set_shader_parameter("rock_n", load("res://assets/textures/cliff_side_nor_gl.png"))
+		_terrain_m.set_shader_parameter("grass_a", load("res://assets/textures/sparse_grass_diff.png"))
+		_terrain_m.set_shader_parameter("shore_a", load("res://assets/textures/coast_land_rocks_01_diff.png"))
+	return _terrain_m
+
+
+## The coast radius on each degree of bearing: the farthest island vertex near the waterline.
+func _coast_from(mi: MeshInstance3D) -> void:
+	if mi == null or mi.mesh == null:
+		return
+	_coast.resize(360)
+	_coast.fill(0.0)
+	var verts: PackedVector3Array = mi.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	for v0 in verts:
+		var v: Vector3 = mi.transform * v0
+		if v.y > -0.5 and v.y < 0.5:
+			var bi := int(fposmod(rad_to_deg(atan2(v.x, -v.z)), 360.0)) % 360
+			_coast[bi] = maxf(_coast[bi], Vector2(v.x, v.z).length())
+	for k in 360:                                  # fill any empty degree from its neighbours
+		if _coast[k] == 0.0:
+			_coast[k] = maxf(_coast[(k + 359) % 360], _coast[(k + 1) % 360])
+		if _coast[k] == 0.0:
+			_coast[k] = sim.layout.island_radius
+
+
+## Blender material names -> the game's materials (LLMaterials; the island's terrain shader).
+func _apply_mats(root_: Node) -> void:
+	var stack: Array = [root_]
+	while stack.size() > 0:
+		var n: Node = stack.pop_back()
+		stack.append_array(n.get_children())
+		if n is MeshInstance3D and n.mesh:
+			for i in n.mesh.get_surface_count():
+				var m: Material = n.mesh.surface_get_material(i)
+				if m == null:
+					continue
+				var rep: Material = _terrain_mat() if m.resource_name == "M_LL_Terrain" else LLMaterials.get_mat(m.resource_name)
+				if rep:
+					n.set_surface_override_material(i, rep)
 
 
 func _reefs() -> void:
@@ -374,6 +432,74 @@ func _reefs() -> void:
 		mi.rotation.y = deg_to_rad(r["rot"])
 		mi.scale = Vector3(r["r"], r["r"] * (0.55 + 0.6 * r["height"]), r["r"])
 		add_child(mi)
+
+
+## G6d: the title screen's own props. The keeper's boat is moored alongside the landing, riding the swell,
+## its painter (bow line) sagging to the near bollard. Title only: in the story the landing is empty until
+## the visitor's launch comes alongside in ch4 (canon; DECISIONS Q14).
+func setup_title() -> void:
+	if title_boat != null or not ResourceLoader.exists(BOAT_GLB):
+		return
+	title_boat = load(BOAT_GLB).instantiate()
+	add_child(title_boat)
+	_apply_mats(title_boat)
+	var ring := title_boat.find_child("ROPE_bow", true, false) as Node3D
+	_boat_bow = ring.position if ring else Vector3(2.0, 0.6, 0)
+	var rope_m := LLMaterials.get_mat("M_LL_Rope")
+	for i in 12:
+		var seg := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.02
+		cm.bottom_radius = 0.02
+		cm.height = 1.0
+		cm.radial_segments = 6
+		cm.rings = 1
+		seg.mesh = cm
+		seg.material_override = rope_m
+		seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(seg)
+		_rope.append(seg)
+	_tick_boat(0.0, sim.storm if sim else 0.75)
+
+
+func _landing_frame() -> Array:
+	var b := deg_to_rad(28.0)
+	var o := Vector3(sin(b), 0, -cos(b))                   # outward along the pier
+	var r := Vector3(cos(b), 0, sin(b))                    # right, looking out
+	return [Geo.to_v3(Geo.polar(b, 18.5), 0.0), o, r]
+
+
+func _tick_boat(t: float, storm: float) -> void:
+	var f := _landing_frame()
+	var root_: Vector3 = f[0]
+	var o: Vector3 = f[1]
+	var r: Vector3 = f[2]
+	var berth := root_ + o * (3.0 + 0.18 * sin(t * 0.31)) - r * 2.75     # alongside the pier's left side
+	var p2 := Vector2(berth.x, berth.z)
+	var h := OceanWaves.height_at(p2, t, storm)
+	var nrm := OceanWaves.normal_at(p2, t, storm, 1.0)
+	var fwd := o.rotated(Vector3.UP, 0.05 * sin(t * 0.23) + 0.03 * sin(t * 0.71))
+	var basis := Basis(fwd, Vector3.UP, fwd.cross(Vector3.UP))
+	var tilt := Basis(Quaternion(Vector3.UP, nrm.lerp(Vector3.UP, 0.45).normalized()))
+	title_boat.transform = Transform3D(tilt * basis, Vector3(berth.x, h + 0.02, berth.z))
+	# the painter: bow ring to the near bollard top, a sag that tightens as the boat surges out
+	var a := title_boat.transform * _boat_bow
+	var b := root_ + o * 2.0 - r * 1.25 + Vector3.UP * 1.72
+	var span := a.distance_to(b)
+	var sag := clampf(0.9 - span * 0.12, 0.08, 0.7)
+	var prev := a
+	for i in _rope.size():
+		var k := float(i + 1) / _rope.size()
+		var q := a.lerp(b, k) - Vector3.UP * sag * 4.0 * k * (1.0 - k)
+		var seg := _rope[i]
+		var d := q - prev
+		seg.scale = Vector3(1.0, maxf(d.length(), 0.001), 1.0)
+		seg.global_position = (prev + q) * 0.5
+		if d.length() > 0.001:
+			var y := d.normalized()
+			var x := y.cross(Vector3.FORWARD if absf(y.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+			seg.global_basis = Basis(x, y, x.cross(y)).scaled(Vector3(1.0, d.length(), 1.0))
+		prev = q
 
 
 ## The landing below the light (bearing 028): concrete pier, timber fenders, bollards, steps up the rock.
@@ -448,19 +574,13 @@ func _rock_mesh(variant: int) -> ArrayMesh:
 func _lighthouse() -> void:
 	var lh: Node3D = load("res://assets/models/lighthouse.glb").instantiate()
 	add_child(lh)
+	_apply_mats(lh)
 	var stack: Array = [lh]
 	while stack.size() > 0:
 		var n: Node = stack.pop_back()
 		stack.append_array(n.get_children())
-		if n is MeshInstance3D:
-			for i in n.mesh.get_surface_count():
-				var m: Material = n.mesh.surface_get_material(i)
-				if m:
-					var rep := LLMaterials.get_mat(m.resource_name)
-					if rep:
-						n.set_surface_override_material(i, rep)
-			if String(n.name).begins_with("GLS_"):
-				n.material_override = LLMaterials.glass()
+		if n is MeshInstance3D and String(n.name).begins_with("GLS_"):
+			n.material_override = LLMaterials.glass()
 		if String(n.name) == "PT_optic":
 			optic = n
 	# G6d: the bulkhead lamp over the base door (blender build_entrance: 6.13 m out on bearing 35, 6.18 m
@@ -657,3 +777,5 @@ func _process_body(delta: float) -> void:
 			ship_views.erase(id)
 		else:
 			v.tick(_t, delta, storm, sim)
+	if title_boat:
+		_tick_boat(_t, storm)

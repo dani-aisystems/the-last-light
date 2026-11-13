@@ -341,6 +341,28 @@ Plan: `~/.claude/plans/pasted-content-id-ccb6-continue-the-nifty-alpaca.md`. Dan
 - **Captures:** `renders/last_light/g6d_b2_ext_top_menu.png`, `g6d_b2_ext_door_menu.png`, `g6d_b2_menu_menu.png`.
 - **Still to do:** the island (black, the noise dome), the landing (a grey box), the stray pale quad near the old jetty steps, the beam crossing the menu text (Stages C–E).
 
+**Stage C (the island, landing, walkway, boat; build v056, island.glb v002 35k tris, boat.glb v002 3.4k tris, validation 0 FAIL, reimport OK):**
+- **New `blender/exterior.py`** (called from build.py, which passes itself for the geometry helpers):
+  - `ASSET_island`:
+    - a polar-grid terrain: a turf crown with broad swells, ledged slopes, a cliff toe into the sea, and seven rock knolls, bigger and barer on the SW weather side;
+    - a coastline between 19.9 and 23.4 m;
+    - a levelled cut for the landing steps and a bed under the walkway;
+    - 30 coastal boulders.
+  - The landing: the concrete pier kept, with weathered timber decking, piles and wales on both sides, an iron ladder, four bollards, a rope coil, concrete steps carried down into the rock and an iron handrail.
+  - The walkway: timber boards on sleepers from the top of the steps to the door step, with an iron handrail on the seaward side.
+  - `ASSET_boat`: a 4.3 m clinker-built workboat: lapped strakes, inside skin, gunwales, two thwarts, bottom boards, a stem, a transom outboard, and a bow ring (`ROPE_bow`).
+- **Godot (`outside.gd`):**
+  - `island.glb` is mapped through `_apply_mats` (`M_LL_Terrain` takes the terrain shader), and the procedural jetty is skipped when the island brings its own landing;
+  - the shore foam reads the real coast radius per degree from the island mesh (it was a 23 m circle);
+  - `setup_title()` (title only, called from game_fp's attract branch) moors the boat alongside the pier on `OceanWaves`, with a 12-segment painter that sags to the bollard as the boat surges;
+  - the terrain shader gets a dark wet tide band (wrack and weed) from the waterline to about 1 m.
+- **regress +5:** the title boat alongside the landing and its painter from the bow ring (R21); the island brings the landing, the foam follows the coast, and the story's landing is empty (R22).
+- **Captures:** `renders/last_light/g6d_c_ext_walk_menu.png`, `g6d_c2_ext_landing_menu.png`, `g6d_c2_menu_menu.png`. The first pass read as a flat pancake; knolls and rougher turf fixed that.
+- **Still to do:**
+  - the foam halo is still a wide even band (fades over 11 m): Stage D;
+  - the island is very dark at title distance: Stage D lightning and the Stage E reframe.
+- **DECISIONS Q14** records the G6d decisions.
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.

@@ -57,6 +57,11 @@ MATS = {
     "M_LL_TowerPaint": ("#D8D4CA", 0.85, 0.0, {}),   # G6d: NLB white-painted tower (Godot: tri_pbr, streaks, salt)
     "M_LL_TowerTrim": ("#B8955A", 0.8, 0.0, {}),     # G6d: NLB buff trim (porch, door surround)
     "M_LL_DoorLamp": ("#F2D9A8", 0.3, 0.0, {}),      # G6d: the bulkhead lamp's glass (Godot: warm emissive)
+    # G6d stage C (exterior.py): Godot swaps these for its own shaders / materials by name
+    "M_LL_Terrain": ("#3E3F3A", 0.9, 0.0, {}),       # the island (Godot: terrain.gdshader)
+    "M_LL_Rock": ("#4A4B4C", 0.85, 0.0, {}),         # coastal boulders (Godot: tri_pbr rock)
+    "M_LL_BoatPaint": ("#5E6E76", 0.6, 0.0, {}),     # the keeper's boat, painted outside
+    "M_LL_BoatWood": ("#6B4A2E", 0.7, 0.0, {}),      # its thwarts, rails and the inside
     "M_LL_Stone": ("#5E5A54", 0.9, 0.0, {}),
     "M_LL_Floor": ("#3E3C38", 0.45, 0.0, {}),
     "M_LL_Wood": ("#4A3020", 0.6, 0.0, {}),
@@ -2789,8 +2794,19 @@ def build():
     B2 = Builder(lh)
     build_lighthouse(B2)
     B2.flush()
+    # G6d stage C: the island, landing and walkway; the title-only keeper's boat (exterior.py)
+    import exterior
+    H = sys.modules[__name__]
+    isl = reset("ASSET_island")
+    B3 = Builder(isl)
+    exterior.build_island(H, B3)
+    B3.flush()
+    boat = reset("ASSET_boat")
+    B4 = Builder(boat)
+    exterior.build_boat(H, B4)
+    B4.flush()
     stats = {}
-    for c in (room, lh):
+    for c in (room, lh, isl, boat):
         tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in c.objects if o.type == "MESH")
         stats[c.name] = {"objects": len(c.objects), "tris": tris}
     return stats
