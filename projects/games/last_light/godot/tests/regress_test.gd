@@ -1389,6 +1389,7 @@ func _r12_brief_g2() -> void:
 	await _r20_portraits()
 	await _r21_menu_g6c()
 	_r22_saves_isolated()
+	await _r23_title_storm()
 
 
 ## G3a R15: the hand compass and the binoculars. Desk pickups (nothing before), G / B never shared with
@@ -2159,6 +2160,143 @@ func _r21_menu_g6c() -> void:
 	g.process_mode = Node.PROCESS_MODE_INHERIT
 	for c in hidden:
 		c.visible = true
+
+
+## G6d R23 (stage D): the title's 02:00 storm. The lightning scheduler: gaps 4-14 s, never under the
+## floor, never regular (no gap repeats the last within 0.9 s, a wide spread), mostly flickers, some sheet
+## flashes, occasional bolts; Reduce flashing never draws a bolt and keeps the x0.3 flash; Reduce motion
+## slows the cadence. The title holds storm 0.75 with its own rain, splashes and spray (counts by
+## quality); the story's storm, rain, beam and lightning are exactly as before.
+func _r23_title_gaps(ts: TitleStorm, secs: float) -> Array:
+	var starts: Array[float] = []
+	var el := 0.0
+	while el < secs:
+		el += 0.05
+		for e in ts.step(0.05):
+			if e["type"] == "lightning":
+				starts.append(el)
+	var iv: Array[float] = []
+	for i in range(1, starts.size()):
+		iv.append(starts[i] - starts[i - 1])
+	return iv
+
+
+func _r23_title_storm() -> void:
+	print("R23 G6d title storm")
+	var st_node: Node = root.get_node("Settings")
+	# 1) the scheduler, an hour of title at 20 fps
+	var ts := TitleStorm.new(11)
+	var iv := _r23_title_gaps(ts, 3600.0)
+	var mean := 0.0
+	for x in iv:
+		mean += x
+	mean /= maxf(iv.size(), 1.0)
+	var sd := 0.0
+	for x in iv:
+		sd += (x - mean) * (x - mean)
+	sd = sqrt(sd / maxf(iv.size(), 1.0))
+	var repeats := 0
+	for i in range(1, ts.gaps.size()):
+		if absf(ts.gaps[i] - ts.gaps[i - 1]) < TitleStorm.REPEAT_S - 0.001:
+			repeats += 1
+	_check(iv.size() > 250 and iv.min() >= TitleStorm.GAP_MIN_S - 0.06 and iv.max() <= TitleStorm.GAP_MAX_S + 0.06,
+		"title lightning: %d strikes, gaps %.2f-%.2f s (floor %.1f, about 4-14)" % [iv.size() + 1, iv.min(), iv.max(), TitleStorm.GAP_MIN_S])
+	_check(sd >= 2.0 and mean > 6.0 and mean < 10.0 and repeats == 0,
+		"never regular: mean %.1f s, spread %.1f s, %d gaps repeating the last" % [mean, sd, repeats])
+	var n := {"flicker": 0, "sheet": 0, "bolt": 0}
+	var run := 0
+	var worst_run := 0
+	for k in ts.kinds:
+		n[k] += 1
+		run = 0 if k == "bolt" else run + 1
+		worst_run = maxi(worst_run, run)
+	var share := float(n["bolt"]) / maxf(ts.kinds.size(), 1.0)
+	_check(n["flicker"] > n["sheet"] and n["sheet"] > n["bolt"] and share >= 0.08 and share <= 0.25 and worst_run <= TitleStorm.BOLT_EVERY_MAX,
+		"the mix: mostly flickers, some sheets, occasional bolts %s (bolts %.0f %%, at most %d events apart)" % [n, share * 100.0, worst_run + 1])
+	# 2) Reduce flashing: no bolts at all; Reduce motion: a slower cadence with a higher floor
+	var tf := TitleStorm.new(11)
+	tf.reduce_flashing = true
+	var drew := 0
+	var el := 0.0
+	while el < 1800.0:
+		el += 0.05
+		for e in tf.step(0.05):
+			if e.get("bolt", false):
+				drew += 1
+	_check(drew == 0 and not tf.kinds.has("bolt") and not tf.force_bolt()[0]["bolt"], "Reduce flashing: no bolt in 30 min, a forced one is a sheet")
+	var tm := TitleStorm.new(11)
+	tm.reduce_motion = true
+	var ivm := _r23_title_gaps(tm, 3600.0)
+	var mean_m := 0.0
+	for x in ivm:
+		mean_m += x
+	mean_m /= maxf(ivm.size(), 1.0)
+	_check(ivm.min() >= TitleStorm.GAP_MIN_S * TitleStorm.CALM_MUL - 0.06 and mean_m >= mean * 1.5,
+		"Reduce motion: slower (mean %.1f s vs %.1f, floor %.1f s)" % [mean_m, mean, ivm.min()])
+	# 3) the story is untouched: its storm, rain, beam and lightning are the G5 / G6c ones
+	var o = g.outside
+	var pm: ParticleProcessMaterial = o.rain.process_material
+	var q: QuadMesh = o.rain.draw_pass_1
+	_check(g.title_storm == null and o.title_fx == null and o.near_rain == null and o.splashes == null and o.spray.is_empty(),
+		"story: no title storm, near rain, splashes or spray")
+	_check(pm.direction.is_equal_approx(Vector3(0.35, -1, 0.15)) and not pm.particle_flag_align_y and q != null
+		and q.size.is_equal_approx(Vector2(0.018, 0.55)) and o.rain.amount == st_node.q_rain_amount(),
+		"story: the rain is as before (direction %s, %d drops)" % [pm.direction, o.rain.amount])
+	var mk = o.beam_mat.get_shader_parameter("mask_x")
+	var dk = o.beam_mat.get_shader_parameter("decay")
+	_check((mk == null or mk == Vector2(-2, -1)) and (dk == null or is_equal_approx(dk, 3.2)), "story: the beam shaft is unmasked, decay as before")
+	_check(is_equal_approx(g.sim.storm, g.sim.storm_override) or g.sim.storm_override < 0.0, "story: the storm is the director's (%.2f)" % g.sim.storm)
+	o.on_events([{"type": "lightning", "power": 0.8, "bearing": 0.3, "distance": 600.0}])
+	_check(o._flash_light == 1.0 and is_equal_approx(o.bolt_light.rotation.x, deg_to_rad(-40.0)), "story: a sim strike lights as before (from its bearing, gain 1)")
+	o.flash = 0.0
+	var ws := KeeperSim.new()
+	ws.setup(KeeperConfig.new(), LayoutData.load_file(), {"ships": [], "faults": []}, 3)
+	for i in 270 * 4:
+		ws.step(0.25)
+	_check(absf(ws.storm - ws.cfg.storm_at(ws.t)) < 0.001, "the watch night still follows its storm curve (%.2f at %.0f s)" % [ws.storm, ws.t])
+	# 4) the title: storm 0.75 held, its own lightning (the sim's dropped), rain layers, splashes, spray
+	g.process_mode = Node.PROCESS_MODE_DISABLED
+	var a = load("res://scripts/fp/game_fp.gd").new()
+	root.add_child(a)
+	a.start(5, "expert", true, false)
+	await create_timer(8.0).timeout
+	var ao = a.outside
+	_check(a.title_storm != null and is_equal_approx(a.sim.storm, TitleStorm.STORM) and a.sim.t > 4.0, "title: storm held at 0.75 (%.2f at %.0f s)" % [a.sim.storm, a.sim.t])
+	var routed: Array = a._title_events([{"type": "lightning", "power": 1.0, "bearing": 0.0, "distance": 500.0}, {"type": "click", "device": "mode"}], 0.0)
+	_check(routed.size() == 1 and routed[0]["type"] == "click", "title: the sim's own strikes are dropped (%d left)" % routed.size())
+	var qi := clampi(int(st_node.v["quality"]), 0, 2)
+	_check(ao.near_rain != null and ao.near_rain.amount == ao.TITLE_NEAR_RAIN[qi] and (ao.rain.process_material as ParticleProcessMaterial).particle_flag_align_y,
+		"title: a near streak layer (%d) and the ring layer slanted by the gale" % (ao.near_rain.amount if ao.near_rain else -1))
+	var wd: Vector3 = (ao.rain.process_material as ParticleProcessMaterial).direction
+	_check(wd.x > 0.2 and wd.z < -0.2 and wd.y < -0.5, "title: the rain drifts north-east, before a south-west gale (%s)" % wd)
+	_check((ao.splashes != null and ao.splashes.amount == ao.TITLE_SPLASHES[qi]) or ao.TITLE_SPLASHES[qi] == 0,
+		"title: splashes on the landing and walkway decks (%d)" % (ao.splashes.amount if ao.splashes else 0))
+	_check(ao.spray.size() == ao.TITLE_SPRAY[qi] and ao._spray_pts.size() >= 10 and ao.spray_fired > 0,
+		"title: spray bursts where the swell meets the ledges (%d emitters, %d ledges, %d bursts in 8 s)" % [ao.spray.size(), ao._spray_pts.size(), ao.spray_fired])
+	var mono := true
+	for arr in [ao.TITLE_NEAR_RAIN, ao.TITLE_SPLASHES, ao.TITLE_SPRAY]:
+		mono = mono and arr[0] <= arr[1] and arr[1] < arr[2]
+	_check(mono, "title: every count scales with the quality preset")
+	_check(ao.beam_mat.get_shader_parameter("mask_x") == ao.TITLE_BEAM_MASK, "title: the beam's cone fades before the menu column")
+	# a forced bolt draws; with Reduce flashing it doesn't, and the flash stays at x0.3
+	var shown0: int = ao.bolts_shown
+	a.force_title_bolt()
+	await _frames(1)
+	_check(ao.bolts_shown == shown0 + 1 and ao._flash_light > 1.0, "title: a bolt draws and its flash lights the island (gain %.1f)" % ao._flash_light)
+	await create_timer(1.5).timeout
+	var keep_rf = st_node.v["reduce_flashing"]
+	st_node.v["reduce_flashing"] = true
+	await _frames(2)
+	shown0 = ao.bolts_shown
+	a.force_title_bolt()
+	await _frames(1)
+	_check(ao.bolts_shown == shown0 and ao.flash_now <= 0.3 * ao.flash + 0.001, "title, Reduce flashing: no bolt, the flash x0.3 (%.2f of %.2f)" % [ao.flash_now, ao.flash])
+	st_node.v["reduce_flashing"] = keep_rf
+	a.queue_free()
+	await _frames(3)
+	g.process_mode = Node.PROCESS_MODE_INHERIT
+	if g.player and g.player.camera:
+		g.player.camera.current = true
 
 
 func _save_mtimes(d: String) -> Dictionary:

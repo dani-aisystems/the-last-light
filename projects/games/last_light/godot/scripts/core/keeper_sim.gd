@@ -277,7 +277,8 @@ func step(dt: float) -> Array:
 		storm = storm_override if storm_override >= 0.0 else storm
 		clock_min += clock_rate * dt
 	else:
-		storm = cfg.storm_at(t)
+		# G6d: the title (attract) holds the watch at storm 0.75 (game_fp); otherwise the night's curve
+		storm = storm_override if storm_override >= 0.0 else cfg.storm_at(t)
 	tx_t = maxf(0.0, tx_t - dt)
 	if not story_mode:
 		_logbook_step(ev)

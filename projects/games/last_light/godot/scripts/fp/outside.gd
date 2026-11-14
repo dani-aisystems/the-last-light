@@ -26,6 +26,26 @@ var _coast := PackedFloat32Array()       # G6d: island.glb's coast radius per de
 var _boat_bow := Vector3.ZERO            # the bow ring, boat-local
 var _rope: Array[MeshInstance3D] = []
 const BOAT_GLB := "res://assets/models/boat.glb"
+## G6d stage D: the title's storm (setup_title only; the story's rain, beam and lightning are untouched).
+## Counts per quality preset (Low, Medium, High).
+const TITLE_NEAR_RAIN := [700, 1400, 2400]     # the camera-near streak layer
+const TITLE_SPLASHES := [0, 220, 420]          # drops bursting on the pier and walkway decks
+const TITLE_SPRAY := [3, 6, 10]                # spray emitters fired where the swell meets the ledges
+const TITLE_SPRAY_N := 64                      # particles per spray burst (many faint ones read as mist)
+## The menu column's right edge in screen width (16:9; main_fp's column ends near 0.5): the beam's cone
+## fades out over this span and its fog scatter drops while it points into the column.
+const TITLE_BEAM_MASK := Vector2(0.50, 0.66)
+var title_fx: Node3D                           # every title-only effect lives under this node
+var near_rain: GPUParticles3D
+var splashes: GPUParticles3D
+var spray: Array[GPUParticles3D] = []
+var spray_fired := 0                           # tests and QA
+var _streak_mats: Array[ShaderMaterial] = []
+var _spray_mat: StandardMaterial3D
+var _spray_pts: Array = []                     # [world pos, outward Vector3, last height, cooldown until]
+var _spray_next := 0
+var _spray_gap := 0.0
+var _flash_light := 1.0                        # the current flash's light gain (title events set it per kind)
 var optic: Node3D
 var rain: GPUParticles3D
 var ship_views := {}
@@ -94,10 +114,15 @@ func _bolt_setup() -> void:
 ## A strike event: maybe show a bolt 400-900 m out along the strike bearing, from the cloud base down
 ## to the sea. With reduce-flashing on, no bolt is drawn at all.
 func _strike_bolt(e: Dictionary) -> void:
-	var chance := 0.35 + 0.3 * (sim.storm if sim else 0.5)
-	if Settings.v["reduce_flashing"] or _bolt_rng.randf() > chance:
-		bolts_skipped += 1
-		return
+	if e.has("bolt"):                          # G6d title events decide for themselves (no draw from _bolt_rng)
+		if Settings.v["reduce_flashing"] or not e["bolt"]:
+			bolts_skipped += 1
+			return
+	else:
+		var chance := 0.35 + 0.3 * (sim.storm if sim else 0.5)
+		if Settings.v["reduce_flashing"] or _bolt_rng.randf() > chance:
+			bolts_skipped += 1
+			return
 	var d: float = e.get("distance", 650.0)
 	var dir2 := Geo.dir(e.get("bearing", 0.0))
 	var out := Vector3(dir2.x, 0.0, dir2.y)
@@ -460,6 +485,298 @@ func setup_title() -> void:
 		add_child(seg)
 		_rope.append(seg)
 	_tick_boat(0.0, sim.storm if sim else 0.75)
+	_title_storm_fx()
+
+
+# ------------------------------------------------------------------ G6d stage D: the title's storm
+
+static func _qn(counts: Array) -> int:
+	return int(counts[clampi(int(Settings.v["quality"]), 0, counts.size() - 1)])
+
+
+func _streak_mat(tint: Color, length_m: float, width_m: float, px_per_m: float) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/rain_streak.gdshader")
+	m.set_shader_parameter("tint", tint)
+	m.set_shader_parameter("length_m", length_m)
+	m.set_shader_parameter("width_m", width_m)
+	m.set_shader_parameter("px_per_m", px_per_m)
+	_streak_mats.append(m)
+	return m
+
+
+func _streak_quad(mat: ShaderMaterial) -> QuadMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2(1, 1)
+	q.material = mat
+	return q
+
+
+## The title's storm: wind-slanted rain in two layers (the ring round the tower, far, and a streak layer
+## near the camera, for parallax), splashes on the landing and walkway decks, spray where the swell meets
+## the ledges, and a beam tuned for the menu. Off with --norain (rain, splashes, spray) like the story rain.
+func _title_storm_fx() -> void:
+	if title_fx != null:
+		return
+	title_fx = Node3D.new()
+	title_fx.name = "TitleStorm"
+	add_child(title_fx)
+	var raining := not GameState.user_args.has("norain")
+	# perf bisect: --title_off=ring,near,splash,spray leaves that part as it was before stage D (ring) or out
+	var off := String(GameState.user_args.get("title_off", "")).split(",")
+	var wind_dir := (TitleStorm.WIND + Vector3(0, -TitleStorm.RAIN_FALL, 0)).normalized()
+	var speed := (TitleStorm.WIND + Vector3(0, -TitleStorm.RAIN_FALL, 0)).length()
+	# 1) the ring layer (far, round the tower) drifts with the gale and is drawn as streaks
+	var pm: ParticleProcessMaterial = rain.process_material
+	if not off.has("ring"):
+		pm.direction = wind_dir
+		pm.spread = 5.0
+		pm.initial_velocity_min = speed * 0.9
+		pm.initial_velocity_max = speed * 1.1
+		pm.gravity = Vector3(0, -4.0, 0)
+		pm.particle_flag_align_y = true
+		rain.draw_pass_1 = _streak_quad(_streak_mat(Color(0.7, 0.76, 0.85, 0.2), 0.8, 0.006, 0.0011))
+	# 2) the near layer: a box of streaks 2-26 m in front of the camera, following it
+	near_rain = GPUParticles3D.new()
+	near_rain.name = "NearRain"
+	near_rain.amount = _qn(TITLE_NEAR_RAIN)
+	near_rain.lifetime = 0.7
+	near_rain.preprocess = 0.7
+	near_rain.local_coords = false
+	near_rain.visibility_aabb = AABB(Vector3(-22, -16, -22), Vector3(44, 32, 44))
+	near_rain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var npm := ParticleProcessMaterial.new()
+	npm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	npm.emission_box_extents = Vector3(15, 9, 11)
+	npm.direction = wind_dir
+	npm.spread = 3.0
+	npm.initial_velocity_min = speed * 0.9
+	npm.initial_velocity_max = speed * 1.1
+	npm.gravity = Vector3.ZERO
+	npm.particle_flag_align_y = true
+	near_rain.process_material = npm
+	var nm := _streak_mat(Color(0.66, 0.72, 0.8, 0.26), 0.75, 0.004, 0.0013)
+	nm.set_shader_parameter("mask_x", TITLE_BEAM_MASK - Vector2(0.08, 0.08))
+	nm.set_shader_parameter("mask_floor", 0.35)            # the near rain thins over the menu column
+	near_rain.draw_pass_1 = _streak_quad(nm)
+	near_rain.emitting = raining and not off.has("near")
+	near_rain.visible = not off.has("near")
+	title_fx.add_child(near_rain)
+	_title_splashes(raining and not off.has("splash"))
+	_title_spray(raining and not off.has("spray"))
+	# 3) the beam: a longer, stronger shaft than the story's (seen from 100 m, not from the gallery), its
+	# cone faded out before the menu column (beam.gdshader mask_x)
+	beam_mat.set_shader_parameter("mask_x", TITLE_BEAM_MASK)
+	beam_mat.set_shader_parameter("decay", 2.6)
+
+
+## Splashes: drops bursting up off every upward face of the landing and walkway (decks, steps, bollards).
+func _title_splashes(raining: bool) -> void:
+	var n := _qn(TITLE_SPLASHES)
+	if n == 0 or not raining:
+		return
+	var pts := PackedVector3Array()
+	var areas := PackedFloat32Array()
+	var total := 0.0
+	for mi in find_children("SM_*", "MeshInstance3D", true, false):
+		var nm := String(mi.name)
+		if not (nm.begins_with("SM_Landing") or nm.begins_with("SM_Walkway")) or mi.mesh == null:
+			continue
+		var xf: Transform3D = mi.global_transform
+		for s in mi.mesh.get_surface_count():
+			var arr: Array = mi.mesh.surface_get_arrays(s)
+			var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX] if arr[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
+			var tri_n := idx.size() / 3 if idx.size() > 0 else v.size() / 3
+			for t in tri_n:
+				var a := xf * v[idx[t * 3] if idx.size() > 0 else t * 3]
+				var b := xf * v[idx[t * 3 + 1] if idx.size() > 0 else t * 3 + 1]
+				var c := xf * v[idx[t * 3 + 2] if idx.size() > 0 else t * 3 + 2]
+				var cr := (b - a).cross(c - a)
+				var area := cr.length() * 0.5
+				if area < 1e-4 or absf(cr.normalized().y) < 0.85:
+					continue
+				total += area
+				pts.append(a)
+				pts.append(b)
+				pts.append(c)
+				areas.append(total)
+	if areas.is_empty():
+		return
+	# area-weighted samples on the upward faces, as an emission point texture (world space, emitter at origin)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 23
+	var count := 512
+	var img := Image.create(count, 1, false, Image.FORMAT_RGBF)
+	for i in count:
+		var k := areas.bsearch(rng.randf() * total)
+		k = mini(k, areas.size() - 1)
+		var u := rng.randf()
+		var w := rng.randf()
+		if u + w > 1.0:
+			u = 1.0 - u
+			w = 1.0 - w
+		var p := pts[k * 3] + (pts[k * 3 + 1] - pts[k * 3]) * u + (pts[k * 3 + 2] - pts[k * 3]) * w + Vector3(0, 0.01, 0)
+		img.set_pixel(i, 0, Color(p.x, p.y, p.z))
+	splashes = GPUParticles3D.new()
+	splashes.name = "DeckSplashes"
+	splashes.amount = n
+	splashes.lifetime = 0.24
+	splashes.local_coords = false
+	splashes.visibility_aabb = AABB(Vector3(-5, -2, -30), Vector3(25, 12, 32))
+	splashes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var spm := ParticleProcessMaterial.new()
+	spm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINTS
+	spm.emission_point_texture = ImageTexture.create_from_image(img)
+	spm.emission_point_count = count
+	spm.direction = Vector3(0, 1, 0)
+	spm.spread = 38.0
+	spm.initial_velocity_min = 0.9
+	spm.initial_velocity_max = 2.0
+	spm.gravity = Vector3(TitleStorm.WIND.x * 0.15, -9.8, TitleStorm.WIND.z * 0.15)
+	spm.particle_flag_align_y = true
+	splashes.process_material = spm
+	splashes.draw_pass_1 = _streak_quad(_streak_mat(Color(0.8, 0.84, 0.9, 0.6), 0.16, 0.009, 0.0014))
+	splashes.emitting = raining
+	title_fx.add_child(splashes)
+
+
+## Spray: a pool of one-shot bursts, fired along the ledges that face the swell as a crest arrives there
+## (OceanWaves, the same surface the ocean shader draws), carried downwind by the gale.
+func _title_spray(raining: bool) -> void:
+	if not raining or _coast.is_empty():
+		return
+	var tex := GradientTexture2D.new()
+	var gr := Gradient.new()
+	gr.set_color(0, Color(1, 1, 1, 1))
+	gr.set_color(1, Color(1, 1, 1, 0))
+	gr.set_offset(1, 1.0)
+	gr.add_point(0.35, Color(1, 1, 1, 0.3))
+	tex.gradient = gr
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	_spray_mat = StandardMaterial3D.new()
+	_spray_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_spray_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_spray_mat.albedo_texture = tex
+	_spray_mat.albedo_color = Color(0.5, 0.54, 0.58, 0.55)
+	_spray_mat.vertex_color_use_as_albedo = true
+	_spray_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	_spray_mat.billboard_keep_scale = true
+	_spray_mat.proximity_fade_enabled = true
+	_spray_mat.proximity_fade_distance = 1.2
+	_spray_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1.8, 1.8)
+	quad.material = _spray_mat
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1, 1, 1, 0))
+	ramp.set_color(1, Color(1, 1, 1, 0))
+	ramp.add_point(0.1, Color(1, 1, 1, 0.42))
+	ramp.add_point(0.5, Color(1, 1, 1, 0.22))
+	var ramp_t := GradientTexture1D.new()
+	ramp_t.gradient = ramp
+	var sc := Curve.new()
+	sc.add_point(Vector2(0, 0.4))
+	sc.add_point(Vector2(1, 2.4))
+	var sc_t := CurveTexture.new()
+	sc_t.curve = sc
+	for i in _qn(TITLE_SPRAY):
+		var e := GPUParticles3D.new()
+		e.name = "Spray%d" % i
+		e.amount = TITLE_SPRAY_N
+		e.lifetime = 1.8
+		e.one_shot = true
+		e.explosiveness = 0.8
+		e.local_coords = false
+		e.emitting = false
+		e.visibility_aabb = AABB(Vector3(-14, -2, -14), Vector3(28, 18, 28))
+		e.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var pm := ParticleProcessMaterial.new()
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		pm.emission_sphere_radius = 1.8
+		pm.direction = Vector3(0, 1, 0)
+		pm.spread = 26.0
+		pm.initial_velocity_min = 3.5
+		pm.initial_velocity_max = 7.5
+		pm.gravity = Vector3(TitleStorm.WIND.x * 0.45, -9.8, TitleStorm.WIND.z * 0.45)
+		pm.damping_min = 1.0
+		pm.damping_max = 2.0
+		pm.scale_min = 0.6
+		pm.scale_max = 1.5
+		pm.scale_curve = sc_t
+		pm.color_ramp = ramp_t
+		e.process_material = pm
+		e.draw_pass_1 = quad
+		title_fx.add_child(e)
+		spray.append(e)
+	# the ledges that face the swell (the waves run roughly south, so the north side takes it), every 5
+	# degrees, but not the landing (bearings 16-40: the pier and the boat)
+	var swell := Vector2.ZERO
+	for w in OceanWaves.WAVES:
+		swell += Vector2(w.x, w.y).normalized() * w.z
+	swell = swell.normalized()
+	for deg in range(0, 360, 5):
+		if deg >= 16 and deg <= 40:
+			continue
+		var b := deg_to_rad(float(deg))
+		var out2 := Geo.dir(b)
+		var expo := out2.dot(-swell)
+		if expo < 0.2:
+			continue
+		var p2 := Geo.polar(b, _coast[deg] + 0.5)
+		_spray_pts.append([Vector3(p2.x, 0.15, p2.y), Vector3(out2.x, 0, out2.y), 0.0, 0.0, expo])
+
+
+## Per frame on the title: the near rain follows the camera, lightning lights the rain and spray, spray
+## fires on arriving crests, and the beam's fog scatter drops while the beam points into the menu column.
+func _title_step(delta: float, storm: float, level: float) -> void:
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	for m in _streak_mats:
+		m.set_shader_parameter("flash", flash_now)
+	if _spray_mat:
+		var k := 1.0 + 2.5 * flash_now
+		_spray_mat.albedo_color = Color(0.5 * k, 0.54 * k, 0.58 * k, 0.55)
+	if cam and near_rain:
+		near_rain.global_position = cam.global_position - cam.global_basis.z * 15.0
+	# spray: a rising crest past the threshold at a ledge fires the next free emitter there
+	_spray_gap = maxf(0.0, _spray_gap - delta)
+	if not spray.is_empty():
+		for sp in _spray_pts:
+			var h := OceanWaves.height_at(Vector2(sp[0].x, sp[0].z), _t, storm)
+			var thr: float = 0.42 - 0.12 * sp[4]
+			if h > thr and sp[2] <= thr and _t >= sp[3] and _spray_gap <= 0.0:
+				var e: GPUParticles3D = spray[_spray_next]
+				if not e.emitting:
+					var pm: ParticleProcessMaterial = e.process_material
+					var strength := clampf((h - thr) * 6.0 + sp[4], 0.6, 1.6)
+					pm.direction = (Vector3.UP + sp[1] * 0.35).normalized()
+					pm.initial_velocity_min = 5.0 * strength      # plumes 1-6 m: visible from the title camera
+					pm.initial_velocity_max = 10.5 * strength
+					e.global_position = sp[0]
+					e.restart()
+					e.emitting = true
+					_spray_next = (_spray_next + 1) % spray.size()
+					spray_fired += 1
+					sp[3] = _t + 3.5
+					_spray_gap = 0.45
+			sp[2] = h
+	# the beam's fog scatter (it can't be masked like the cone): full while the beam points right of the
+	# column or along the camera's line, low while its near 120 m lies over the menu
+	if cam:
+		var vw := get_viewport().get_visible_rect().size.x
+		var fwd := -beam_light.global_transform.basis.z
+		var minx := 1.0
+		for d in [25.0, 60.0, 120.0]:
+			var p: Vector3 = beam_pivot.global_position + fwd * d
+			if not cam.is_position_behind(p):
+				minx = minf(minx, cam.unproject_position(p).x / maxf(vw, 1.0))
+		var k2 := smoothstep(TITLE_BEAM_MASK.x, TITLE_BEAM_MASK.y, minx)
+		beam_light.light_volumetric_fog_energy = lerpf(0.3, 1.7, k2)
+		beam_mat.set_shader_parameter("intensity", 0.72 * level)
 
 
 func _landing_frame() -> Array:
@@ -699,8 +1016,17 @@ func on_events(events: Array) -> void:
 			"lightning":
 				flash = e["power"]
 				_flash_dir = Geo.dir(e["bearing"])
-				bolt_light.rotation = Vector3(deg_to_rad(-40), Geo.yaw_for(e["bearing"]) + PI, 0)
+				_flash_light = float(e.get("light", 1.0))
+				if e.get("title", false):
+					# G6d: the title camera sees the island's landing side, away from the strikes. A flash lights the
+					# cloud deck overhead, so the title's flash light comes from high on the camera's side
+					var lb: float = deg_to_rad(20.0) + (float(e["bearing"]) - PI) * 0.5
+					bolt_light.rotation = Vector3(deg_to_rad(-58), Geo.yaw_for(lb) + PI, 0)
+				else:
+					bolt_light.rotation = Vector3(deg_to_rad(-40), Geo.yaw_for(e["bearing"]) + PI, 0)
 				_strike_bolt(e)
+			"lightning_pulse":                          # G6d title: a flash's follow-up pulse (no thunder, no bolt)
+				flash = maxf(flash, float(e["power"]))
 			"ship_spawned":
 				var s := sim.find_ship(e["ship"])
 				var v := SHIP_VIEW.new()
@@ -735,7 +1061,7 @@ func _process_body(delta: float) -> void:
 		f *= 0.3
 	flash_now = f
 	_bolt_step(delta)
-	bolt_light.light_energy = f * 2.6
+	bolt_light.light_energy = f * 2.6 * _flash_light
 	sky_mat.set_shader_parameter("storm", storm)
 	sky_mat.set_shader_parameter("flash", f)
 	sky_mat.set_shader_parameter("dawn", maxf(dawn, dusk * 0.55))
@@ -770,6 +1096,8 @@ func _process_body(delta: float) -> void:
 	beam_light.spot_range = sim.vis_range() * (sim.cfg.focus_mul if focused else 1.0) + 40.0
 	beam_mat.set_shader_parameter("intensity", (0.9 if focused else 0.6) * level * (1.0 - 0.6 * dawn))
 	lamp_glow.light_energy = 2.5 * level if lit else 0.0
+	if title_fx:
+		_title_step(delta, storm, level)
 	for id in ship_views.keys():
 		var v = ship_views[id]
 		if v.done:

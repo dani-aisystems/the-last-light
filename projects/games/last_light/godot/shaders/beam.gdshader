@@ -8,6 +8,10 @@ uniform float intensity = 1.0;
 uniform float length_m = 180.0;
 uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
 uniform float time_s = 0.0;
+// G6d stage D (title only; the defaults leave the story's beam exactly as it was): the shaft's decay along
+// its length, and a screen-space fade so the cone dissolves before the menu column (x0 -> x1 of the width).
+uniform float decay = 3.2;
+uniform vec2 mask_x = vec2(-2.0, -1.0);
 
 varying vec3 l_pos;
 
@@ -23,9 +27,9 @@ void fragment() {
 	// so the shaft never ends in a visible disc (the old fade was inverted: it peaked at the rim).
 	// 0.5 x and faster decay: the first G1 capture read as a solid bright wedge, far stronger than the
 	// original's subtle shaft (the SpotLight's own volumetric scatter carries most of the beam)
-	float fade = 0.5 * smoothstep(0.0, 0.025, d) * exp(-3.2 * d) * (1.0 - smoothstep(0.35, 0.85, d));
+	float fade = 0.5 * smoothstep(0.0, 0.025, d) * exp(-decay * d) * (1.0 - smoothstep(0.35, 0.85, d));
 	float n = texture(noise, vec2(l_pos.y * 0.02 - time_s * 0.15, atan(l_pos.x, l_pos.z) * 0.3)).r;
-	float a = edge * fade * (0.55 + 0.6 * n) * intensity;
+	float a = edge * fade * (0.55 + 0.6 * n) * intensity * smoothstep(mask_x.x, mask_x.y, SCREEN_UV.x);
 	ALBEDO = color * a;
 	ALPHA = 1.0;
 }

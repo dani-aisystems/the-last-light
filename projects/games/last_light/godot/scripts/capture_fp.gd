@@ -38,6 +38,8 @@ extends Node
 ##   --bench [--bench_secs=60] [--bench_shots=fp_desk,fp_window,fp_gen]: worst case (storm 1.0, lightning
 ##     every 3 s, generator running, all breakers on, one ship) at 1x speed; writes NAME_bench.json with
 ##     median / p95 frame time, GPU time, draw calls, primitives and memory per shot.
+##   --bench_menu [--bench_secs=30]: the title's frame cost (G6d stage D), a bolt forced every 4 s.
+##   Title shots (G6d stage D, before any game): tmenu[@T][!bolt][!hide][!view=ext_landing] (see _title_shot).
 ## Prints PERF lines (fps at 1x speed), PROF lines and CAPTURE_RESULT {json}.
 ## NOTE: frame timings are only trustworthy when the window is frontmost (macOS throttles otherwise).
 
@@ -157,6 +159,9 @@ func _input(_event: InputEvent) -> void:
 func _run() -> void:
 	var args: Dictionary = GameState.user_args
 	var name_: String = args.get("capture", "fp")
+	if args.has("bench_menu"):
+		await _bench_menu(name_, args)
+		return
 	if args.has("bench"):
 		await _bench(name_, args)
 		return
@@ -169,6 +174,9 @@ func _run() -> void:
 		if s == "menu":
 			await _frames(90)
 			_save(name_ + "_menu")
+			continue
+		if s.begins_with("tmenu"):
+			await _title_shot(name_, s)
 			continue
 		await _ensure_game(args)
 		var g = main.game
@@ -819,6 +827,85 @@ func _bench(name_: String, args: Dictionary) -> void:
 		report["shots"].append(r)
 		print("BENCH ", JSON.stringify(r))
 		_restore(g)
+	var path := out_dir.path_join("%s_bench.json" % name_)
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify(report, "  "))
+	f.close()
+	print("BENCH_RESULT ", path)
+	get_tree().quit(0)
+
+
+## G6d stage D: a title shot, before any game starts. tmenu[@T][!bolt][!hide][!view=NAME]: T puts the orbit
+## at T seconds (as --cine_t), bolt saves a forced title bolt at its first stroke, hide hides the menu,
+## view=NAME holds a game_fp CINE_VIEWS close-up (menu hidden). Saved as NAME_tmenu[_tT][_bolt][_NAME].
+func _title_shot(name_: String, s: String) -> void:
+	var parts := s.split("!")
+	var bg = main.menu_bg
+	var ga: Dictionary = GameState.user_args
+	ga.erase("cine_view")
+	main.menu.visible = true
+	var label := "tmenu"
+	if "@" in parts[0]:
+		var t := float(parts[0].get_slice("@", 1))
+		bg._cine_t = t
+		label += "_t%d" % int(t)
+	for st in parts.slice(1):
+		if st == "hide":
+			main.menu.visible = false
+			label += "_hide"
+		elif st.begins_with("view="):
+			ga["cine_view"] = st.substr(5)
+			main.menu.visible = false
+			label += "_" + st.substr(5)
+	await _frames(60)                          # the near rain fills, the camera settles
+	if "bolt" in parts:
+		bg.force_title_bolt()
+		await _frames(2)                       # the bolt's first stroke (it lives 0.15-0.35 s)
+		label += "_bolt"
+	_save(name_ + "_" + label)
+	main.menu.visible = true
+	ga.erase("cine_view")
+
+
+## G6d stage D: the title's frame cost (the menu over the attract world: storm 0.75, both rain layers,
+## splashes, spray, the beam). --bench_menu [--bench_secs=30]; a bolt is forced every 4 s on top of the
+## title's own lightning (worst case). Writes NAME_bench.json like --bench.
+func _bench_menu(name_: String, args: Dictionary) -> void:
+	var secs := float(args.get("bench_secs", "30"))
+	var vrid := get_viewport().get_viewport_rid()
+	RenderingServer.viewport_set_measure_render_time(vrid, true)
+	await _frames(120)
+	var bg = main.menu_bg
+	var ft: Array[float] = []
+	var gpu: Array[float] = []
+	var proc: Array[float] = []
+	var dc := 0.0
+	var prims := 0.0
+	var el := 0.0
+	var next_strike := 1.0
+	var last := Time.get_ticks_usec()
+	while el < secs:
+		if el >= next_strike:
+			bg.force_title_bolt()
+			next_strike += 4.0
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		var ms := (now - last) / 1000.0
+		last = now
+		el += ms / 1000.0
+		ft.append(ms)
+		gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(vrid))
+		proc.append(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
+		dc = maxf(dc, Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))
+		prims = maxf(prims, Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))
+	var r := {"shot": "menu", "frames": ft.size(), "median_ms": _pct(ft, 0.5), "p95_ms": _pct(ft, 0.95),
+		"p99_ms": _pct(ft, 0.99), "max_ms": ft.max(), "gpu_median_ms": _pct(gpu, 0.5), "gpu_p95_ms": _pct(gpu, 0.95),
+		"process_median_ms": _pct(proc, 0.5), "draw_calls_max": dc, "primitives_max": prims,
+		"focused": DisplayServer.window_is_focused()}
+	var report := {"name": name_, "quality": int(Settings.v["quality"]), "scale3d": get_viewport().scaling_3d_scale,
+		"window": DisplayServer.window_get_size(), "flags": args.keys().filter(func(k): return k in ["norain", "noocean", "novolfog", "noglow"]),
+		"secs": secs, "shots": [r]}
+	print("BENCH ", JSON.stringify(r))
 	var path := out_dir.path_join("%s_bench.json" % name_)
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	f.store_string(JSON.stringify(report, "  "))

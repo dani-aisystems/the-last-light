@@ -63,10 +63,20 @@ void fragment() {
 	float n1 = texture(foam_noise, uv * 0.06 + vec2(time_s * 0.03, 0.0)).r;
 	float n2 = texture(foam_noise, uv * 0.17 - vec2(0.0, time_s * 0.05)).r;
 	float crest_foam = smoothstep(0.55 - 0.25 * storm, 0.95, crest + (n1 - 0.5) * 0.5) * (0.35 + 0.65 * storm);
-	float surf = smoothstep(0.25, 0.9, shore * (0.7 + 0.6 * n2) + 0.15 * sin(time_s * 1.3 + shore * 9.0));
+	// G6d stage D: surf breaking on rock, not an even halo. The field is a distance (1 at the coast, 0 at
+	// 11 m out, 4 cm steps); the white water reaches 1-4 m, surging in with the swell, heavier on some
+	// ledges than others (n1, ~16 m patches), torn into lace (n3), with thin old foam drifting off.
+	float dist = (1.0 - shore) * 11.0;
+	float n3 = texture(foam_noise, uv * 0.33 + vec2(time_s * 0.05, -time_s * 0.07)).r;
+	float surge = 0.5 + 0.5 * sin(time_s * 0.85 - dist * 1.3 + n1 * 7.0);
+	float reach = (0.9 + 2.6 * surge * (0.45 + 0.55 * storm)) * (0.35 + 1.3 * n1) * (0.7 + 0.6 * crest);
+	float edge = exp(-dist / max(reach, 0.2));
+	float surf = smoothstep(0.32, 0.72, edge * (0.45 + 0.85 * n3) + 0.25 * edge * n2);
+	float lace = smoothstep(0.64, 0.8, n3 * (0.6 + 0.8 * n2)) * exp(-dist / 3.5) * 0.55;
+	surf = max(surf, lace);
 	float foam = clamp(max(crest_foam * n2 * 1.6, surf), 0.0, 1.0);
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
-	vec3 water = mix(deep_color, shallow_color, crest * 0.6 + shore * 0.4);
+	vec3 water = mix(deep_color, shallow_color, crest * 0.6 + exp(-dist / 4.0) * 0.4);
 	ALBEDO = mix(water, foam_color, foam);
 	ROUGHNESS = mix(0.06 + 0.1 * storm, 0.85, foam);
 	SPECULAR = 0.6;

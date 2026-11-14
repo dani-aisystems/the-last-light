@@ -28,6 +28,7 @@ var visitor_fig: Node3D
 var cine_cam: Camera3D
 var _cine_t := 0.0
 var cine_hold := false                 # G6c: true while main_fp's push-in tween drives the camera
+var title_storm: TitleStorm            # G6d stage D: the title's lightning and held storm (attract only)
 const CINE_LANTERN_NDC := 0.38         # G6c: the lantern at 0.69 of the width (the right third)
 const CINE_NEAR := 0.62                # G6c (Daniel: "closer"): the orbit at 0.62 of its old distance, ~98 m
 var _ended := false
@@ -86,7 +87,15 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 		_cine_t = float(GameState.user_args.get("cine_t", "0"))   # G6d captures: a fixed point on the orbit
 		audio.set_menu(true)
 		outside.attract = true
-		outside.setup_title()                  # G6d: the moored keeper's boat (title only)
+		# G6d stage D: the title is the middle watch at its worst, held there: storm 0.75, a night that never
+		# reaches dawn, and a light that never runs out (the bot keeps the station; fuel and cells are floored)
+		title_storm = TitleStorm.new(seed_value)
+		title_storm.reduce_flashing = bool(Settings.v["reduce_flashing"])
+		title_storm.reduce_motion = bool(Settings.v.get("reduce_motion", false))
+		sim.storm_override = TitleStorm.STORM
+		sim.storm = TitleStorm.STORM
+		sim.cfg.night_length = 1.0e7
+		outside.setup_title()                  # G6d: the moored keeper's boat and the storm's rain and spray
 		return
 	player = preload("res://scripts/fp/player.gd").new()
 	player.station = station
@@ -546,11 +555,33 @@ func _physics_process(delta: float) -> void:
 		return
 	if bot:
 		_route(bot.act(sim, delta))
-	_route(sim.step(delta))
+	if title_storm:
+		_route(_title_events(sim.step(delta), delta))
+	else:
+		_route(sim.step(delta))
 	if story_mode and player:
 		_track_player(delta)
 	if story_mode and ui:
 		_tick_comms(delta)
+
+
+## G6d stage D (title only): the sim's own strikes are spread round the north for the watch-room windows,
+## behind the title camera, so they are dropped and TitleStorm's are routed instead (same event shape:
+## the flash, the bolt and the thunder all follow them). The accessibility settings are read live.
+func _title_events(ev: Array, delta: float) -> Array:
+	title_storm.reduce_flashing = bool(Settings.v["reduce_flashing"])
+	title_storm.reduce_motion = bool(Settings.v.get("reduce_motion", false))
+	sim.fuel = maxf(sim.fuel, 20.0)
+	sim.battery = maxf(sim.battery, 40.0)
+	var out: Array = ev.filter(func(e): return e["type"] != "lightning")
+	out.append_array(title_storm.step(delta))
+	return out
+
+
+## A bolt on the title now (captures: the mid-bolt still). Reduce flashing still turns it into a sheet.
+func force_title_bolt() -> void:
+	if title_storm:
+		_route(title_storm.force_bolt())
 
 
 func _track_player(delta: float) -> void:

@@ -363,6 +363,41 @@ Plan: `~/.claude/plans/pasted-content-id-ccb6-continue-the-nifty-alpaca.md`. Dan
   - the island is very dark at title distance: Stage D lightning and the Stage E reframe.
 - **DECISIONS Q14** records the G6d decisions.
 
+**Stage D (the 02:00 storm on the title; 2026-11-13/14; title only except the shore foam):**
+- **Storm held (game_fp, attract):** `sim.storm_override = 0.75` (the watch-mode sim now honours `storm_override`; default −1, so every existing path is unchanged: sim_v2's result line is byte-identical to the baseline), `cfg.night_length` 1e7 (no dawn on the title), fuel ≥ 20 and cells ≥ 40 % (the light never goes out on a long-idle menu; before, the menu reached dawn at ~620 s and the beam froze when the night ended).
+- **Lightning (new `scripts/fp/title_storm.gd`, `class_name TitleStorm`):** game_fp drops the sim's own strikes on the title (spread round the north for the watch-room windows: behind the title camera) and routes TitleStorm's:
+  - gaps `4 + 10·u^1.7` s (most 5–9, tail to 14), floor 4.0 s, a gap never within 0.9 s of the last;
+  - mix flicker 58 % / sheet 29 % / bolt 13 % (a bolt at least every 8 events), with 0–3 follow-up pulses per flash (`lightning_pulse`: flash only, no thunder);
+  - bolts at bearings 194–214° (x 0.66–0.95 of a 16:9 title, right of the column, behind and beside the tower); their light comes from high (−58°) on the camera's side with gain 1.7, flickers 0.35, sheets 0.8 (`outside._flash_light`); story strikes keep gain 1 and their old direction;
+  - Reduce flashing: no bolts (a forced one becomes a sheet), the flash ×0.3 as before; Reduce motion: every gap ×1.6.
+  - Measured over a simulated hour (R23): 446 strikes, gaps 4.05–14.00 s, mean 8.1 s, spread 3.1 s, 0 repeats; Reduce motion mean 13.0 s, floor 6.4 s.
+- **Rain (outside `setup_title` → `_title_storm_fx`; new `shaders/rain_streak.gdshader`, a camera-facing streak aligned to the particle's velocity, with a minimum width per metre of depth and a length cap of 0.05 m per metre so a drop by the lens never crosses the frame):**
+  - the ring layer (5,000 on Medium, unchanged count) now drifts north-east before the south-west gale (wind 12 m/s, fall 15 m/s) as streaks;
+  - a near layer of 700 / 1,400 / 2,400 streaks in a box 4–26 m in front of the camera (parallax), thinned to 35 % over the menu column;
+  - deck splashes: 0 / 220 / 420 drops from 512 area-weighted points on every upward face of `SM_Landing*` / `SM_Walkway*`;
+  - spray: 3 / 6 / 10 one-shot emitters × 64, fired when a rising crest passes 0.30–0.42 m at one of 27 ledge points facing the swell (`OceanWaves`, the surface the ocean draws; not the landing, 16–40°), carried downwind; 3.5 s per ledge, 0.45 s between bursts.
+- **Beam (title):** cone `decay` 3.2 → 2.6, intensity 0.72 × level; `mask_x` fades the cone out between 0.66 and 0.50 of the width; the SpotLight's fog scatter drops 1.7 → 0.3 while its first 120 m lie over the column. Story defaults unchanged (`decay` 3.2, mask off).
+- **Shore foam (`ocean.gdshader`, global: the island is the same in the game):** the field is decoded as a distance (4 cm steps); white water reaches 1–4 m, surging with the swell, heavier on some ledges (16 m noise), torn into lace, with thin old foam drifting off. The 11 m halo is gone.
+- **Capture and bench hooks (`capture_fp.gd`, own hunks only):** title shots `tmenu[@T][!bolt][!hide][!view=NAME]` before any game; `--bench_menu [--bench_secs]` (a bolt forced every 4 s); perf bisect `--title_off=ring,near,splash,spray`.
+- **Captures (`renders/last_light/`):** first pass `g6d_d_*`, tuned `g6d_d2_*`, spray check `g6d_d3_*` (menu at cine_t 0 / 47 / 133, mid-bolt at 90, ext_landing; 16:9 via `--win=960x540`).
+  - First pass: bolts at x 0.55–0.65 (too near the column), the beam haze to x 0.43 over the subtitle, a near drop drawing an 850 px streak, spray barely visible, splashes 1–2 px. All fixed in d2 (bolt x 0.70–0.80; beam gone by x 0.52; length cap; brighter splashes).
+  - Spray: d2 read as bright round discs; d3 (64 fainter particles, softer sprite) reads as a droplet veil but each droplet keeps a bright core, glowing dots in the close landing view. **PARTIAL.** Next: a flatter sprite (centre alpha ~0.55, no hot core), then re-shoot.
+  - Text contrast (WCAG ratio of the text's 98th-percentile luminance to the 40th percentile behind it): subtitle 2.3:1, save line 3.9:1, New Game 5.5:1 on calm frames; 2.1 / 3.8 / 5.2 at a bolt's peak. Stage C's frame measured 2.8 / 4.5 / 6.2 but was shot in the start-up fullscreen window (text rasterised at another size); the backgrounds behind the text are equal or darker now (p40 0.0054 vs 0.0062). Stage E retunes the text.
+- **Bench (Medium, no vsync, 16:9, hidden `godot_bg` window, so indicative; GPU timer reads 0 there):**
+
+  | Run | Median ms | p95 ms | Frames |
+  |---|---|---|---|
+  | all on (40 s) | 16.68 | 19.84 | 2,394 |
+  | `--norain` (40 s) | 6.93 | 10.97 | 5,507 |
+  | `--noocean` (40 s) | 16.62 | 26.46 | 2,086 |
+  | `--title_off=ring,near,splash,spray` (Stage C rain, 25 s) | 16.67 | 19.36 | 1,511 |
+  | `--title_off=near` / `spray` / `ring` (25 s each) | 16.66 / 16.68 / 16.64 | 19.38 / 19.36 / 19.35 | ~1,510 |
+  | all on, final spray (25 s) | 16.84 | 21.59 | 1,517 |
+
+  Stage D's own additions are within noise of the Stage C rain (median), but the final 64-particle spray put the p95 up by about 2 ms. Every run with the ring rain emitting sits at the 60 Hz step (16.67 ms) and only `--norain` breaks below it, so the 10 ms gap is the ring rain path (G5, with its heightfield collider) or a pacing artifact of the hidden window, not resolved here. **Budget: PARTIAL** (median on 16.7, p95 over). Medium in-game is unchanged by Stage D apart from one extra noise fetch in the ocean shader.
+- **regress R23 (+21):** the scheduler (range, floor, spread, no repeats, the mix), Reduce flashing (no bolt in 30 min, ×0.3 at a forced bolt), Reduce motion (slower, floor 6.4 s); the story's rain, beam, storm and strike lighting exactly as before, and the watch night still on its curve; the title's held storm, dropped sim strikes, both rain layers drifting north-east, splashes, spray firing, quality scaling, the beam mask, a bolt that draws and lights the island.
+- Suites on the final tree: regress 354/0, story 0 failures, interaction 159/0 (12 sound warnings), qa_sweep 1,924, run_tests 95, g5 48/0, sim_v2 no gate failures (identical), pytest 23.
+
 ## Dependency map
 **Ordering constraints:**
 - 7 and 25 → 26: the input split comes before the arbiter.
