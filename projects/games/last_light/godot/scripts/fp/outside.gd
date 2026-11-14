@@ -547,7 +547,7 @@ func _title_storm_fx() -> void:
 	near_rain.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var npm := ParticleProcessMaterial.new()
 	npm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	npm.emission_box_extents = Vector3(15, 9, 11)
+	npm.emission_box_extents = Vector3(10, 6, 11)            # the 32 deg title lens (stage E): 4-26 m ahead
 	npm.direction = wind_dir
 	npm.spread = 3.0
 	npm.initial_velocity_min = speed * 0.9
@@ -648,10 +648,11 @@ func _title_spray(raining: bool) -> void:
 		return
 	var tex := GradientTexture2D.new()
 	var gr := Gradient.new()
-	gr.set_color(0, Color(1, 1, 1, 1))
+	gr.set_color(0, Color(1, 1, 1, 0.5))           # no hot core: a flat soft puff (g6d_d3 read as glowing dots)
 	gr.set_color(1, Color(1, 1, 1, 0))
 	gr.set_offset(1, 1.0)
-	gr.add_point(0.35, Color(1, 1, 1, 0.3))
+	gr.add_point(0.3, Color(1, 1, 1, 0.4))
+	gr.add_point(0.62, Color(1, 1, 1, 0.12))
 	tex.gradient = gr
 	tex.fill = GradientTexture2D.FILL_RADIAL
 	tex.fill_from = Vector2(0.5, 0.5)

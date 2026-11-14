@@ -1,31 +1,38 @@
 class_name MenuItem
 extends Button
-## G6c ("Still Water", Daniel 2026-11-09): one title-menu entry. No box in any state. The rank shows in
-## brightness, not size: a `top` item (Continue, or New Game with no save) is full parchment, the rest a
-## quieter tone. The focused item alone is amber, with a thin amber rule (the lamp tick) sliding in from
-## the left gutter (child rects, eased each frame from has_focus()); hover takes the focus, so there is only ever one highlight. While the item is
-## focused the tick swells a little each time the real beam sweeps towards the camera (glow_source,
-## 0..1); Reduce motion and Reduce flashing turn the glow and the slide off.
+## G6c ("Still Water", Daniel 2026-11-09), G6d stage E: one title-menu entry. No box in any state. The rank
+## shows in brightness: the primary pair (Continue and New Game; New Game alone with no save) is full
+## parchment, the rest a quieter tone; the `top` item (Continue, or New Game with no save) is also larger.
+## The focused item alone is amber, with a soft warm glow behind its text (menu_glow.gdshader: an ellipse
+## about 1.6x the text width, fading in over 0.25 s, eased each frame from has_focus()); hover takes the
+## focus, so there is only ever one highlight. While the item is focused its glow brightens a little each
+## time the real beam sweeps towards the camera (glow_source, 0..1). Reduce motion: the glow appears at once
+## and holds still (no beam); Reduce flashing: no beam swell either.
 
-const GUTTER := 30                 # the tick lives here, left of the text
-const TICK_W := 16.0
-const TICK_X := 4.0
-const PAD := 8                     # vertical content margin; the entrance "rise" moves text within it
+const GUTTER := 30                 # left margin before the text (lines the column up with the logo)
+const PAD := 12                    # vertical content margin; the entrance "rise" moves text within it
+const GLOW_W := 1.6                # the glow's width, in text widths
+const GLOW_H := 2.6                # its height, in font sizes
+const GLOW_BASE := 0.2             # its strength when focused ...
+const GLOW_BEAM := 0.12            # ... plus this much as the beam faces the camera
+const FADE_S := 0.25
 
 var top := false
+var bright := false
 var glow_source := Callable()      # -> float 0..1 (game_fp.beam_facing); empty: no glow
-var mark := 0.0                    # tick progress 0..1 (tweened)
+var mark := 0.0                    # the focus glow's fade 0..1
 var glow := 0.0                    # last beam factor drawn
 var rise := 0.0                    # entrance offset in px (text drawn this much lower)
 var _box: StyleBoxEmpty
-var _tick: ColorRect
+var _glow_rect: ColorRect
+var _glow_mat: ShaderMaterial
 var _was_focused := false
-var _halo: ColorRect
 
 
-func setup(text_: String, size_: int, top_: bool) -> MenuItem:
+func setup(text_: String, size_: int, top_: bool, bright_ := top_) -> MenuItem:
 	text = text_
 	top = top_
+	bright = bright_
 	alignment = HORIZONTAL_ALIGNMENT_LEFT
 	focus_mode = Control.FOCUS_ALL
 	size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -38,15 +45,17 @@ func setup(text_: String, size_: int, top_: bool) -> MenuItem:
 	for s in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
 		add_theme_stylebox_override(s, _box)
 	UIStyle.track(self, size_)
-	_halo = ColorRect.new()
-	_halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_halo)
-	_tick = ColorRect.new()
-	_tick.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_tick)
-	resized.connect(_place_tick)
+	_glow_mat = ShaderMaterial.new()
+	_glow_mat.shader = preload("res://shaders/menu_glow.gdshader")
+	_glow_rect = ColorRect.new()
+	_glow_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_glow_rect.show_behind_parent = true          # under the text, which the Button draws itself
+	_glow_rect.material = _glow_mat
+	_glow_rect.visible = false
+	add_child(_glow_rect)
+	resized.connect(_place_glow)
 	_tone()
-	_place_tick()
+	_place_glow()
 	focus_entered.connect(_tone)
 	focus_exited.connect(_tone)
 	mouse_entered.connect(func():
@@ -70,7 +79,7 @@ static func calm() -> bool:
 func tone_color() -> Color:
 	if has_focus():
 		return UIStyle.AMBER
-	return UIStyle.INK if top else UIStyle.INK_QUIET
+	return UIStyle.INK if bright else UIStyle.INK_QUIET
 
 
 func _tone() -> void:
@@ -85,14 +94,14 @@ func _set_rise(px: float) -> void:
 	rise = px
 	_box.content_margin_top = PAD + px
 	_box.content_margin_bottom = maxf(PAD - px, 0.0)
-	_place_tick()
+	_place_glow()
 
 
 func set_rise(px: float) -> void:
 	_set_rise(clampf(px, 0.0, PAD))
 
 
-## Every frame the tick follows has_focus() itself (0.15 s ease, at once with Reduce motion), so no
+## Every frame the glow follows has_focus() itself (a 0.25 s fade, at once with Reduce motion), so no
 ## order of focus signals (window focus changes, deferred grabs) can leave a focused item without it.
 func _process(delta: float) -> void:
 	var focused := has_focus()
@@ -102,7 +111,7 @@ func _process(delta: float) -> void:
 	var target := 1.0 if focused else 0.0
 	var changed := false
 	if mark != target:
-		mark = target if calm() else move_toward(mark, target, delta / 0.15)
+		mark = target if calm() else move_toward(mark, target, delta / FADE_S)
 		changed = true
 	var g := 0.0
 	if mark > 0.0 and glow_source.is_valid() and not calm() and not bool(setting("reduce_flashing", false)):
@@ -111,24 +120,38 @@ func _process(delta: float) -> void:
 		glow = g
 		changed = true
 	if changed:
-		_place_tick()
+		_place_glow()
 
 
-## The tick and its halo are child rects (engine-drawn), placed on the text's centre line.
-func _place_tick() -> void:
-	if _tick == null:
+## Width of the label text in its current font and size (the glow is centred on it).
+func text_width() -> float:
+	return get_theme_font("font").get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, get_theme_font_size("font_size")).x
+
+
+## The glow rect: centred on the text (its centre line, following the entrance rise), GLOW_W text widths
+## wide, whole canvas pixels; drawn behind the Button's own text.
+func _place_glow() -> void:
+	if _glow_rect == null:
 		return
-	# whole canvas pixels, and at least 2 window pixels tall: a small window shrinks the 1080-line canvas
-	# (0.67x at 720p), and a 2 px rect on a half pixel was lost entirely (G6c small-window capture)
-	var k := get_viewport_transform().get_scale().y if is_inside_tree() else 1.0
-	var h := maxf(2.0, ceilf(2.0 / maxf(k, 0.1)))
-	var y := roundf(size.y * 0.5 + rise - h * 0.5)
-	var w := roundf(TICK_W * mark)
-	_tick.visible = mark > 0.0
-	_tick.position = Vector2(TICK_X, y)
-	_tick.size = Vector2(w, h)
-	_tick.color = Color(UIStyle.AMBER, 0.78 + 0.22 * glow)
-	_halo.visible = mark > 0.0 and glow > 0.0      # a soft halo, only while the beam faces the camera
-	_halo.position = Vector2(TICK_X - 3.0, y - 3.0)
-	_halo.size = Vector2(w + 6.0, h + 6.0)
-	_halo.color = Color(UIStyle.AMBER, 0.12 * glow * mark)
+	var tw := text_width()
+	var fs := float(get_theme_font_size("font_size"))
+	var w := roundf(tw * GLOW_W)
+	var h := roundf(fs * GLOW_H)
+	_glow_rect.position = Vector2(roundf(GUTTER + tw * 0.5 - w * 0.5), roundf(size.y * 0.5 + rise - h * 0.5))
+	_glow_rect.size = Vector2(w, h)
+	_glow_rect.visible = mark > 0.0
+	_glow_mat.set_shader_parameter("strength", mark * (GLOW_BASE + GLOW_BEAM * glow))
+
+
+## The glow's rect and strength now (tests).
+func glow_rect() -> Rect2:
+	return _glow_rect.get_global_rect() if _glow_rect.visible else Rect2()
+
+
+func glow_strength() -> float:
+	return float(_glow_mat.get_shader_parameter("strength")) if _glow_rect.visible else 0.0
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED:        # the text size option: the glow follows the text
+		_place_glow()

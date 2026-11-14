@@ -857,6 +857,12 @@ func _title_shot(name_: String, s: String) -> void:
 			ga["cine_view"] = st.substr(5)
 			main.menu.visible = false
 			label += "_" + st.substr(5)
+		elif st.begins_with("focus="):            # G6d stage E: focus a menu item by its text (glow, Continue info)
+			var want := st.substr(6).replace("_", " ").to_lower()
+			for b in main.menu_items:
+				if b.text.to_lower() == want:
+					b.grab_focus()
+			label += "_" + st.substr(6).to_lower()
 	await _frames(60)                          # the near rain fills, the camera settles
 	if "bolt" in parts:
 		bg.force_title_bolt()

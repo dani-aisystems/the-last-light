@@ -16,13 +16,18 @@ var _loading: CanvasLayer
 ## G6c "Still Water" title (FINDINGS item 1). Captures and tests (presenter-side user args):
 ##   --links=PATH (another links file)  --menu_focus=<item>  --menu_nosave  --menu_fake_save  --win=WxH
 const LOGO_W := 640.0
+const LOGO_INK_W := LOGO_W - 16.0          # the logotype's glyphs (8 px clear each side in the PNG)
+## G6d stage E (DECISIONS Q14): two lines, centred under the logotype's visual width.
+const SUBTITLE := ["NORTH POINT LIGHT  ·  OUTER HEBRIDES", "THE MIDDLE WATCH  ·  14–15 NOVEMBER 1971"]
+const META_FADE_S := 0.25
 const ROMAN := ["", "I", "II", "III", "IV", "V", "VI", "VII"]
 const MONTHS := ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 const FAKE_SAVE := {"story": {"chapter": 1, "play_seconds": 1320}, "chapter_title": "The Watch", "clock": "20:20",
 	"saved_at": "2026-11-06T12:01:00"}
 var menu_items: Array[MenuItem] = []
 var menu_col: VBoxContainer
-var menu_meta: Label
+var menu_meta: Label                   # G6d stage E: the save, shown only while Continue has the focus
+var menu_sub: VBoxContainer
 var menu_corner: MenuLinks
 var credits_roll: CreditsRoll
 var _menu_root: Control
@@ -99,6 +104,7 @@ func _clear() -> void:
 	menu_items.clear()
 	menu_col = null
 	menu_meta = null
+	menu_sub = null
 	menu_corner = null
 	credits_roll = null
 	_menu_root = null
@@ -167,21 +173,30 @@ func show_menu() -> void:
 	logo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var logo_box := _indent(logo)
 	logo_box.add_theme_constant_override("margin_left", MenuItem.GUTTER - 8)   # the PNG's glyphs start 8 px in
-	_gap(16)
-	var sub_l := UIStyle.label("NORTH POINT LIGHT  ·  OUTER HEBRIDES  ·  14 NOVEMBER 1971", UIStyle.MENU_SUB, UIStyle.INK_SUB, UIStyle.caps())
-	_small_text.append(sub_l)
-	var sub := _indent(sub_l)
-	_gap(48)
+	_gap(14)
+	menu_sub = VBoxContainer.new()
+	menu_sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_sub.custom_minimum_size = Vector2(LOGO_INK_W, 0)
+	menu_sub.add_theme_constant_override("separation", 4)
+	for line in SUBTITLE:
+		var sl := UIStyle.label(line, UIStyle.MENU_SUB, UIStyle.INK, UIStyle.caps())
+		sl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		menu_sub.add_child(sl)
+		_small_text.append(sl)
+	var sub := _indent(menu_sub)
+	_gap(44)
 	var seq: Array[Control] = []
 	var latest := _menu_latest()
 	if latest != "":
 		seq.append(_item("Continue", true, func(): load_slot(latest)))
 		menu_meta = UIStyle.label(save_line(FAKE_SAVE if latest == "__fake__" else SaveSystem.read(latest)), UIStyle.MENU_META, UIStyle.INK_FAINT, UIStyle.typewriter())
 		menu_meta.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.0))
+		menu_meta.modulate.a = 0.0                # its slot is always reserved: showing it moves nothing
 		_small_text.append(menu_meta)
 		seq.append(_indent(menu_meta))
 		_gap(10)
-	seq.append(_item("New Game", latest == "", _new_game))
+	seq.append(_item("New Game", latest == "", _new_game, true))
 	_gap(30)
 	for it in [["Load Game", _open_load], ["Options", _open_options], ["Credits", _open_credits], ["Quit", func(): get_tree().quit()]]:
 		seq.append(_item(it[0], false, it[1]))
@@ -222,22 +237,22 @@ func _menu_latest() -> String:
 	return SaveSystem.latest()
 
 
-## The save as a typed log line under Continue: "CH. I · THE WATCH · 20.20 · 22 MIN PLAYED · SAVED 6 NOV 12.01".
+## The save as a typed log line under Continue: "CHAPTER I · THE WATCH · 20.20 · SAVED 6 NOV" (G6d stage E:
+## no minutes played, no time of the save).
 func save_line(d: Dictionary) -> String:
 	if d.is_empty() or d.has("corrupt"):
 		return ""
 	var st: Dictionary = d.get("story", {})
-	var parts := PackedStringArray(["CH. " + ROMAN[clampi(int(st.get("chapter", 1)), 1, ROMAN.size() - 1)]])
+	var parts := PackedStringArray(["CHAPTER " + ROMAN[clampi(int(st.get("chapter", 1)), 1, ROMAN.size() - 1)]])
 	var title := String(d.get("chapter_title", "")).strip_edges().to_upper()
 	if title != "":
 		parts.append(title)
 	var clock := String(d.get("clock", "")).replace(":", ".")
 	if clock != "":
 		parts.append(clock)
-	parts.append("%d MIN PLAYED" % int(float(st.get("play_seconds", 0)) / 60.0))
 	var at := String(d.get("saved_at", ""))                # 2026-11-06T12:01:00
-	if at.length() >= 16:
-		parts.append("SAVED %d %s %s" % [int(at.substr(8, 2)), MONTHS[clampi(int(at.substr(5, 2)), 1, 12) - 1], at.substr(11, 5).replace(":", ".")])
+	if at.length() >= 10:
+		parts.append("SAVED %d %s" % [int(at.substr(8, 2)), MONTHS[clampi(int(at.substr(5, 2)), 1, 12) - 1]])
 	return " · ".join(parts)
 
 
@@ -259,8 +274,8 @@ func _indent(c: Control) -> MarginContainer:
 	return m
 
 
-func _item(text: String, top: bool, f: Callable) -> MenuItem:
-	var b := MenuItem.new().setup(text, UIStyle.MENU_TOP if top else UIStyle.MENU_ITEM, top)
+func _item(text: String, top: bool, f: Callable, bright := top) -> MenuItem:
+	var b := MenuItem.new().setup(text, UIStyle.MENU_TOP if top else UIStyle.MENU_ITEM, top, bright)
 	b.glow_source = _beam_glow
 	b.pressed.connect(func():
 		_last_item = b
@@ -273,6 +288,17 @@ func _item(text: String, top: bool, f: Callable) -> MenuItem:
 	menu_col.add_child(b)
 	menu_items.append(b)
 	return b
+
+
+## G6d stage E: the Continue info fades in while Continue has the focus and out when it leaves (at once
+## under Reduce motion). Its slot never collapses, so nothing below it moves.
+func _process(delta: float) -> void:
+	if menu_meta == null or not is_instance_valid(menu_meta) or menu_items.is_empty():
+		return
+	var want := 1.0 if menu_items[0].text == "Continue" and menu_items[0].has_focus() else 0.0
+	var a := menu_meta.modulate.a
+	if a != want:
+		menu_meta.modulate.a = want if MenuItem.calm() else move_toward(a, want, delta / META_FADE_S)
 
 
 func _beam_glow() -> float:

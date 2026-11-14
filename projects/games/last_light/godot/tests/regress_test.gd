@@ -2012,8 +2012,20 @@ func _r21_menu_g6c() -> void:
 	var texts: Array = main.menu_items.map(func(b): return b.text)
 	_check(texts == ["New Game", "Load Game", "Options", "Credits", "Quit"], "no save: no Continue (%s)" % [texts])
 	_check(main.menu_items[0].top and main.menu_items.slice(1).all(func(b): return not b.top), "no save: New Game is the top item")
+	var shipped: Array = main.menu_corner.entries.map(func(e): return e["url"])
 	_check(main.menu_corner.signature.visible and main.menu_corner.signature.text == "A GAME BY DANIEL YANCHEV"
-		and not main.menu_corner.links_box.visible and main.menu_corner.buttons.is_empty(), "the shipped links.json: the signature alone, no links")
+		and main.menu_corner.links_box.visible and shipped == ["https://www.instagram.com/_d.yanchev_/", "mailto:daniel.aisystems@gmail.com"]
+		and main.menu_corner.buttons.map(func(b): return b.text) == ["INSTAGRAM", "CONTACT"],
+		"the shipped links.json: Instagram and Contact beside the signature (G6d E, DECISIONS Q14)")
+	_check(main.menu_sub != null and main.menu_sub.get_child_count() == 2
+		and main.menu_sub.get_child(0).text == "NORTH POINT LIGHT  ·  OUTER HEBRIDES" and main.menu_sub.get_child(1).text == "THE MIDDLE WATCH  ·  14–15 NOVEMBER 1971",
+		"the subtitle is two lines (G6d E)")
+	var sub_r: Rect2 = main.menu_sub.get_global_rect()
+	var logo_c: float = main.menu_sub.get_parent().get_global_rect().position.x + MenuItem.GUTTER + main.LOGO_INK_W * 0.5
+	_check(absf(sub_r.get_center().x - logo_c) < 2.0 and main.menu_sub.get_children().all(func(l): return l.horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER),
+		"the subtitle is centred under the logotype (%.0f vs %.0f)" % [sub_r.get_center().x, logo_c])
+	_check(sub_r.size.x <= main.LOGO_INK_W + 0.5 and main.menu_sub.get_children().all(func(l): return l.get_theme_color("font_color").is_equal_approx(UIStyle.INK)),
+		"the subtitle fits the logotype's width in full ink (%.0f px)" % sub_r.size.x)
 	# 2) a save, the test links (three valid, http: and javascript: rejected)
 	await _r21_build(main, {"menu_fake_save": "1", "links": "res://tests/fixtures/links_r21.json"})
 	var items: Array = main.menu_items
@@ -2024,12 +2036,30 @@ func _r21_menu_g6c() -> void:
 	for b in items:
 		if b.has_focus():
 			continue
-		by_tone = by_tone and b.tone_color().is_equal_approx(UIStyle.INK if b.top else UIStyle.INK_QUIET)
-	_check(by_tone and items.all(func(b): return b.get_theme_font_size("font_size") <= UIStyle.px(UIStyle.MENU_TOP)),
-		"the rank is brightness: the top item full parchment, the rest quiet, all small")
-	_check(main.menu_meta != null and main.menu_meta.text.begins_with("CH. I · THE WATCH · 20.20"), "the save line is a typed log line (%s)" % (main.menu_meta.text if main.menu_meta else ""))
+		by_tone = by_tone and b.tone_color().is_equal_approx(UIStyle.INK if b.bright else UIStyle.INK_QUIET)
+	_check(by_tone and items.all(func(b): return b.get_theme_font_size("font_size") <= UIStyle.px(UIStyle.MENU_TOP))
+		and items[0].bright and items[1].bright and items.slice(2).all(func(b): return not b.bright),
+		"the rank is brightness: the primary pair (Continue, New Game) full parchment, the rest quiet, all small")
+	_check(main.menu_meta != null and main.menu_meta.text == "CHAPTER I · THE WATCH · 20.20 · SAVED 6 NOV", "the Continue info, no minutes played (%s)" % (main.menu_meta.text if main.menu_meta else ""))
 	_check(main.save_line({"story": {"chapter": 3, "play_seconds": 3700}, "chapter_title": "The Storm", "clock": "01:05", "saved_at": "2026-11-07T23:59:10"})
-		== "CH. III · THE STORM · 01.05 · 61 MIN PLAYED · SAVED 7 NOV 23.59", "save_line formats any save")
+		== "CHAPTER III · THE STORM · 01.05 · SAVED 7 NOV", "save_line formats any save")
+	# the Continue info only while Continue has the focus, in a reserved slot (nothing below moves)
+	items[0].grab_focus()
+	await create_timer(0.4).timeout
+	var ng_y: float = items[1].get_global_rect().position.y
+	var meta_on: float = main.menu_meta.modulate.a
+	items[1].grab_focus()
+	await create_timer(0.4).timeout
+	_check(meta_on > 0.99 and main.menu_meta.modulate.a < 0.01 and absf(items[1].get_global_rect().position.y - ng_y) < 0.5,
+		"the Continue info shows on Continue only (%.2f / %.2f), its slot kept" % [meta_on, main.menu_meta.modulate.a])
+	# the hover glow: behind the focused item's text only, about 1.6x its width, centred on it
+	await create_timer(0.3).timeout
+	var gr: Rect2 = items[1].glow_rect()
+	var tw: float = items[1].text_width()
+	var tx: float = items[1].get_global_rect().position.x + MenuItem.GUTTER + tw * 0.5
+	_check(items[1].glow_strength() > 0.15 and items.filter(func(b): return b.glow_strength() > 0.0).size() == 1
+		and absf(gr.size.x / tw - MenuItem.GLOW_W) < 0.05 and absf(gr.get_center().x - tx) < 1.5 and items[1]._glow_rect.show_behind_parent,
+		"one glow, behind the focused item's text (%.2fx its width)" % (gr.size.x / maxf(tw, 1.0)))
 	var cor: MenuLinks = main.menu_corner
 	_check(cor.buttons.size() == 3 and cor.links_box.visible and cor.divider.visible, "the test file: three links (%d)" % cor.buttons.size())
 	_check(MenuLinks.load_links("res://tests/fixtures/links_r21.json").map(func(e): return e["url"]).all(func(u): return u.begins_with("https://") or u.begins_with("mailto:")),
@@ -2055,6 +2085,16 @@ func _r21_menu_g6c() -> void:
 		_check(xs.all(func(x): return x > col_end + 0.05), "%dx%d: the lantern is clear of the column (ends at %.2f)" % [s.x, s.y, col_end])
 	root.size = Vector2i(1920, 1080)
 	await _frames(3)
+	# G6d stage E: the longer title lens: the island and tower fill about half the width, the reef in front
+	bg._cine_t = 0.0
+	await _frames(2)
+	var ix := []
+	for deg in range(0, 360, 10):
+		var q := Geo.polar(deg_to_rad(deg), 22.0)
+		ix.append(bg.cine_cam.unproject_position(Vector3(q.x, 0.5, q.y)).x / 1920.0)
+	var lan_y: float = bg.cine_cam.unproject_position(Vector3(0, 24.8, 0)).y / 1080.0
+	_check(ix.max() - ix.min() >= 0.42 and ix.min() > 0.4 and lan_y > 0.2 and lan_y < 0.4,
+		"16:9: the island fills %.2f-%.2f of the width, the lantern at %.2f of the height" % [ix.min(), ix.max(), lan_y])
 	# one highlight: hover takes the focus; the keyboard moves it; a hovered item that lost it is not lit
 	var opt: MenuItem = items[3]
 	var cred: MenuItem = items[4]
@@ -2075,7 +2115,8 @@ func _r21_menu_g6c() -> void:
 	# the beam glow follows the beam (and only on the focused tick)
 	items[2].glow_source = func() -> float: return 1.0
 	await _frames(3)
-	_check(items[2].glow > 0.9 and items[1].glow == 0.0, "the focused tick glows with the beam (%.2f)" % items[2].glow)
+	_check(items[2].glow > 0.9 and items[1].glow == 0.0 and items[2].glow_strength() > MenuItem.GLOW_BASE + 0.05,
+		"the focused item's glow swells with the beam (%.2f)" % items[2].glow)
 	# panels: Options locks the column; Esc closes it and gives the focus back to Options
 	opt.grab_focus()
 	opt.pressed.emit()
@@ -2151,7 +2192,8 @@ func _r21_menu_g6c() -> void:
 	main.menu_items[0].glow_source = func() -> float: return 1.0
 	main.menu_items[0].grab_focus()
 	await _frames(3)
-	_check(main.menu_items[0].glow == 0.0 and main.menu_items[0].mark == 1.0, "Reduce motion: the tick shows at once and never glows")
+	_check(main.menu_items[0].glow == 0.0 and main.menu_items[0].mark == 1.0, "Reduce motion: the glow shows at once and holds still (no beam)")
+	_check(main.menu_meta.modulate.a > 0.99, "Reduce motion: the Continue info shows at once")
 	st_node.v["reduce_motion"] = keep_rm
 	for k in ["menu_fake_save", "menu_nosave", "links"]:
 		ga.erase(k)
@@ -2278,6 +2320,18 @@ func _r23_title_storm() -> void:
 		mono = mono and arr[0] <= arr[1] and arr[1] < arr[2]
 	_check(mono, "title: every count scales with the quality preset")
 	_check(ao.beam_mat.get_shader_parameter("mask_x") == ao.TITLE_BEAM_MASK, "title: the beam's cone fades before the menu column")
+	# the bolts stand right of the tower on the 16:9 title (foot and top of a bolt at the range's ends)
+	root.size = Vector2i(1920, 1080)
+	a._cine_t = 0.0
+	await _frames(2)
+	var bx := []
+	for brg in [TitleStorm.BOLT_BEARINGS.x, TitleStorm.BOLT_BEARINGS.y]:
+		for d in [520.0, 880.0]:
+			for h in [0.0, 300.0]:
+				var bq := Geo.polar(brg, d)
+				bx.append(snappedf(a.cine_cam.unproject_position(Vector3(bq.x, h, bq.y)).x / 1920.0, 0.01))
+	var lx: float = a.lantern_screen_x()
+	_check(bx.all(func(x): return x > lx + 0.03 and x < 1.0), "title: bolts land right of the tower and on screen (x %s, lantern %.2f)" % [bx, lx])
 	# a forced bolt draws; with Reduce flashing it doesn't, and the flash stays at x0.3
 	var shown0: int = ao.bolts_shown
 	a.force_title_bolt()

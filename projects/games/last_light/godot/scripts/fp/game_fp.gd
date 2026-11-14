@@ -31,6 +31,12 @@ var cine_hold := false                 # G6c: true while main_fp's push-in tween
 var title_storm: TitleStorm            # G6d stage D: the title's lightning and held storm (attract only)
 const CINE_LANTERN_NDC := 0.38         # G6c: the lantern at 0.69 of the width (the right third)
 const CINE_NEAR := 0.62                # G6c (Daniel: "closer"): the orbit at 0.62 of its old distance, ~98 m
+## G6d stage E: a longer lens from the same place: the island and tower fill about half the width (0.48-0.92
+## at 16:9) and the reef 30-40 m off stays as a low foreground band. Occlusion depends only on where the
+## camera stands: at 4.5 m the reef hid the island's shore, landing and boat (g6d_e capture), so it stays at 9.
+const CINE_FOV := 34.0
+const CINE_H := 9.0                    # camera height over the sea (m), +-1 m slow bob
+const CINE_AIM_Y := 12.0               # the orbit aims at this height on the tower before the yaw
 var _ended := false
 var _paused := false
 var backlog: Control                       # Stage 3A dialogue history (story mode)
@@ -80,7 +86,7 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 	audio.setup(sim, station)
 	if attract:
 		cine_cam = Camera3D.new()
-		cine_cam.fov = 50.0
+		cine_cam.fov = CINE_FOV
 		cine_cam.far = 2000.0
 		add_child(cine_cam)
 		cine_cam.current = true
@@ -826,8 +832,9 @@ func _process(delta: float) -> void:
 			return                              # main_fp's push-in owns the camera now
 		if _cine_view():
 			return
-		cine_cam.position = Vector3(sin(a) * r * CINE_NEAR, 9.0 + 1.5 * sin(_cine_t * 0.11), (cos(a) * r - 40.0) * CINE_NEAR)
-		cine_cam.look_at(Vector3(0, 17.0, 0), Vector3.UP)
+		cine_cam.fov = CINE_FOV
+		cine_cam.position = Vector3(sin(a) * r * CINE_NEAR, CINE_H + 1.0 * sin(_cine_t * 0.11), (cos(a) * r - 40.0) * CINE_NEAR)
+		cine_cam.look_at(Vector3(0, CINE_AIM_Y, 0), Vector3.UP)
 		cine_cam.global_rotate(Vector3.UP, cine_yaw())   # G6c: the tower in the right third, the menu left
 		cine_cam.rotation.z = 0.004 * sin(_cine_t * 0.7)
 

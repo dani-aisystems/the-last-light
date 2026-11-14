@@ -22,7 +22,7 @@ const MIX := {"flicker": 0.58, "sheet": 0.29, "bolt": 0.13}
 const BOLT_EVERY_MAX := 7                    # a bolt at least every few events, so it never goes stale
 ## Where the title camera looks (bearings from the island, radians): the bolts stand right of the menu
 ## column, behind and beside the tower; flickers and sheets anywhere in the southern sky.
-const BOLT_BEARINGS := Vector2(deg_to_rad(194.0), deg_to_rad(214.0))   # x ~0.66-0.95 of a 16:9 title
+const BOLT_BEARINGS := Vector2(deg_to_rad(201.0), deg_to_rad(211.0))   # right of the tower on the 34 deg title lens (R23)
 const SKY_BEARINGS := Vector2(deg_to_rad(120.0), deg_to_rad(250.0))
 
 var rng := RandomNumberGenerator.new()

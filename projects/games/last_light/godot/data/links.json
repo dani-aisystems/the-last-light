@@ -1,3 +1,6 @@
 {
-  "links": []
+  "links": [
+    {"label": "Instagram", "url": "https://www.instagram.com/_d.yanchev_/", "icon": "camera"},
+    {"label": "Contact", "url": "mailto:daniel.aisystems@gmail.com", "icon": "mail"}
+  ]
 }

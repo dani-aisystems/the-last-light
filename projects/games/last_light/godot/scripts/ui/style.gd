@@ -27,7 +27,7 @@ const INK_FAINT := Color(0.914, 0.886, 0.812, 0.60)   # G6c: the save line, the 
 const MENU_TOP := 32        # Continue, or New Game with no save (Daniel: larger, 2026-11-09)
 const MENU_ITEM := 27       # the other items
 const MENU_META := 17       # the typed save line (Courier Prime)
-const MENU_SUB := 17        # the letterspaced subtitle
+const MENU_SUB := 18        # the letterspaced subtitle (G6d E: 17 -> 18, full INK: thin strokes read 2.3:1)
 const MENU_CORNER := 15     # the signature and the links
 
 const FONT_DIR := "res://assets/fonts/"
