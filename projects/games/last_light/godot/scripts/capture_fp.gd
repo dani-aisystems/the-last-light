@@ -875,6 +875,12 @@ func _title_shot(name_: String, s: String) -> void:
 					b.grab_focus()
 			label += "_" + st.substr(6).to_lower()
 	await _frames(60)                          # the near rain fills, the camera settles
+	if "facing" in parts:                      # R2 (issue 10): the moment the beam swings toward the lens
+		var waited := 0
+		while bg.beam_facing() < 0.85 and waited < 900:
+			await get_tree().process_frame
+			waited += 1
+		label += "_facing%d" % int(round(bg.beam_facing() * 100.0))
 	if "bolt" in parts:
 		bg.force_title_bolt()
 		await _frames(2)                       # the bolt's first stroke (it lives 0.15-0.35 s)
