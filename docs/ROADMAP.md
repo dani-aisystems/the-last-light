@@ -50,7 +50,7 @@ A stage is complete only when Daniel says so. A build that compiles, or Claude's
 |---|---|
 | **Stage** | 3, dialogue, characters and story pacing; plus **Daniel's brief of 2026-11-06 (items 1–37)**, mapped onto the existing stages below |
 | **Iteration** | 3B approved (local commit). **Character references done as drafts** (`projects/games/last_light/character-refs/`). 3C portraits **paused by Daniel until he supplies images** (2026-11-06). Brief: **Phase A (docs) done 2026-11-06**; **G1 (bugs and input) next** |
-| **Next actionable task** | **Playthrough remediation (Daniel's 29 issues, 2026-11-15) is done and committed locally** (`4bce111`, `48b6cf6` and the docs commit). Record: `docs/qa/playthrough-remediation.md`. Waiting on Daniel: the listening pass (`renders/last_light/rq3_listen_{before,after}.wav`), a hands-on run of the opening (route in the record), a bench when the Mac is free, and his choice of the next stage. Older open items: G6b ending images, the music pick (item 33), the Visitor figure, D8, proposals 35–37, item 31. |
+| **Next actionable task** | **Playthrough remediation (Daniel's 29 issues, 2026-11-15) is done and committed locally** (`4bce111`, `48b6cf6` and the docs commit). Record: `docs/qa/playthrough-remediation.md`. Storm audio approved by Daniel (2026-11-15). Waiting on Daniel: a hands-on run of the opening (route in the record), a bench when the Mac is free, and his choice of the next stage. Older open items: G6b ending images, the music pick (item 33), the Visitor figure, D8, proposals 35–37, item 31. |
 
 ## Stages
 | # | Stage | Status |

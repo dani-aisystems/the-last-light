@@ -10,7 +10,7 @@
 - **New tools:** `tests/opening_test.gd` (human-mode opening, O1-O6; add it to the suite loop); capture flags `--beam_pace`, states `face_b<deg>` / `pitch_<deg>`, view `cu_door_top`; `blender/documents.py --props` (rebuilds only the props atlas, no doc regrain).
 - **Build:** v061 `.blend`, watch_room GLB v050, lighthouse v042.
 - **Waiting on Daniel:**
-  - the listening pass `renders/last_light/rq3_listen_{before,after}.wav`;
+  - ~~the listening pass~~: storm audio approved by Daniel 2026-11-15;
   - a bench when the Mac is free;
   - a hands-on run of the opening (route in the record);
   - his eye on the menu beam response and the tower.
