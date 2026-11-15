@@ -11,6 +11,7 @@ const BODY_BACK_DOWN := 0.28     # ... and looking straight down, so the view cl
 const BLEND := 0.25
 const SEAT_EYE_FWD := 0.03       # seated: the eye a little ahead of the head bone
 
+const LAYER_BODY := 4096                  # R4: render layer 13, the keeper's own body (see the torch)
 var player: Node
 var body: Node3D
 var ap: AnimationPlayer
@@ -37,7 +38,9 @@ func setup(p: Node, station: Node) -> void:
 	meshes["shadow"] = skel.get_node("SK_body_shadow")
 	for k in meshes:
 		var mi: MeshInstance3D = meshes[k]
-		mi.layers = station.LAYER_INTERIOR                # lit by the room lights, as the props are
+		mi.layers = station.LAYER_INTERIOR | LAYER_BODY   # lit by the room lights, as the props are
+		# (R4: LAYER_BODY lets the torch leave the body out of its shadow casters: held in front of the
+		# chest, its beam was sliced by the torso and arm when looking down)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if k == "view" \
 			else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	ap.play("sit")

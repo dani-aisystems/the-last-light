@@ -71,7 +71,10 @@ SPEC = {
         # Daniel 2026-11-04 (Stage 1 iteration 3): stair door moved 10 deg left of R1's 180 so the housing
         # clears the generator cage (was 4 cm) and the archive (3 cm); storage, extinguisher and one lamp follow
         "stair": 170.0, "storage": 128.0, "extinguisher": 106.0, "console": 78.0, "optic_drive": 45.0,
-        "wall_lamps": [-48.0, 62.0, 148.0, -160.0],   # -48 is on the bay's splayed lintel (moving it to -54 put it on the frame, cp3)
+        # R6 (2026-11-15): -48 hung 0.4 m in front of the west window's glass (that bay's wall opening runs
+        # -52.5..-22.5, the 96 wall segments), so it floated with its reflection beside it: now on solid wall
+        # 5.5 deg past the jamb, above the charger
+        "wall_lamps": [-62.0, 62.0, 148.0, -160.0],   # (-58 sat on the charger conduit drop at -58.2: its shadow crossed the bay)
     },
     "lantern": {
         "base_z": 23.3, "glass_z": [23.95, 25.85], "radius": 2.05, "sides": 12,
@@ -119,6 +122,11 @@ SPEC = {
             "ext_label": [1440, 1712, 1840, 1952],   # extinguisher wrap label (70 deg of the body)
             "note_fold": [1850, 1712, 2040, 1900],   # the stores note folded in the oilskin pocket
             "tin_band": [1850, 1910, 2040, 2040],    # shortbread tin tartan band (repeats 3x round)
+            # R5 (2026-11-15, Daniel's playtest prop list): the free block under the swatches (1824-2048 x 200-800)
+            "tide_spines": [1824, 200, 1992, 500],   # three Admiralty Tide Tables spines, 56 px each (1969-71)
+            "bulb_carton": [1824, 506, 2048, 660],   # printed face of the spare-lamp carton (0.16 x 0.11 m)
+            "tide_cover": [1824, 664, 1934, 800],    # the outer book's front board (0.2 x 0.25 m)
+            "compass_card": [1938, 664, 2048, 774],  # the hand compass's card: cream, black and red printing
         },
         "swatch": {"x0": 1824, "y0": 0, "px": 32, "cols": 7},
         # name: [sRGB, roughness]

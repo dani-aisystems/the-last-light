@@ -492,19 +492,54 @@ func give_torch(on := true) -> void:
 		torch_light = SpotLight3D.new()
 		torch_light.name = "Torch"
 		torch_light.light_color = Color(1.0, 0.85, 0.64)      # a 1970s incandescent bulb, not a white LED
-		torch_light.light_energy = 2.4
+		torch_light.light_energy = 3.4                        # R4: 2.4 with a flat disc; the pattern below peaks at 1 only in its core
 		torch_light.spot_range = 11.0
-		torch_light.spot_angle = 22.0
-		torch_light.spot_angle_attenuation = 0.85
+		# R4 (2026-11-15, Daniel: "a perfect circle", "shadows look unnatural pointing down"): a reflector
+		# torch's pattern, not a disc: a hot core, a soft halo out to a wider cone, a faint reflector ring
+		# (torch_projector()); shadows that start clear of the body and sit on their casters.
+		torch_light.spot_angle = 27.0
+		torch_light.spot_angle_attenuation = 1.0
 		torch_light.spot_attenuation = 1.1
+		torch_light.light_projector = torch_projector()
 		torch_light.light_size = 0.015                        # a small filament: crisp but not razor shadows
 		torch_light.shadow_enabled = true
+		torch_light.shadow_bias = 0.04
+		torch_light.shadow_normal_bias = 1.6
+		torch_light.shadow_blur = 1.4
+		torch_light.shadow_caster_mask = 0xFFFFF & ~PlayerBody.LAYER_BODY
 		torch_light.light_specular = 0.45
 		torch_light.light_volumetric_fog_energy = 0.35        # a faint beam in the room's haze
 		camera.add_child(torch_light)
 		var pos := Vector3(0.09, -0.09, 0.0)                  # inside the capsule: never inside a wall
 		torch_light.transform = Transform3D(Basis.looking_at(Vector3(0, 0, -3.0) - pos, Vector3.UP), pos)
 	set_torch(on)
+
+
+## R4: the beam pattern of a 1970s reflector torch, made once in code (no image file): a bright core with
+## the filament's faint shadow at its heart, a halo that falls off to the cone's edge, a thin brighter ring
+## from the reflector's lip, and a slight lopsidedness so it never reads as a stamped circle.
+static var _projector: ImageTexture
+static func torch_projector() -> ImageTexture:
+	if _projector:
+		return _projector
+	var n := 256
+	var img := Image.create(n, n, false, Image.FORMAT_RGB8)
+	for y in n:
+		for x in n:
+			var p := Vector2(x + 0.5, y + 0.5) / n * 2.0 - Vector2.ONE
+			var r := p.length()
+			var th := p.angle()
+			var core := 0.85 * exp(-pow(r / 0.26, 2.0)) * (1.0 - 0.1 * exp(-pow(r / 0.045, 2.0)))
+			var halo := 0.5 * (1.0 - smoothstep(0.4, 0.98, r))
+			var ring := 0.05 * exp(-pow((r - 0.6) / 0.045, 2.0))
+			var ripple := 1.0 + 0.02 * sin(r * 46.0 + 0.6 * sin(th * 3.0))
+			var lop := 1.0 + 0.06 * cos(th - 0.7) * r
+			var v := clampf((core + halo + ring) * ripple * lop, 0.0, 1.0)
+			var warm := Color(1.0, 0.94, 0.84).lerp(Color(1, 1, 1), clampf(core * 1.4, 0.0, 1.0))
+			img.set_pixel(x, y, Color(v * warm.r, v * warm.g, v * warm.b))
+	img.generate_mipmaps()
+	_projector = ImageTexture.create_from_image(img)
+	return _projector
 
 
 func set_torch(on: bool) -> void:

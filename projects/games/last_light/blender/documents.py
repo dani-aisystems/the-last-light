@@ -677,16 +677,141 @@ def page_edge(w, h):
 
 
 def knit(w, h):
-    """Navy wool gansey rib."""
-    img = Image.new("RGB", (w, h), (56, 66, 94))       # iteration 5: (30, 36, 54) read as black under one lamp
+    """Navy wool gansey: knit-two-purl-two ribs (R5: the old texture was a flat stripe pattern). Each stitch is a
+    little V with a lit upper edge and a shadowed lower edge, the purl columns sit deeper and darker, the wool
+    carries a faint fuzz and a darned patch near one edge (canon: cuffs repaired)."""
+    rnd = random.Random(31)
+    img = Image.new("RGB", (w, h), (50, 60, 88))       # iteration 5: (30, 36, 54) read as black under one lamp
     d = ImageDraw.Draw(img, "RGBA")
-    for x in range(0, w, 10):
-        for y in range(0, h, 8):
-            d.line([x, y, x + 5, y + 7], fill=(84, 96, 128, 200), width=2)
-            d.line([x + 10, y, x + 5, y + 7], fill=(72, 84, 114, 200), width=2)
-        d.line([x, 0, x, h], fill=(30, 36, 52, 160), width=1)
+    col_w, row_h = 10, 8
+    for cx in range(0, w + col_w, col_w):
+        purl = (cx // col_w) % 4 in (2, 3)
+        if purl:
+            d.rectangle([cx, 0, cx + col_w - 1, h], fill=(36, 44, 66, 200))
+            continue
+        for y in range(0, h, row_h):
+            j = rnd.randint(-1, 1)
+            d.line([cx, y + j, cx + 5, y + 7 + j], fill=(92, 104, 138, 220), width=2)       # lit upper strand
+            d.line([cx + 10, y + j, cx + 5, y + 7 + j], fill=(78, 90, 122, 220), width=2)
+            d.line([cx + 1, y + 2 + j, cx + 5, y + 8 + j], fill=(30, 36, 54, 120), width=1)  # its shadow
+    for _ in range(int(w * h / 90)):                    # fuzz
+        x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+        d.line([x, y, x + rnd.uniform(-3, 3), y + rnd.uniform(-3, 3)], fill=(120, 130, 160, rnd.randint(15, 45)))
+    px0, py0 = int(w * 0.08), int(h * 0.82)             # a darn in slightly bluer, newer wool
+    for y in range(py0, min(h, py0 + 40), 3):
+        d.line([px0, y, px0 + 46, y + rnd.randint(-1, 1)], fill=(62, 76, 116, 200), width=2)
     noise = Image.effect_noise((w, h), 30).convert("RGB")
-    return Image.blend(img, noise, 0.06)
+    return Image.blend(img, noise, 0.05)
+
+
+def tide_spines(w, h):
+    """R5: three volumes of the Admiralty Tide Tables (1969, 1970, 1971), dark blue buckram, gilt titles, the
+    oldest the most rubbed. Generic lettering, no crest (no publisher's trade dress)."""
+    img = Image.new("RGB", (w, h), (24, 30, 52))
+    n = 3
+    sw = w // n
+    for k, year in enumerate(("1969", "1970", "1971")):
+        rnd = random.Random(70 + k)
+        wear = (2 - k) / 2.0                               # 1969 most handled
+        col = (26 + int(10 * wear), 36 + int(8 * wear), 66 - int(6 * wear))
+        sp = Image.new("RGB", (h, sw), col)
+        sd = ImageDraw.Draw(sp, "RGBA")
+        gilt = (190, 160, 92, 235 - int(70 * wear))
+        sd.text((h * 0.38, sw * 0.33), "ADMIRALTY", font=PRINTB(14), fill=gilt, anchor="mm")
+        sd.text((h * 0.38, sw * 0.68), "TIDE TABLES", font=PRINTB(14), fill=gilt, anchor="mm")
+        sd.text((h * 0.78, sw / 2), year, font=PRINTB(16), fill=gilt, anchor="mm")
+        sd.text((h * 0.11, sw / 2), "VOL. I", font=PRINT(12), fill=gilt, anchor="mm")
+        for x in (int(h * 0.04), int(h * 0.05), int(h * 0.95), int(h * 0.96)):      # gilt rules at head and tail
+            sd.line([x, 5, x, sw - 5], fill=gilt, width=1)
+        weave = Image.effect_noise((h // 2, sw // 2), 30).resize((h, sw)).convert("RGB")
+        sp = Image.blend(sp, weave, 0.07)
+        sd = ImageDraw.Draw(sp, "RGBA")
+        for x in range(0, 14):                             # rubbed head and tail, frayed corners
+            a = int((80 - 5 * x) * (0.5 + wear))
+            sd.line([x, 0, x, sw], fill=(150, 150, 160, max(a, 0)))
+            sd.line([h - 1 - x, 0, h - 1 - x, sw], fill=(150, 150, 160, max(a, 0)))
+        for _ in range(int(40 + 80 * wear)):               # thumb grime where the spine is pulled from the shelf
+            x = rnd.gauss(h * 0.5, h * 0.18)
+            y = rnd.uniform(0, sw)
+            sd.ellipse([x - 2, y - 1, x + 2, y + 1], fill=(10, 10, 14, rnd.randint(10, 35)))
+        img.paste(sp.rotate(-90, expand=True), (k * sw, 0))
+    return img
+
+
+def tide_cover(w, h):
+    """R5: the front board of the 1969 volume (the one that shows on the shelf end): blind-blocked title,
+    a damp tide-mark along the foot, rubbed corners."""
+    rnd = random.Random(73)
+    img = Image.new("RGB", (w, h), (30, 40, 68))
+    d = ImageDraw.Draw(img, "RGBA")
+    d.rectangle([6, 6, w - 7, h - 7], outline=(18, 24, 42, 200), width=2)       # blind-stamped border
+    d.text((w / 2, h * 0.3), "ADMIRALTY", font=PRINTB(13), fill=(16, 22, 38, 210), anchor="mm")
+    d.text((w / 2, h * 0.42), "TIDE TABLES", font=PRINTB(13), fill=(16, 22, 38, 210), anchor="mm")
+    d.text((w / 2, h * 0.56), "1969", font=PRINTB(12), fill=(16, 22, 38, 190), anchor="mm")
+    weave = Image.effect_noise((w // 2, h // 2), 32).resize((w, h)).convert("RGB")
+    img = Image.blend(img, weave, 0.07)
+    d = ImageDraw.Draw(img, "RGBA")
+    for y in range(int(h * 0.86), h):                       # a tide-mark of old damp along the foot
+        d.line([0, y, w, y + rnd.randint(-2, 2)], fill=(120, 120, 110, 30))
+    for cx, cy in ((0, 0), (w, 0), (0, h), (w, h)):        # rubbed board corners show the grey millboard
+        d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(110, 108, 104, 150))
+    return img
+
+
+def bulb_carton(w, h):
+    """R5: the spare-lamp carton beside the old logs: buff board, a printed panel (generic maker, no brand),
+    the rating, a pencilled count, scuffed corners and a creased flap."""
+    rnd = random.Random(74)
+    img = Image.new("RGB", (w, h), (196, 170, 120))
+    d = ImageDraw.Draw(img, "RGBA")
+    d.rectangle([10, 12, w - 11, h - 13], outline=(120, 40, 30, 230), width=3)
+    d.text((w / 2, h * 0.3), "LAMPS  ·  SPARE", font=PRINTB(18), fill=(120, 40, 30), anchor="mm")
+    d.text((w / 2, h * 0.52), "1000 W  ·  240 V", font=PRINTB(16), fill=(40, 34, 30), anchor="mm")
+    d.text((w / 2, h * 0.7), "HANDLE WITH CARE", font=PRINT(12), fill=(40, 34, 30), anchor="mm")
+    jitter_text(d, (w * 0.66, h * 0.8), "x2", CALLUM(18), PENCIL, seed=5)
+    board = Image.effect_noise((w // 2, h // 2), 26).resize((w, h)).convert("RGB")
+    img = Image.blend(img, board, 0.09)
+    d = ImageDraw.Draw(img, "RGBA")
+    for cx, cy in ((0, 0), (w, 0), (0, h), (w, h)):
+        d.ellipse([cx - 11, cy - 11, cx + 11, cy + 11], fill=(120, 100, 70, 120))
+    d.line([0, 6, w, 4], fill=(90, 70, 40, 120), width=2)     # the flap's crease
+    for _ in range(30):
+        x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+        d.line([x, y, x + rnd.uniform(-10, 10), y + rnd.uniform(-2, 2)], fill=(80, 60, 40, 40))
+    return img
+
+
+def compass_card(w, h):
+    """R5: the hand compass's card, cream with black and red printing (it used the floor rose, dark: the dark
+    needle disappeared on it). 32 points, the north point red, degrees round the rim."""
+    s = 4                                                     # draw large, then downsample (clean small print)
+    W = w * s
+    img = Image.new("RGB", (W, W), (232, 222, 196))
+    d = ImageDraw.Draw(img)
+    c = W / 2
+    R_ = W / 2 - 2 * s
+    d.ellipse([c - R_, c - R_, c + R_, c + R_], outline=(30, 28, 26), width=2 * s)
+    for k in range(72):                                       # 5-degree ticks, longer every 10 and 30
+        a = math.radians(k * 5)
+        L = R_ * (0.16 if k % 6 == 0 else (0.1 if k % 2 == 0 else 0.06))
+        x0, y0 = c + math.sin(a) * R_, c - math.cos(a) * R_
+        x1, y1 = c + math.sin(a) * (R_ - L), c - math.cos(a) * (R_ - L)
+        d.line([x0, y0, x1, y1], fill=(30, 28, 26), width=max(1, s if k % 2 == 0 else s // 2))
+    for k in range(32):                                       # the rose: long cardinals, shorter intercardinals
+        a = math.radians(k * 11.25)
+        L = R_ * (0.74 if k % 8 == 0 else (0.56 if k % 4 == 0 else (0.42 if k % 2 == 0 else 0.32)))
+        wdt = R_ * (0.07 if k % 8 == 0 else 0.045)
+        tip = (c + math.sin(a) * L, c - math.cos(a) * L)
+        l_ = (c + math.sin(a - math.pi / 2) * wdt, c - math.cos(a - math.pi / 2) * wdt)
+        r_ = (c + math.sin(a + math.pi / 2) * wdt, c - math.cos(a + math.pi / 2) * wdt)
+        fill = (168, 34, 28) if k == 0 else (30, 28, 26)
+        d.polygon([tip, l_, (c, c)], fill=fill)
+        d.polygon([tip, r_, (c, c)], fill=(232, 222, 196) if k != 0 else (200, 60, 50), outline=fill)
+    for txt, a in (("N", 0), ("E", 90), ("S", 180), ("W", 270)):
+        x, y = c + math.sin(math.radians(a)) * R_ * 0.83, c - math.cos(math.radians(a)) * R_ * 0.83
+        d.text((x, y), txt, font=PRINTB(int(R_ * 0.13)), fill=(168, 34, 28) if txt == "N" else (30, 28, 26), anchor="mm")
+    img = img.resize((w, h), Image.LANCZOS)
+    return img
 
 
 def props_extras(props, pa):
@@ -696,7 +821,8 @@ def props_extras(props, pa):
     rdr = ImageDraw.Draw(rough)
     for name, r in (("calendar", 0.85), ("diagram", 0.85), ("barometer", 0.45), ("forecast", 0.85), ("sked", 0.82),
                     ("tin", 0.32), ("spines", 0.75), ("note", 0.86), ("page_edge", 0.9), ("knit", 1.0),
-                    ("ext_label", 0.55), ("note_fold", 0.88), ("tin_band", 0.3)):
+                    ("ext_label", 0.55), ("note_fold", 0.88), ("tin_band", 0.3),
+                    ("tide_spines", 0.82), ("bulb_carton", 0.9), ("tide_cover", 0.84), ("compass_card", 0.7)):
         rdr.rectangle(rg[name], fill=int(r * 255))
     box = lambda n: rg[n]
     size = lambda n: (rg[n][2] - rg[n][0], rg[n][3] - rg[n][1])
@@ -713,6 +839,10 @@ def props_extras(props, pa):
     props.paste(ext_label(*size("ext_label")), box("ext_label")[:2])
     props.paste(note_fold(*size("note_fold")), box("note_fold")[:2])
     props.paste(tin_band(*size("tin_band")), box("tin_band")[:2])
+    props.paste(tide_spines(*size("tide_spines")), box("tide_spines")[:2])        # R5
+    props.paste(bulb_carton(*size("bulb_carton")), box("bulb_carton")[:2])
+    props.paste(tide_cover(*size("tide_cover")), box("tide_cover")[:2])
+    props.paste(compass_card(*size("compass_card")), box("compass_card")[:2])
     sw = pa["swatch"]
     for i, (name, (rgb, r)) in enumerate(pa["swatches"].items()):
         x = sw["x0"] + (i % sw["cols"]) * sw["px"]
@@ -791,7 +921,25 @@ def coat_note():
     return img
 
 
+def props_atlas():
+    """The props atlas alone (T_LL_Props + its roughness map). R5: `documents.py --props` rebuilds just this,
+    so a prop change doesn't regrain every document PNG (their paper grain is unseeded)."""
+    props = Image.new("RGB", (2048, 2048), (230, 226, 214))
+    props.paste(calendar(), (0, 0))
+    props.paste(wiring_diagram(), (720, 0))
+    props.paste(barometer_dial(), (0, 1024))
+    rough = props_extras(props, load_props_atlas())       # Stage 1 iteration 5: small-prop regions + swatches
+    TEX.mkdir(exist_ok=True)
+    props.save(TEX / "T_LL_Props.png", optimize=True)
+    rough.save(TEX / "T_LL_Props_rough.png", optimize=True)
+
+
 def main():
+    import sys
+    if "--props" in sys.argv:
+        props_atlas()
+        print("DOCS_RESULT props_only")
+        return
     C = CALLUM
     rows71 = [
         # brief 2026-11-06 (D8-a, Daniel): the evening starts with flat cells; the light comes after the engine
@@ -863,13 +1011,7 @@ def main():
         "July 1953. A. Ross, master.\" Beneath, in another hand: \"Kenny B. on the hatch.\"")
     # one 2048 atlas for the three prop faces (one material, not three): calendar top-left (700x1000),
     # wiring diagram top-right (1100x800 at x 720), barometer dial bottom-left (1024x1024 at y 1024)
-    props = Image.new("RGB", (2048, 2048), (230, 226, 214))
-    props.paste(calendar(), (0, 0))
-    props.paste(wiring_diagram(), (720, 0))
-    props.paste(barometer_dial(), (0, 1024))
-    rough = props_extras(props, load_props_atlas())       # Stage 1 iteration 5: small-prop regions + swatches
-    props.save(TEX / "T_LL_Props.png", optimize=True)
-    rough.save(TEX / "T_LL_Props_rough.png", optimize=True)
+    props_atlas()
     (OUT / "docs.json").write_text(json.dumps(DOCS, indent=1))
     print("DOCS_RESULT", json.dumps(sorted(DOCS)))
 

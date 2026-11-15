@@ -118,6 +118,7 @@ func view(name_: String) -> Array:
 		"cu_power": return eye(-80, 1.4, -80, 3.0, 1.6, 1.2) + [62.0, false, 0.03]       # charger / distribution / cells
 		"cu_window": return eye(0, 1.4, 0, 3.42, 1.65, 1.75) + [55.0, false, 0.03]       # bay 0 glass
 		"cu_door": return eye(170, 0.2, 170, 2.0, 1.65, 1.1) + [55.0, false, 0.03]
+		"cu_door_top": return eye(170, 1.75, 170, 2.6, 1.85, 2.0) + [32.0, false, 0.02]   # R4: the door's upper edges (red lines)
 		"cu_shelf": return eye(128, 1.55, 128, 3.0, 1.6, 1.15) + [55.0, false, 0.03]     # storage shelf, old-log box
 		"cu_orders": return eye(128, 1.9, 128, 3.3, 1.75, 2.05) + [36.0, false, 0.02]    # G4a: KEEPER'S ORDERS, line 5
 		# --- Cabin repair (Iteration A): one matched close-up per defect in Daniel's screenshot brief ---
@@ -161,6 +162,9 @@ func _run() -> void:
 	var name_: String = args.get("capture", "fp")
 	if args.has("bench_menu"):
 		await _bench_menu(name_, args)
+		return
+	if args.has("beam_pace"):
+		await _beam_pace(name_, args)
 		return
 	if args.has("bench"):
 		await _bench(name_, args)
@@ -317,6 +321,13 @@ func _force(g, st: String) -> void:
 		"face_north", "face_east":               # G3a: the keeper looks north (bearing 0) or east, level
 			g.player._yaw = 0.0 if st == "face_north" else -PI / 2.0
 			g.player._pitch = -0.05
+			g.player._apply_look()
+		_ when st.begins_with("face_b") or st.begins_with("pitch_"):   # R4: the keeper looks to a bearing / pitch (deg; pitch_m20 = 20 down)
+			if st.begins_with("face_b"):
+				g.player._yaw = -deg_to_rad(float(st.substr(6)))
+			else:
+				var pv := st.substr(6)
+				g.player._pitch = deg_to_rad(-float(pv.substr(1)) if pv.begins_with("m") else float(pv))
 			g.player._apply_look()
 		"recall":                                # G2b: the player held J / R3 (duty + latest hint)
 			g.presenter.recall_duty(true)
@@ -871,6 +882,51 @@ func _title_shot(name_: String, s: String) -> void:
 	_save(name_ + "_" + label)
 	main.menu.visible = true
 	ga.erase("cine_view")
+
+
+## R2 (Daniel: "the lighthouse stutters"): how evenly the title beam turns. Logs the DRAWN beam angle every
+## rendered frame for --pace_secs (6) and reports the per-frame step (deg) relative to the ideal 72 deg/s x dt:
+## mean, coefficient of variation, and the share of frames where it did not move (the old 60 Hz stepping on
+## a 120 Hz screen gave every other frame 0). Prints BEAM_PACE {json} and writes NAME_beam_pace.json.
+func _beam_pace(name_: String, args: Dictionary) -> void:
+	var secs := float(args.get("pace_secs", "6"))
+	await _frames(90)
+	var bg = main.menu_bg
+	var piv: Node3D = bg.outside.beam_pivot
+	var last := piv.global_rotation.y
+	var lt := Time.get_ticks_usec()
+	var ratios: Array[float] = []
+	var still := 0
+	var el := 0.0
+	while el < secs:
+		await get_tree().process_frame
+		var now := Time.get_ticks_usec()
+		var dt := (now - lt) / 1.0e6
+		lt = now
+		el += dt
+		var y := piv.global_rotation.y
+		var step := absf(wrapf(y - last, -PI, PI))
+		last = y
+		var ideal := deg_to_rad(72.0) * dt
+		if ideal > 0.0:
+			ratios.append(step / ideal)
+		if step < 1e-5:
+			still += 1
+	var mean := 0.0
+	for r in ratios:
+		mean += r
+	mean /= maxf(1.0, ratios.size())
+	var vr := 0.0
+	for r in ratios:
+		vr += (r - mean) * (r - mean)
+	var cv := sqrt(vr / maxf(1.0, ratios.size())) / maxf(mean, 1e-6)
+	var res := {"frames": ratios.size(), "fps": ratios.size() / maxf(el, 0.001), "mean_ratio": mean, "cv": cv,
+		"still_frames": still, "still_share": float(still) / maxf(1.0, ratios.size())}
+	print("BEAM_PACE ", JSON.stringify(res))
+	var f := FileAccess.open(out_dir.path_join(name_ + "_beam_pace.json"), FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(res, " "))
+	get_tree().quit(0)
 
 
 ## G6d stage D: the title's frame cost (the menu over the attract world: storm 0.75, both rain layers,

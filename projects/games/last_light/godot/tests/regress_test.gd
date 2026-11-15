@@ -1416,7 +1416,7 @@ func _r15_equipment() -> void:
 		eq.has[id] = false
 		st.set_item_taken(id, false)
 	var r: Dictionary = eq.toggle("compass")
-	_check(not r["ok"] and r["reason"].contains("chart") and eq.held == "", "no compass before it is taken from the chart (%s)" % r["reason"])
+	_check(not r["ok"] and r["reason"].contains("sill") and eq.held == "", "no compass before it is taken from the window sill (%s)" % r["reason"])
 	var cia: Node3D = st._ia_bodies["compass"]          # aimed at the compass on the chart, the compass wins
 	var org: Vector3 = cia.global_position + Vector3(0.0, 0.9, 0.6)
 	var hit: String = g.player.pick(g.player.get_world_3d().direct_space_state, org, (cia.global_position - org).normalized(), 2.5)
@@ -1429,7 +1429,7 @@ func _r15_equipment() -> void:
 			break
 		ex.append(h["rid"])
 		seen.append("%s@%.2f(L%d)" % [h["collider"].get_meta("ia", "?"), org.distance_to(h["position"]), h["collider"].collision_layer])
-	_check(hit == "compass", "looking at the compass on the chart targets the compass, not the chart (%s; ray: %s; compass layer %d)" % [hit, seen, cia.collision_layer])
+	_check(hit == "compass", "looking at the compass on the sill targets the compass (%s; ray: %s; compass layer %d)" % [hit, seen, cia.collision_layer])
 	g._route([{"type": "pickup", "item": "compass"}, {"type": "pickup", "item": "binoculars"}])
 	await _frames(2)
 	var props_hidden: bool = st._item_nodes.get("compass", []).all(func(n): return not n.visible) \

@@ -174,8 +174,10 @@ func q_shadow_ids() -> Array:
 	# the stair light must cast shadows from Medium up: unshadowed, its red emergency glow leaked through
 	# the housing walls and tinted the whole room in a power cut (iteration 3 check)
 	# brief item 5: Low too (it lit the floor in front of the stair door through the housing)
-	return [["desk", "stair"], ["desk", "wall_0", "wall_1", "stair"],
-		["desk", "wall_0", "wall_1", "wall_2", "wall_3", "win_0", "win_1", "stair"]][int(v["quality"])]   # budget: <= 8 on High
+	# R6 (2026-11-15): wall_0 (moved off the west window to -62) threw the conduit drop's shadow across the
+	# pier as a ragged band; its slot goes to wall_2 over the coat and the stair door (the coat was flat-lit)
+	return [["desk", "stair"], ["desk", "wall_1", "wall_2", "stair"],
+		["desk", "wall_1", "wall_2", "wall_3", "win_0", "win_1", "stair"]][int(v["quality"])]   # budget: <= 8 on High
 
 
 func q_soft_shadows() -> int:
@@ -206,6 +208,10 @@ func apply_quality_globals() -> void:
 	RenderingServer.positional_soft_shadow_filter_set_quality(q_soft_shadows())
 	RenderingServer.directional_soft_shadow_filter_set_quality(q_soft_shadows())
 	get_tree().root.positional_shadow_atlas_size = q_shadow_atlas()
+	# R4: quadrant 0 holds ONE shadow at a quarter of the atlas (2048 on Medium/High): the largest light on
+	# screen, the torch, gets it (its pool was a 1024 slot, soft-edged and shimmering on the floor). The
+	# room lights share the 1024 / 512 slots of quadrants 1-3, as before.
+	get_tree().root.positional_shadow_atlas_quad_0 = Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_1
 
 
 func q_rain_amount() -> int:

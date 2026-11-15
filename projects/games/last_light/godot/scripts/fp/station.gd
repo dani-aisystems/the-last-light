@@ -200,6 +200,10 @@ func _swap_materials(mi: MeshInstance3D) -> void:
 				bm.normal_texture = LLMaterials.photo_cockle()
 				bm.normal_scale = 0.35
 			mi.set_surface_override_material(i, bm)
+	if String(mi.name).begins_with("SM_WallLampGlass"):   # R6 (Daniel: "a glowing orb behind the bulb")
+		for i in mesh.get_surface_count():
+			mi.set_surface_override_material(i, LLMaterials.lamp_globe())
+		mi.layers = LAMP_LAYER                         # not in the probe's capture (it mirrored the lit globes)
 	if String(mi.name).begins_with("SM_PhotoGlass"):   # G4c (item 15): a print behind glass, not a flat pane
 		for i in mesh.get_surface_count():
 			mi.set_surface_override_material(i, LLMaterials.photo_glass())
@@ -264,7 +268,7 @@ func _base_energy(id: String) -> float:
 	if id == "desk":
 		return 2.6
 	if id.begins_with("wall"):
-		return 0.85
+		return 0.72                    # R6: 0.85 at attenuation 1.6 -> 0.72 at 1.2 (same at 1.5 m)
 	if id.begins_with("inst"):
 		return 0.8
 	if id == "cage":
@@ -287,7 +291,9 @@ func _make_light(n: Node3D, id: String) -> void:
 		var o := OmniLight3D.new()
 		# low-key pools: wall lamps light their part of the wall, not the whole room
 		o.omni_range = 4.0 if id.begins_with("wall") else 2.4
-		o.omni_attenuation = 1.6
+		# R6: 1.6 put ~17x the light on the cream wall 15 cm behind each well-glass (an orb of light behind
+		# the bulb, and a hot red line on the stair housing). 1.2, energy retuned for the same pool at 1.5 m.
+		o.omni_attenuation = 1.2
 		l = o
 		l.light_size = 0.06 if id.begins_with("wall") else 0.03
 	l.light_energy = _base_energy(id)
@@ -343,6 +349,11 @@ func _make_window_lights() -> void:
 ## each, fading out with distance; no outline, no marker, never through a wall (range 0.28 m). Off the
 ## moment the room lights are on.
 const CATCH_IDS := ["torch", "fuel_valve", "start", "charge"]
+const CATCH_ENERGY := 0.035
+## R4 (2026-11-15, Daniel's playtest: "the opening is too bright"): 0 with the room lights on, 1 in a
+## blackout (eased over ~0.6 s). The blackout dims the window spill to a cold edge on the sills, damps the
+## screen-space bounce, clears the room's fog haze; nothing changes once the lights are on.
+var dark := 0.0
 var catch_lights := {}                  # ia id -> OmniLight3D
 
 
@@ -373,7 +384,12 @@ func _make_catch_lights() -> void:
 func _update_catch_lights(room_on: bool) -> void:
 	for id in catch_lights:
 		var gone: bool = id == "torch" and torch_taken
-		(catch_lights[id] as OmniLight3D).light_energy = 0.0 if room_on or gone else 0.12   # 0.35 lit whole panels (S3 captures)
+		var l := catch_lights[id] as OmniLight3D
+		# R4 (2026-11-15): a glint on the control, not a lamp. At 0.12 with a d^-1.6 falloff it reached ~14
+		# a few cm from the light (over the 1.4 glow threshold): bright blooms in the "pitch-black" opening.
+		l.light_energy = 0.0 if room_on or gone else CATCH_ENERGY
+		l.omni_attenuation = 1.0
+		l.omni_range = 0.2
 
 
 func _make_instrument_lights() -> void:
@@ -417,7 +433,13 @@ func _make_probe() -> void:
 	if probe_mode == "off":                  # perf bisect: --probe=off
 		return
 	probe = ReflectionProbe.new()
-	probe.size = Vector3(7.0, 3.3, 7.0)
+	# R4 (2026-11-15): the probe fades back to the ENVIRONMENT's ambient within blend_distance of its box
+	# edges (Godot default 1.0 m). The walls (r 3.25) sat 0.25 m inside the 7 m box and the floor 0.1 m above
+	# its bottom, so most of the room took the dusk SKY's ambient: the "dark" opening's cream walls were lit
+	# evenly from nowhere. Now a 5 cm blend, a box that reaches past the floor, ceiling and the window
+	# reveals (r 3.7), so every interior surface takes the probe's own (dark, room-light-scaled) ambient.
+	probe.size = Vector3(7.4, 3.7, 7.4)
+	probe.blend_distance = 0.05
 	probe.box_projection = true
 	probe.interior = true
 	probe.enable_shadows = true
@@ -427,7 +449,7 @@ func _make_probe() -> void:
 	probe.ambient_color_energy = 0.45
 	probe.update_mode = ReflectionProbe.UPDATE_ONCE
 	add_child(probe)
-	probe.global_position = Vector3(0, F + 1.55, 0)
+	probe.global_position = Vector3(0, F + 1.6, 0)          # y F-0.25 .. F+3.45 (ceiling F+3.1)
 
 
 ## The storm's volumetric fog also filled the room (milky at dawn). A negative-density volume over
@@ -453,6 +475,12 @@ func apply_shadow_preset() -> void:
 	var off := GameState.user_args.has("noshadows")
 	for id in lights:
 		lights[id].shadow_enabled = not off and not String(id).begins_with("inst") and id != "cage" and ("*" in ids or id in ids)
+		if id == "stair":
+			# R4: the emergency light sits behind the bulkhead door; with the default biases its shadow
+			# leaked round the door's edges and the trim rivets as thin red lines in a blackout
+			(lights[id] as Light3D).shadow_bias = 0.01
+			(lights[id] as Light3D).shadow_normal_bias = 0.3
+			(lights[id] as Light3D).light_size = 0.0
 	for w in windows:
 		w["light"].shadow_enabled = not off and ("*" in ids or w["id"] in ids)
 	if not Settings.changed.is_connected(apply_shadow_preset):
@@ -470,12 +498,15 @@ func _update_windows() -> void:
 		var d2: Vector2 = outside._flash_dir
 		fdir = Vector3(d2.x, 0, d2.y)
 	if fog_cut and outside and outside.env:
-		fog_cut.density = -0.75 * outside.env.volumetric_fog_density
-	var spill := 0.12 + 0.06 * (1.0 - storm) + 1.6 * dawn
+		fog_cut.density = -lerpf(0.75, 0.97, dark) * outside.env.volumetric_fog_density
+		if not outside.attract:
+			outside.env.ssil_intensity = lerpf(1.0, 0.35, dark)   # R4: no dusk sky bounced round a dark room
+	var spill := (0.12 + 0.06 * (1.0 - storm)) * lerpf(1.0, 0.3, dark * (1.0 - dawn)) + 1.6 * dawn
 	for w in windows:
 		var face := pow(0.5 + 0.5 * (w["out"] as Vector3).dot(fdir), 2.0)
 		var e := spill + fl * 5.0 * (0.35 + 0.65 * face)
 		var l: SpotLight3D = w["light"]
+		l.spot_range = lerpf(7.5, 4.6, dark * (1.0 - dawn))      # R4: in a blackout the cold spill stays by the windows
 		l.light_energy = e
 		l.light_color = Color(0.68, 0.76, 0.92).lerp(Color(0.95, 0.88, 0.8), dawn)
 		l.visible = e > 0.02
@@ -486,10 +517,16 @@ func _update_windows() -> void:
 func _update_probe(level: float, room_on: bool) -> void:
 	if probe == null:
 		return
-	probe.ambient_color_energy = lerpf(0.12, 0.45, level)  # 1b: cream walls and palette albedo bounce far more
+	# 1b: cream walls and palette albedo bounce far more. R4: 0.45 -> 0.8 lit: the walls by the windows used to
+	# get the (dusk) sky's ambient through the probe's 1 m blend; with that fixed they need this fill instead
+	probe.ambient_color_energy = lerpf(0.12, 0.8, level)
 	if probe_mode == "a":
 		probe.intensity = lerpf(0.25, 1.0, level)
 		return
+	# R4/R6: in a blackout the captured reflections are the red-lit stair well (seen as thin red lines along
+	# the door's grazing chamfers and rivets, Daniel's "red lines round the doorway") and whatever the torch
+	# lit at capture time (a pool reflected where nothing is lit: the "floating" reflection). Dim them.
+	probe.intensity = lerpf(1.0, 0.15, dark)
 	var key := "%s|%d" % [room_on, int(round((outside.dawn if outside else 0.0) * 4.0))]
 	if key != _probe_key:
 		_probe_key = key
@@ -782,8 +819,9 @@ func _process_body(delta: float) -> void:
 	var minutes := k.clock_minutes()
 	_set_angle("NDL_clock_m", -fmod(minutes, 60.0) / 60.0 * TAU, delta, 50.0)
 	_set_angle("NDL_clock_h", -fmod(minutes / 60.0, 12.0) / 12.0 * TAU, delta, 50.0)
-	_set_angle("PT_optic_drive", -k.bearing * 3.0, delta, 60.0)
-	_set_angle("PT_optic_gear", -k.bearing * 2.0, delta, 60.0)
+	var drawn := k.draw_bearing()           # R2: interpolated between physics steps
+	_set_angle("PT_optic_drive", -drawn * 3.0, delta, 60.0)
+	_set_angle("PT_optic_gear", -drawn * 2.0, delta, 60.0)
 	# fly-ball governor: spins while the rotation motor runs, winds down when it stops or jams
 	_gov_speed = move_toward(_gov_speed, 9.0 if (k.motor_on() and not k.jammed) else 0.0, delta * 4.0)
 	_gov_angle = wrapf(_gov_angle + _gov_speed * delta, -PI, PI)
@@ -832,8 +870,9 @@ func _process_body(delta: float) -> void:
 		if id == "stair":
 			l.light_color = Color(1.0, 0.72, 0.45) if room_on else Color(1.0, 0.15, 0.08)
 			on = true
-			base = 0.3 if room_on else 0.5      # 0.6 turned the 20 mm door gap into a glowing white slot
+			base = 0.26 if room_on else 0.42    # 0.6 turned the 20 mm door gap into a glowing white slot (R6: x0.85 for attenuation 1.2)
 		l.light_energy = base * f if on else 0.0
+	dark = move_toward(dark, 0.0 if room_on else 1.0, delta / 0.6)
 	_update_windows()
 	_update_catch_lights(room_on)
 	_update_probe(f if room_on else 0.0, room_on)

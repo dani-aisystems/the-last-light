@@ -14,7 +14,7 @@ const GRADES := {
 	"M_LL_ConcreteExt": ["painted_concrete", {"scale": 0.12, "desat": 1.0, "tint": Color(0.6, 0.6, 0.58), "contrast": 0.7, "wetness": 0.5, "normal_strength": 0.8}],
 	# G6d: the NLB tower, white paint over masonry, weathered by a North Atlantic winter (rain streaks, salt
 	# bloom at the foot, rust runs under the gallery); the buff trim of the porch and door surround
-	"M_LL_TowerPaint": ["painted_concrete", {"scale": 0.12, "desat": 1.0, "tint": Color(0.86, 0.85, 0.81), "contrast": 0.45, "wetness": 0.45, "normal_strength": 0.7, "streaks": 0.85, "salt": 0.7, "rust_runs": 0.6}],
+	"M_LL_TowerPaint": ["painted_concrete", {"scale": 0.12, "cyl_repeats": 3.0, "desat": 1.0, "tint": Color(0.86, 0.85, 0.81), "contrast": 0.3, "wetness": 0.45, "normal_strength": 0.7, "streaks": 0.7, "salt": 0.7, "rust_runs": 0.6, "macro": 1.0, "courses": 0.8, "windward": 0.8}],  # R2: macro, courses, windward; streaks 0.85 -> 0.7
 	"M_LL_TowerTrim": ["painted_concrete", {"scale": 0.2, "desat": 0.6, "tint": Color(0.74, 0.6, 0.38), "contrast": 0.6, "wetness": 0.4, "normal_strength": 0.6}],
 	"M_LL_Stone": ["cliff_side", {"scale": 0.25, "desat": 0.85, "tint": Color(0.42, 0.42, 0.43), "wetness": 0.6}],
 	"M_LL_Floor": ["painted_concrete", {"scale": 0.2, "desat": 1.0, "tint": Color(0.36, 0.34, 0.31), "contrast": 0.55, "rough_mul": 0.6, "normal_strength": 0.5}],  # Look 1: contrast 1.3 -> 0.55
@@ -43,7 +43,7 @@ const PLAIN := {
 	# Stage 1 iteration 4 props
 	"M_LL_ClothBlue": [Color(0.12, 0.17, 0.3), 0.85, 0.0],      # Admiralty Tide Tables
 	"M_LL_Whisky": [Color(0.4, 0.19, 0.05), 0.12, 0.0],         # the half bottle of Grant's
-	"M_LL_Oilskin": [Color(0.32, 0.27, 0.12), 0.3, 0.0],       # oilskin coat and sou'wester (= visitor_figure.gd)
+	"M_LL_Oilskin": [Color(0.42, 0.36, 0.17), 0.42, 0.0],      # oilskin coat and sou'wester (R4: 0.32/0.27/0.12 rough 0.3 read black-and-plastic by the door)
 	# G6d: the keeper's boat on the title (both two-sided: its open shell is seen inside and out)
 	"M_LL_BoatPaint": [Color(0.3, 0.36, 0.4), 0.55, 0.0],
 	"M_LL_BoatWood": [Color(0.3, 0.21, 0.13), 0.65, 0.0],
@@ -110,11 +110,54 @@ static func get_room_mat(name: String) -> Material:
 		s.metallic = 0.75          # rougher, part-diffuse brass shows its own colour in a dim room
 		s.roughness = 0.45
 		s.metallic_specular = 0.6
+		_brass_wear(s)
 		m = s
 	else:
 		m = get_mat(name)
 	_cache[key] = m
 	return m
+
+
+## R5 (Daniel: the vapour burner, the door handle): one flat roughness made every brass object a uniform
+## sheen. Now rubbed and tarnished: a seamless noise gives roughness 0.22 (handled, polished) to 0.62 (dull
+## tarnish), the same noise darkens the tarnish a little, and a faint normal breaks the mirror. Mapped in
+## OBJECT-space triplanar, so a moving part (the stair door's handwheel) carries its wear with it.
+static var _brass_noise: Array = []
+static func _brass_wear(s: StandardMaterial3D) -> void:
+	if _brass_noise.is_empty():
+		var fn := FastNoiseLite.new()
+		fn.seed = 1971
+		fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		fn.frequency = 0.012
+		fn.fractal_octaves = 4
+		var mk := func(ramp: Array, as_normal: bool) -> NoiseTexture2D:
+			var t := NoiseTexture2D.new()
+			t.width = 256
+			t.height = 256
+			t.seamless = true
+			t.noise = fn
+			if as_normal:
+				t.as_normal_map = true
+				t.bump_strength = 3.0
+			else:
+				var g := Gradient.new()
+				g.set_color(0, ramp[0])
+				g.set_color(1, ramp[1])
+				t.color_ramp = g
+			return t
+		_brass_noise = [mk.call([Color(0.22, 0.22, 0.22), Color(0.62, 0.62, 0.62)], false),
+			mk.call([Color(1.06, 1.04, 1.0), Color(0.78, 0.74, 0.68)], false), mk.call([], true)]
+	s.roughness = 1.0
+	s.roughness_texture = _brass_noise[0]
+	s.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+	s.albedo_texture = _brass_noise[1]
+	s.normal_enabled = true
+	s.normal_texture = _brass_noise[2]
+	s.normal_scale = 0.12
+	s.uv1_triplanar = true
+	s.uv1_world_triplanar = false
+	s.uv1_scale = Vector3(14, 14, 14)
+	s.uv1_triplanar_sharpness = 2.0
 
 
 static func _room(set_name: String, p: Dictionary) -> ShaderMaterial:
@@ -193,6 +236,19 @@ static func glass() -> StandardMaterial3D:
 	s.roughness = 0.07               # 0.03 / specular 0.9 flared the optic cabinet's flat panes white
 	s.metallic_specular = 0.5
 	s.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return s
+
+
+## R6: the cast well-glass globe over each wall lamp. Front faces only: double-sided, the inside of the far
+## half (7 cm from the bulb, lit at ~57x) drew as a glowing orb behind the bulb. A little milky (the glass is
+## thick and pressed), so it reads as a globe, not as nothing.
+static func lamp_globe() -> StandardMaterial3D:
+	var s := StandardMaterial3D.new()
+	s.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	s.albedo_color = Color(0.92, 0.9, 0.84, 0.16)
+	s.roughness = 0.3
+	s.metallic_specular = 0.35
+	s.cull_mode = BaseMaterial3D.CULL_BACK
 	return s
 
 

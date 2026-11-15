@@ -457,6 +457,21 @@ def region_rect(name, u0=0.0, v0=0.0, u1=1.0, v1=1.0):
     return (a[0], a[1], b[0], b[1])
 
 
+def disc_region_uv(bm, uv, center, b3, radius, segs, region):
+    """R5: a flat disc (normal = local Z) mapped onto a square props-atlas region (u right, v up)."""
+    rim = []
+    for i in range(segs):
+        a = 2 * math.pi * i / segs
+        rim.append((bm.verts.new(Vector(center) + b3 @ Vector((radius * math.cos(a), radius * math.sin(a), 0))), a))
+    c = bm.verts.new(Vector(center))
+    at = lambda a, rr: region_uv(region, 0.5 + 0.48 * rr * math.cos(a), 0.5 + 0.48 * rr * math.sin(a))
+    for i in range(segs):
+        (v0, a0), (v1, a1) = rim[i], rim[(i + 1) % segs]
+        f = bm.faces.new((c, v0, v1))
+        for loop, val in zip(f.loops, (at(0, 0), at(a0, 1), at(a1, 1))):
+            loop[uv].uv = val
+
+
 def solid(B, swatch, fn, prefix="SM_Room"):
     """Run fn(bm) to add CLOSED geometry to the props bucket, fix its winding (textured buckets skip the
     flush-time recalc) and paint every face with one swatch."""
@@ -688,7 +703,10 @@ def build_shell(B):
             ring_seg(conc, b0, b1, R_IN, R_OUT, 0, W["sill"])
             ring_seg(conc, b0, b1, R_IN, R_OUT, W["top"], H)
             ring_seg(B.bm("M_LL_WoodDark"), b0, b1, R_IN - 0.035, R_IN, 0.05, W["sill"] - 0.04)          # wainscot
-            ring_seg(B.bm("M_LL_Wood"), b0, b1, R_IN - 0.14, R_IN + 0.12, W["sill"] - 0.04, W["sill"])     # sill board
+            # sill board. R6 (Daniel: "white lines below the window"): its top sat ON the wall top (both at the
+            # sill height: z-fighting cream against oak) and it stopped at R_IN + 0.12, leaving a wedge of bare
+            # concrete up to the straight frame (up to 9 cm at the bay ends). Now 4 mm proud and run under the frame.
+            ring_seg(B.bm("M_LL_Wood"), b0, b1, R_IN - 0.14, R_IN + 0.22, W["sill"] - 0.04, W["sill"] + 0.004)
             # raised panelling: top and bottom rails proud of the recessed wainscot (stiles below)
             ring_seg(B.bm("M_LL_Wood", "SM_Wainscot"), b0, b1, R_IN - 0.055, R_IN - 0.035, 0.74, 0.86)
             ring_seg(B.bm("M_LL_Wood", "SM_Wainscot"), b0, b1, R_IN - 0.055, R_IN - 0.035, 0.05, 0.17)
@@ -721,6 +739,27 @@ def build_shell(B):
             return o * (gr - inset) + r * along + u * (F + z)
         for s in (-1, 1):
             box(steel, at(s * (chord / 2 - fr / 2), zc), (fr, 0.16, hh), bs)
+        # R6: the wall opening follows the 96 wall segments, not the bay's +-15 deg: the -36/+36 bays open
+        # 16.5 deg on their outer side, so the frame stopped short of the jamb and the exterior showed
+        # through a slit that widened outward (1.8 cm even on bay 0). A stile extension fills frame -> jamb.
+        seg = 360.0 / R["segments"]
+        opened = [-180 + seg * (i + 0.5) for i in range(R["segments"]) if in_window(-180 + seg * (i + 0.5)) and abs(((-180 + seg * (i + 0.5) - c + 180) % 360) - 180) < R["bay_half_deg"] + 2.0]
+        for s in (-1, 1):
+            edge = (max(opened) + seg / 2) if s > 0 else (min(opened) - seg / 2)
+            da = math.radians(edge - c)
+            if abs(da) <= math.atan((chord / 2) / gr) + 1e-4:
+                continue                                           # the frame already runs into the wall here
+            jd = o * math.cos(da) + r * math.sin(da)                   # the jamb's radial direction (XY)
+            pts = []
+            for dd in (gr - 0.08, gr + 0.08):
+                fpt = o * dd + r * (s * (chord / 2 - 0.012))            # 12 mm under the frame's side
+                jpt = jd * (dd / math.cos(da)) + r * (s * 0.025)         # 25 mm into the jamb
+                pts += [(fpt.x, fpt.y), (jpt.x, jpt.y)]
+            quad = [pts[0], pts[1], pts[3], pts[2]]
+            cx_ = sum(p_[0] for p_ in quad) / 4
+            cy_ = sum(p_[1] for p_ in quad) / 4
+            quad.sort(key=lambda p_: math.atan2(p_[1] - cy_, p_[0] - cx_))
+            prism(steel, quad, F + z0, F + z1)
         box(steel, at(0, z0 + fr / 2), (chord, 0.16, fr), bs)
         box(steel, at(0, z1 - fr / 2), (chord, 0.16, fr), bs)
         box(steel, at(0, zc), (fr * 0.75, 0.12, hh), bs)
@@ -1058,7 +1097,7 @@ def build_chair(B, seat, cb):
         for j, (yy, zz) in enumerate(path):
             hang = min(1.0, abs(zz) / 0.1) if zz < 0 else 0.0
             sag = -0.035 * (x / 0.19) ** 2 * hang
-            fold = 0.007 * math.sin(x * 38 + j * 0.9) * hang
+            fold = (0.011 * math.sin(x * 38 + j * 0.9) + 0.004 * math.sin(x * 91 + j * 2.1)) * hang   # R5: deeper folds
             col.append(pm.verts.new(P(x, bow(x) + yy + fold, 0.455 + zz + sag)))
         g.append(col)
     for i in range(nx):
@@ -1066,6 +1105,28 @@ def build_chair(B, seat, cb):
             f = pm.faces.new((g[i][j], g[i + 1][j], g[i + 1][j + 1], g[i][j + 1]))
             for lp, (a, b2) in zip(f.loops, ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))):
                 lp[uvl].uv = region_uv("knit", a / nx, b2 / (len(path) - 1))
+    # R5 (Daniel: "improve the sweater"): it was a single sheet with no thickness. A second skin 7 mm under it
+    # (the knit's back) and rolled edges all round give it a wool's body.
+    nj = len(path)
+    under = []
+    for i in range(nx + 1):
+        col = []
+        for j in range(nj):
+            du = g[min(i + 1, nx)][j].co - g[max(i - 1, 0)][j].co
+            dv = g[i][min(j + 1, nj - 1)].co - g[i][max(j - 1, 0)].co
+            nrm = du.cross(dv).normalized()
+            col.append(pm.verts.new(g[i][j].co - nrm * 0.007))
+        under.append(col)
+    for i in range(nx):
+        for j in range(nj - 1):
+            f = pm.faces.new((under[i][j + 1], under[i + 1][j + 1], under[i + 1][j], under[i][j]))
+            for lp, (a, b2) in zip(f.loops, ((i, j + 1), (i + 1, j + 1), (i + 1, j), (i, j))):
+                lp[uvl].uv = region_uv("knit", a / nx, b2 / (nj - 1))
+    for edge in ([((g[i][0].co + under[i][0].co) / 2) for i in range(nx + 1)],
+                 [((g[i][nj - 1].co + under[i][nj - 1].co) / 2) for i in range(nx + 1)],
+                 [((g[0][j].co + under[0][j].co) / 2) for j in range(nj)],
+                 [((g[nx][j].co + under[nx][j].co) / 2) for j in range(nj)]):
+        solid(B, "knit_navy", lambda bm, edge=edge: sweep(bm, edge, 0.0045, 6))
     for sx in (-1, 1):                                                   # sleeves hanging behind
         sl = bezier(P(sx * 0.17, bow(sx * 0.17) - 0.05, 0.42), P(sx * 0.19, bow(sx * 0.19) - 0.07, 0.3),
                     P(sx * 0.15, bow(sx * 0.15) - 0.075, 0.2), P(sx * 0.13, bow(sx * 0.13) - 0.07, 0.11), 9)   # hang straight, no X
@@ -1118,14 +1179,19 @@ def build_desk_detail(B):
     #      (PROP_compass_*), so the game can hide it when taken and show a copy in the keeper's hand. A brass
     #      bowl (a ring: nothing covers the card), the rose card (T_LL_Rose) under glass; the needle is its
     #      own part (PT_compass_needle) so the game turns it to north.
-    kc = CP(-0.27, -0.14, 0.0)          # front-left, clear of the rule, pencil and dividers (not under the radio)
-    lathe(B.bm("M_LL_Brass", "PROP_compass"), kc, cb3,
+    # R5 (Daniel, 2026-11-15: "put the compass near the window"): on the east window's sill just right of the
+    # desk, in the open (behind the radio, on the centre sill, it sat in shadow and out of sight), turned a
+    # little; seated on the sill board (top at sill + 4 mm), 12 cm in from its room edge.
+    kr0, ko0, ku0 = wall_frame(28.0)
+    kb3 = basis(kr0, ko0, ku0) @ rot_about((0, 0, 1), 25.0)
+    kc = dp(28.0, 0.0, R["window"]["sill"] + 0.004, R_IN - 0.02)
+    lathe(B.bm("M_LL_Brass", "PROP_compass"), kc, kb3,
           [(0.0, 0.0), (0.040, 0.0), (0.0425, 0.004), (0.0425, 0.0175), (0.0445, 0.0195), (0.0445, 0.0225),
            (0.0372, 0.0225), (0.0372, 0.0105), (0.0, 0.0105)], 40)
-    kcard = B.bm("M_LL_Rose", "PROP_compass")
-    disc_uv(kcard, B.uv(kcard), kc + cb3.col[2] * 0.0108, cb3, 0.0368, 40, None)
-    cyl(B.bm("M_LL_Glass", "PROP_compass"), kc + cb3.col[2] * 0.0205, 0.0372, 0.0372, 0.0008, 40, cb3)
-    cyl(B.bm("M_LL_Brass", "PROP_compass"), kc + cb3.col[2] * 0.0245, 0.0045, 0.0055, 0.004, 12, cb3)   # bow / ring post
+    kcard = B.bm("M_LL_Props", "PROP_compass")          # R5: a cream card (the floor rose was dark: the needle vanished)
+    disc_region_uv(kcard, B.uv(kcard), kc + kb3.col[2] * 0.0108, kb3, 0.0368, 40, "compass_card")
+    cyl(B.bm("M_LL_Glass", "PROP_compass"), kc + kb3.col[2] * 0.0205, 0.0372, 0.0372, 0.0008, 40, kb3)
+    cyl(B.bm("M_LL_Brass", "PROP_compass"), kc + kb3.col[2] * 0.0245, 0.0045, 0.0055, 0.004, 12, kb3)   # bow / ring post
 
     def needle(bm, uvl):
         tip, tail, half = 0.031, 0.026, 0.0034
@@ -1133,8 +1199,8 @@ def build_desk_detail(B):
                                                  (0, 0, 0.0016))]
         for f in ((0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4), (0, 3, 2, 1)):
             bm.faces.new([vs[i] for i in f])
-    B.part("PT_compass_needle", "M_LL_Iron", kc + cb3.col[2] * 0.0145, cb3, needle)
-    B.empty("IA_compass", kc + cb3.col[2] * 0.015, (0.055, 0.055, 0.03), cb3)
+    B.part("PT_compass_needle", "M_LL_Iron", kc + kb3.col[2] * 0.0145, kb3, needle)
+    B.empty("IA_compass", kc + kb3.col[2] * 0.015, (0.055, 0.055, 0.03), kb3)
     # a green pencil stub left on the chart (the bearing work)
     s0, s1 = CP(0.27, -0.215, 0.0042), CP(0.355, -0.19, 0.0042)     # beside the rule
     pencil(B, s0, s1 - s0, (s1 - s0).length, "pencil_green")
@@ -1576,9 +1642,23 @@ def build_stair(B):
     # grey-green riveted bulkhead with dark-green trim (it read as one black slab: iteration 2 review)
     plate = B.bm("M_LL_SteelPaint", "SM_Stair")
     trim = B.bm("M_LL_SteelRust", "SM_StairTrim")
+    # R4 (2026-11-15, Daniel: "red lines around the doorway"): the plates' back edges stopped on the chord at
+    # r 3.184 while the curved wall is at 3.25: a 6.6 cm crescent over the door, plus 6 mm chamfer slits at
+    # the sides, let the red emergency stair light through onto the cream wall. The plates now run 3 cm into
+    # the wall (their chamfers buried) and a flat filler follows the wall's curve above the top plate.
+    bury = 0.03
     for sx in (-1, 1):
-        box(plate, dp(b, sx * (w / 2), h / 2, (front + back) / 2), (0.04, back - front, h), bs)
-    box(plate, dp(b, 0, h, (front + back) / 2), (w + 0.04, back - front, 0.04), bs)
+        box(plate, dp(b, sx * (w / 2), h / 2, (front + back + bury) / 2), (0.04, back - front + bury, h), bs)
+    box(plate, dp(b, 0, h, (front + back + bury) / 2), (w + 0.04, back - front + bury, 0.04), bs)
+    rr_ = R_IN + 0.004
+    half = math.asin(min(0.999, (w / 2 + 0.02) / rr_))
+    seg_pts = []
+    for k in range(13):
+        a_ = -half + 2 * half * k / 12
+        pt = (o * math.cos(a_) + r * math.sin(a_)) * rr_
+        seg_pts.append((pt.x, pt.y))
+    seg_pts.reverse()
+    prism(plate, seg_pts, F + h - 0.02, F + h + 0.02)          # the circular segment between chord and wall
     box(trim, dp(b, 0, h - 0.15, front), (w + 0.04, 0.05, 0.3), bs)
     for sx in (-1, 1):
         box(trim, dp(b, sx * (w / 2 - 0.06), h / 2, front), (0.12, 0.06, h), bs)
@@ -1591,7 +1671,8 @@ def build_stair(B):
         # heavy bulkhead door (P0). 20 mm gap underneath: the stair light shows beneath it, and in ch4 a
         # photograph slides through. -Y faces the room.
         yb = Vector((0, 1, 0))
-        box(bm, (0.53, 0, 1.04), (1.06, 0.05, 2.04))                    # leaf
+        box(bm, (0.53, 0, 1.04), (1.09, 0.05, 2.04))                    # leaf (R4: 15 mm into the trim each side;
+                                                                        # flush, the two chamfers made a V that let the red stair light through)
         for (x, z, sx, sz) in ((0.53, 2.025, 1.06, 0.07), (0.53, 0.055, 1.06, 0.07), (0.035, 1.04, 0.07, 2.04),
                                (1.025, 1.04, 0.07, 2.04), (0.53, 1.04, 0.92, 0.07)):
             box(bm, (x, -0.033, z), (sx, 0.016, sz))                   # raised flange + mid rail: two panels
@@ -2140,8 +2221,20 @@ def build_props(B):
     sb_ = R["storage"]
     sbs = wb(sb_)
     sc = back_dist(1.4) - 0.25
+    # R5 (Daniel: "improve the Tide Tables"): three plain blue blocks became three bound volumes (1969-71):
+    # the buckram boards (ClothBlue), a printed gilt spine each (props atlas), the page block showing at the
+    # head between the boards, and the 1969 volume's front board on the shelf end.
+    tr0, to0, tu0 = wall_frame(sb_)
+    tpm = B.bm("M_LL_Props", "SM_Props")
+    tuv = B.uv(tpm)
     for k in range(3):
-        box(B.bm("M_LL_ClothBlue", "SM_Props"), dp(sb_, -0.6 + k * 0.035, 1.24, sc - 0.06), (0.03, 0.2, 0.25), sbs)
+        bc_ = dp(sb_, -0.6 + k * 0.035, 1.24, sc - 0.06)
+        box(B.bm("M_LL_ClothBlue", "SM_Props"), bc_, (0.03, 0.2, 0.25), sbs, bevel=0.0025)
+        quad_uv(tpm, tuv, bc_ - to0 * 0.1006, basis(tr0, tu0, -to0), 0.0285, 0.246,
+                region_rect("tide_spines", k / 3, 0.0, (k + 1) / 3, 1.0))                # the spine
+        box(B.bm("M_LL_Paper", "SM_Props"), bc_ + tu0 * 0.1236 + to0 * 0.004, (0.024, 0.19, 0.003), sbs, bevel=0.0)   # page block at the head
+        if k == 0:
+            quad_uv(tpm, tuv, bc_ - tr0 * 0.0156, basis(-to0, tu0, -tr0), 0.198, 0.248, region_rect("tide_cover"))
     bot = dp(sb_, -0.56, 1.113, sc + 0.12)
     cyl(B.bm("M_LL_Whisky", "SM_Props"), bot + Vector((0, 0, 0.075)), 0.035, 0.035, 0.15, 16)
     cyl(B.bm("M_LL_Whisky", "SM_Props"), bot + Vector((0, 0, 0.175)), 0.012, 0.02, 0.05, 12)
@@ -2151,12 +2244,25 @@ def build_props(B):
     # G4a (item 10): the burner cut 1 cm into the red toolbox (r 0.06 at 0.55, the box ends at 0.5): now at
     # 0.58, 2 cm clear, on the board (top 0.6125); its feed tube drops to the board beside it, not onto the lid
     vb = dp(sb_, 0.58, 0.6125, sc)
-    cyl(B.bm("M_LL_Brass", "SM_Props"), vb + Vector((0, 0, 0.06)), 0.05, 0.06, 0.12, 20)
-    sphere(B.bm("M_LL_Paper", "SM_Props"), vb + Vector((0, 0, 0.16)), 0.045, 12, 8)               # spare mantle
+    # R5 (Daniel: "improve the vapour burner"): a plain brass cylinder and a paper ball became a turned brass
+    # fount (foot ring, belly, shoulder, burner collar), its pump plunger and filler cap, and a mantle sock
+    # on the burner head (the paper ball was the "spare mantle")
+    lathe(B.bm("M_LL_Brass", "SM_Props"), vb, Matrix.Identity(3),
+          [(0.0, 0.0), (0.061, 0.0), (0.062, 0.005), (0.057, 0.009), (0.06, 0.03), (0.061, 0.055), (0.055, 0.08),
+           (0.04, 0.096), (0.022, 0.104), (0.02, 0.118), (0.026, 0.122), (0.026, 0.132), (0.016, 0.136), (0.0, 0.136)], 28)
+    pump = vb + (wall_frame(sb_)[0]) * 0.034 + Vector((0, 0, 0.084))
+    cyl(B.bm("M_LL_Brass", "SM_Props"), pump + Vector((0, 0, 0.012)), 0.008, 0.008, 0.026, 12)
+    cyl(B.bm("M_LL_Bakelite", "SM_Props"), pump + Vector((0, 0, 0.029)), 0.011, 0.011, 0.008, 14)     # plunger knob
+    cyl(B.bm("M_LL_Brass", "SM_Props"), vb - (wall_frame(sb_)[0]) * 0.034 + Vector((0, 0, 0.09)), 0.012, 0.012, 0.01, 14)   # filler cap
+    lathe(B.bm("M_LL_Paper", "SM_Props"), vb + Vector((0, 0, 0.136)), Matrix.Identity(3),
+          [(0.0, 0.0), (0.017, 0.0), (0.027, 0.014), (0.031, 0.036), (0.029, 0.056), (0.019, 0.07), (0.0, 0.074)], 16)   # the mantle
     seg_cyl(B.bm("M_LL_Brass", "SM_Props"), dp(sb_, 0.62, 0.70, sc - 0.03), dp(sb_, 0.645, 0.62, sc - 0.1), 0.008, 8)
     # the bulb box passed 1.5 cm through the log box's wall (inner face 0.079) and floated 2.5 mm: x -0.005
     # (4 mm clear), sitting on the board (top 1.1125)
-    box(B.bm("M_LL_Paper", "SM_Props"), dp(sb_, -0.005, 1.1675, sc - 0.02), (0.16, 0.14, 0.11), sbs)   # bulb box
+    bbx = dp(sb_, -0.005, 1.1675, sc - 0.02)
+    box(B.bm("M_LL_Paper", "SM_Props"), bbx, (0.16, 0.14, 0.11), sbs, bevel=0.004)   # bulb box
+    # R5 (Daniel: "the box beside the Old Station Logs"): a blank paper block became a printed lamp carton
+    quad_uv(tpm, tuv, bbx - to0 * 0.0706, basis(tr0, tu0, -to0), 0.152, 0.104, region_rect("bulb_carton"))
     build_coat_rack(B)                                              # cabin pass (IMG_3137)
     # (C) kettle on an electric ring and a mug on the west window sill: the keeper's long night
     kb = -42.0
@@ -2314,7 +2420,7 @@ def build_coat_rack(B):
         cdv = pts[-1] - pts[-2]
         torus(oil, pts[-1] + cdv.normalized() * 0.003, 0.028, 0.005, 14, 5, basis_z(cdv))   # turned cuff
     torus(oil, hook + ou * 0.004, 0.014, 0.0035, 12, 5, basis_z(cside))   # the collar loop over the hook
-    dark = B.bm("M_LL_Bakelite", "SM_CoatRack")
+    dark = B.bm("M_LL_Oilskin", "SM_CoatRack")              # R4: was Bakelite (near-black): a black stripe down the coat
     z = -0.17
     while z > -0.9:                                          # storm flap seam: short pieces that follow the folds
         p_, n_ = front_hit(0.0, z)
@@ -2648,7 +2754,7 @@ def build_lighthouse(B):
     for i in range(N):
         b0, b1 = -180 + 360 * i / N, -180 + 360 * (i + 1) / N
         if in_window((b0 + b1) / 2):
-            ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, -0.05, W["sill"])
+            ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, -0.05, W["sill"] - 0.02)   # R6: under the sill, not level with it
             ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, W["top"], H + 0.22)
         else:
             ring_seg(skin, b0, b1, R_OUT + 0.004, R_OUT + 0.034, -0.05, H + 0.22)

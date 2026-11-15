@@ -1013,3 +1013,6 @@ See `PROPOSAL_36_TUTORIAL.md`. **Status: awaiting approval.** It builds on item 
 
 ## 37. Journal and historical records (PROPOSAL)
 See `PROPOSAL_37_JOURNAL.md`. **Status: awaiting approval.**
+
+## Playthrough remediation record (2026-11-15)
+Daniel's 29-issue playthrough brief: the full matrix (cause, fix, evidence, status) is in `docs/qa/playthrough-remediation.md`. Commits R1-R6 on top of `0704193`.

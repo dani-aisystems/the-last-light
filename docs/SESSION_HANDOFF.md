@@ -1,5 +1,24 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-15): playthrough remediation (Daniel's 29 issues) done, committed locally (R1-R6 + docs)
+- **Record:** `docs/qa/playthrough-remediation.md` (cause, fix, evidence, status per issue). Plan: `~/.claude/plans/pasted-content-id-46d5-the-misty-music.md`.
+- **Root causes worth remembering:**
+  - the opening soft-lock was the six ch1 dusk thoughts waiting for an unprompted Space (thought / in-room lines now auto-advance; radio keeps Space plus a cue);
+  - the "too bright" opening was the reflection probe's default 1 m `blend_distance` letting the dusk SKY ambient into the room;
+  - the red door lines were the stair emergency light's shadow bleeding at thin overlaps;
+  - the beam stutter was 60 Hz physics drawn on a 120 Hz screen (`KeeperSim.draw_bearing()` interpolates).
+- **New tools:** `tests/opening_test.gd` (human-mode opening, O1-O6; add it to the suite loop); capture flags `--beam_pace`, states `face_b<deg>` / `pitch_<deg>`, view `cu_door_top`; `blender/documents.py --props` (rebuilds only the props atlas, no doc regrain).
+- **Build:** v061 `.blend`, watch_room GLB v050, lighthouse v042.
+- **Waiting on Daniel:**
+  - the listening pass `renders/last_light/rq3_listen_{before,after}.wav`;
+  - a bench when the Mac is free;
+  - a hands-on run of the opening (route in the record);
+  - his eye on the menu beam response and the tower.
+- **Gotchas:**
+  - `tools/godot_bg` captures from a worktree need the gitignored `godot/assets/textures/*` and `.godot/` copied in;
+  - `pipeline.sh` runs a Godot `--import`, so don't run it while suites are going;
+  - zsh doesn't word-split `$P`: build file lists in bash.
+
 ## LATEST (2026-11-06, night): G2 + G5 checkpoint captured, presented, awaiting Daniel
 - **Baseline at 3796c41 re-verified, all green:** story 0 failures; regress 202/202 (3 headless skips); interaction 159/0 (12 sound warnings); qa_sweep 1,924; sim_v2 no gate failures; run_tests 95; g5 44/44; pytest 21.
 - **Two stray Claude sessions (PIDs 19478, 23732) were stopped at Daniel's request.** They had been editing `capture_fp.gd` in parallel.

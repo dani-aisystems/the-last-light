@@ -1,7 +1,7 @@
 class_name Equipment
 extends Node3D
 ## G3a (Daniel 2026-11-07): what the keeper carries besides the torch. Both lie on the desk from the start
-## and are picked up there (IA_compass on the chart, IA_binoculars by the radar).
+## and are picked up there (IA_compass on the centre window sill (R5), IA_binoculars by the radar).
 ##   compass     G   left hand, low and tilted to the eye; the needle points to north (world -Z) at any yaw
 ##   binoculars  B   both hands, raised to the eyes: FOV 72 -> 10 deg (about 7x) over RAISE_S, look slowed by
 ##                   the same ratio, a two-eyepiece mask, walking slowed; the torch goes out while they're up
@@ -32,6 +32,7 @@ const G_H := Vector3(0.0, -0.15, -0.03)
 const POSE_BLEND := 10.0                  # per second, toward the target pose
 const LAYER_HELD := 512                   # render layer 10: the hands and the held torch (the fill light's only target)
 const LIGHT_GAP := 0.03                   # the torch light stops this short of a wall between the eye and the lens
+const TORCH_EYE := Vector3(0.07, -0.08, -0.12)   # R4: where the beam starts when looking steeply down
 
 var player: Node
 var station: Node
@@ -241,7 +242,7 @@ func give(id: String) -> void:
 
 func toggle(id: String) -> Dictionary:
 	if not has.get(id, false):
-		return {"ok": false, "reason": "The hand compass is on the chart." if id == "compass" else "The binoculars are on the desk, by the radar."}
+		return {"ok": false, "reason": "The hand compass is on the east window sill." if id == "compass" else "The binoculars are on the desk, by the radar."}
 	if held == id:
 		held = ""
 	else:
@@ -332,7 +333,13 @@ func _process(delta: float) -> void:
 	fill.visible = torch_node.visible
 	if torch_node.visible:
 		torch_node.position = TORCH_POS + sway
-		player.torch_light.position = _light_pos(torch_node.transform * Vector3(0.0, 0.12, 0.0))
+		# R4: looking down, the lens comes back to the chest (pitch -83 put the light ON the body); there the
+		# beam starts from just below the eye instead, and it is always aimed at the crosshair 3 m out
+		# (it was aimed once, from the old capsule position, so the pool sat low and right of the aim).
+		var lens := torch_node.transform * Vector3(0.0, 0.12, 0.0)
+		var down := smoothstep(-0.55, -1.15, player._pitch)
+		var pos := _light_pos(lens.lerp(TORCH_EYE, down))
+		player.torch_light.transform = Transform3D(Basis.looking_at(Vector3(0.0, 0.0, -3.0) - pos, Vector3.UP), pos)
 	_hand("L", bino_node if bino_node.visible else compass_node, "bino_L" if bino_node.visible else "compass_L",
 		"binoculars" if bino_node.visible else "compass", delta)
 	_hand("R", bino_node if bino_node.visible else torch_node, "bino_R" if bino_node.visible else "torch_R",
