@@ -14,6 +14,10 @@ extends Control
 ##   E (interact) is NEVER read here: it always reaches the player, so devices work while a line shows.
 ##   Space / pad RT (action "dialogue_next") finishes the typewriter, then advances, but only once the
 ##   line has been fully shown for ADVANCE_DWELL_S, so a double tap can't skip a line unread.
+##   Remediation R1 (2026-11-15): thought / in-room / sound lines (not radio) also advance BY THEMSELVES
+##   after a reading time (auto_advance_s), counted only while nothing holds the screen. The ch1 opening
+##   thoughts used to wait for an unprompted Space, and the whole story waited behind them. Radio lines
+##   still wait for Space / RT and show a dim cue once fully shown.
 ##   Replies: number keys 1-4 only (physical keys); a click in a device view; the pad d-pad + A. The wheel,
 ##   E, W/S, the arrows and Space never pick a reply, and nothing is picked in its first CHOICE_GUARD_S.
 ## This layer never touches the mouse mode (game_fp owns it). Radio replies show only in the radio view.
@@ -54,9 +58,17 @@ var _choices: Array = []
 var _active := false
 var _t := 0.0
 var _choice_age := 0.0                      # seconds since the replies appeared (CHOICE_GUARD_S)
+var _auto_t := 0.0                          # R1: unheld seconds this line has been on screen
+var _advance_sent := false                  # R1: one advance per line (a wait after it must not be skipped)
+var auto_advance := true                    # R1: thought / person / sound lines advance by themselves
 
 const ADVANCE_DWELL_S := 0.5                # a fully shown line must stay this long before Space advances it
 const CHOICE_GUARD_S := 0.4                 # replies ignore input this long after they appear
+const AUTO_BASE_S := 1.0                    # R1: reading time = base + per character, clamped
+const AUTO_PER_CHAR_S := 0.06
+const AUTO_MIN_S := 2.8
+const AUTO_MAX_S := 9.0
+const AUTO_AFTER_SHOWN_S := 1.2             # and always at least this long after the last character
 ## Stage 3C: the card is a print. The photo is 4:5 (the portraits are 512x640) inside a paper border.
 const CARD_SIZE := Vector2(152, 190)
 const PHOTO_RECT := Rect2(8, 10, 136, 170)
@@ -168,6 +180,8 @@ func show_line(item: Dictionary) -> void:
 	_shown = 0.0
 	_pause = 0.15
 	_done_t = 0.0
+	_auto_t = 0.0
+	_advance_sent = false
 	var radio := line_look == "radio"
 	radio_panel.visible = radio
 	sub_box.visible = not radio
@@ -178,7 +192,7 @@ func show_line(item: Dictionary) -> void:
 			if String(_item[k]) != "":
 				ident.append(String(_item[k]))
 		r_ident.text = "  ·  ".join(ident)
-		r_hint.text = ""
+		_set_cue(false)
 		var pp := Speakers.portrait(_speaker, String(_item.get("expr", "")))
 		_portrait = load(pp) as Texture2D if pp != "" else null
 		card.queue_redraw()
@@ -252,6 +266,7 @@ func _refresh_choices() -> void:
 	var gated: bool = mode == "radio" and at_radio_fn.is_valid() and not at_radio_fn.call()
 	if gated:
 		r_hint.text = InputSetup.resolve("▸ Look at the radio on the desk and press {interact} to answer.")
+		r_hint.modulate.a = 1.0
 		return
 	r_hint.text = ""
 	for c in _choices:
@@ -363,11 +378,15 @@ func _process(delta: float) -> void:
 	elif choice_box.get_child_count() > 0 and mode == "radio" and at_radio_fn.is_valid() and not at_radio_fn.call():
 		_clear_choices()        # walked away from the handset: hide the replies again (they come back at the radio)
 		r_hint.text = InputSetup.resolve("▸ Look at the radio on the desk and press {interact} to answer.")
+		r_hint.modulate.a = 1.0
 		_restore_mouse()
 	if choice_box.get_child_count() > 0:
 		_layout_choices()       # the speech block can grow while the line types out
+	var held: bool = (doc_open_fn.is_valid() and doc_open_fn.call()) or (hold_fn.is_valid() and hold_fn.call())
+	if not held:
+		_auto_t += delta
 	if _shown < _full.length():
-		if (doc_open_fn.is_valid() and doc_open_fn.call()) or (hold_fn.is_valid() and hold_fn.call()):
+		if held:
 			return                  # reading a document / the screen is faded: nothing types unseen
 		if _pause > 0.0:
 			_pause -= delta
@@ -388,6 +407,31 @@ func _process(delta: float) -> void:
 			_render()
 	else:
 		_done_t += delta
+		if line_look == "radio" and _choices.is_empty() and not _advance_sent:
+			_set_cue(true)          # R1: radio lines wait for Space / RT: say so, quietly
+		elif auto_advance and line_look != "radio" and _choices.is_empty() and not _advance_sent and not held \
+				and _done_t >= AUTO_AFTER_SHOWN_S and _auto_t >= auto_advance_s(_full):
+			_advance_sent = true
+			advance_requested.emit()
+
+
+## R1: how long a thought / in-room line stays before it advances by itself (longer lines read longer;
+## a slower typewriter setting reads slower too).
+func auto_advance_s(text: String) -> float:
+	var pace := clampf(42.0 / maxf(speed_cps, 1.0), 0.8, 1.6)
+	return clampf(AUTO_BASE_S + AUTO_PER_CHAR_S * text.length(), AUTO_MIN_S, AUTO_MAX_S) * pace
+
+
+## R1: the dim "Space ▸" cue under a fully shown radio line (the hint row is kept for the reply gate).
+func _set_cue(on: bool) -> void:
+	if on:
+		var cue := "%s  ▸" % InputSetup.glyph("dialogue_next")
+		if r_hint.text != cue and (r_hint.text == "" or r_hint.modulate.a < 1.0):
+			r_hint.text = cue
+			r_hint.modulate.a = 0.6
+	else:
+		r_hint.text = ""
+		r_hint.modulate.a = 1.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -417,7 +461,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_shown = _full.length()      # first press completes the line
 		_render()
 		_done_t = 0.0
-	elif _done_t >= ADVANCE_DWELL_S: # the full line has been on screen long enough to be read
+	elif _done_t >= ADVANCE_DWELL_S and not _advance_sent: # the full line has been on screen long enough to be read
+		_advance_sent = true
+		if line_look == "radio":
+			_set_cue(false)
 		advance_requested.emit()
 	get_viewport().set_input_as_handled()
 

@@ -122,19 +122,19 @@ func _run() -> void:
 	_ok("thunder delay = distance / 343", absf(le.get("thunder_delay", -1.0) - d / 343.0) < 0.001)
 
 	# --- 30: thunder variant by distance, delayed by the speed of sound
-	for case in [[450.0, 0, 2], [850.0, 3, 5]]:
+	for case in [[450.0, 0, 2], [850.0, 3, 5], [2200.0, 6, 7]]:   # R3: near, mid, far
 		var before: int = au._pending.size()
 		au.on_events([{"type": "lightning", "power": 0.8, "distance": case[0], "thunder_delay": case[0] / 343.0, "bearing": 0.3}])
 		_ok("thunder queued @%d m" % int(case[0]), au._pending.size() == before + 1 and absf(au._pending[-1][0] - au._t - case[0] / 343.0) < 0.01)
-		for i in 40:
+		for i in int(case[0] / 343.0 / 0.1) + 10:      # R3: run past the sound's delay (2200 m = 6.4 s)
 			au._process(0.1)
 		var hit := -1
-		for k in 6:
+		for k in 8:
 			for p in _players("thunder_%d" % k):
 				if p.bus == &"Exterior":
 					hit = k
 		_ok("thunder variant @%d m in %d..%d" % [int(case[0]), case[1], case[2]], hit >= case[1] and hit <= case[2], "thunder_%d" % hit)
-		for k in 6:
+		for k in 8:
 			for p in _players("thunder_%d" % k):
 				p.queue_free()
 		await process_frame

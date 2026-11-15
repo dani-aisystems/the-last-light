@@ -21,6 +21,10 @@ Flags:
 - QUIET: RMS < -45 dBFS, on a file that isn't meant to be silent
 - LOUD: RMS > -10 dBFS (a ceiling check on overall level)
 - SHORT: a constant looping layer shorter than 20 s, whose repeat is easy to hear (finding 30)
+- CLICKY (R3, 2026-11-15): a rain layer with more than 2 sudden onsets a second (5 ms frames whose level
+  jumps by > 6 dB); the old rain had about 5 a second on the roof and 40 on the glass ("clicking")
+- TAIL (R3): a thunder file that is still audible at its end (last 50 ms above -45 dB of its peak)
+- DULL (R3): a thunder file with less than -18 dB of its energy above 200 Hz (a "pop" on small speakers)
 
 `--strict` exits 1 when any file is flagged (used by tests/test_last_light_audio.py).
 """
@@ -90,6 +94,22 @@ def analyse(path: Path) -> dict:
         flags.append("LOUD")
     if is_loop and r["seconds"] < MIN_LOOP_S:
         flags.append("SHORT")
+    if path.stem.startswith("amb_rain"):
+        fr = mono[: len(mono) // 220 * 220].reshape(-1, 220)
+        lv = np.sqrt((fr ** 2).mean(axis=1)) + 1e-9
+        r["onsets_per_s"] = round(float(np.mean(20 * np.log10(lv[1:] / lv[:-1]) > 6.0)) * sr / 220, 2)
+        if r["onsets_per_s"] > 2.0:
+            flags.append("CLICKY")
+    if path.stem.startswith("thunder_"):
+        end = mono[-int(0.05 * sr):]
+        r["end_db"] = round(db(float(np.sqrt(np.mean(end ** 2)))) - db(peak), 1)
+        X = np.abs(np.fft.rfft(mono)) ** 2
+        f = np.fft.rfftfreq(len(mono), 1 / sr)
+        r["above_200_db"] = round(float(10 * np.log10(X[f >= 200].sum() / X.sum() + 1e-12)), 1)
+        if r["end_db"] > -45:
+            flags.append("TAIL")
+        if r["above_200_db"] < -18:
+            flags.append("DULL")
     r["flags"] = flags
     return r
 

@@ -194,10 +194,14 @@ func show_menu() -> void:
 		menu_meta.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.0))
 		menu_meta.modulate.a = 0.0                # its slot is always reserved: showing it moves nothing
 		_small_text.append(menu_meta)
-		seq.append(_indent(menu_meta))
-		_gap(10)
+		# R2 (issue 11): the info tucks into Continue's lower padding (its slot is still reserved, so showing
+		# it moves nothing), and the gaps shrink: Continue -> New Game 66 px, New Game -> Load Game 73 px
+		# between baselines (were about 90 / 90), the quiet items 59 px apart.
+		var meta_box := _indent(menu_meta)
+		meta_box.add_theme_constant_override("margin_top", -14)
+		seq.append(meta_box)
 	seq.append(_item("New Game", latest == "", _new_game, true))
-	_gap(30)
+	_gap(14)
 	for it in [["Load Game", _open_load], ["Options", _open_options], ["Credits", _open_credits], ["Quit", func(): get_tree().quit()]]:
 		seq.append(_item(it[0], false, it[1]))
 	menu_corner = MenuLinks.new().setup(String(GameState.user_args.get("links", MenuLinks.DEFAULT_PATH)))
@@ -325,6 +329,10 @@ func _layout_menu() -> void:
 	menu_corner.offset_left = -m
 	menu_corner.offset_bottom = -roundf(m * 0.75)
 	menu_corner.offset_top = -roundf(m * 0.75)
+	# R2 (issue 9): the beam's soft mask starts at the column's real right edge, at any aspect
+	if menu_bg and is_instance_valid(menu_bg) and menu_bg.outside:
+		var right := (float(_menu_margin.get_theme_constant("margin_left")) + menu_col.get_combined_minimum_size().x) / maxf(s.x, 1.0)
+		menu_bg.outside.set_title_column(right)
 
 
 ## Explicit neighbours: down walks the items, then the links, and wraps; up walks back. Tab does the same.

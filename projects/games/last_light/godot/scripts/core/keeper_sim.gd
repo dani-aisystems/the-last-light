@@ -268,7 +268,22 @@ func command(ship_id: int, cmd: String) -> Array:
 
 # ================================================================== step
 
+## R2 (2026-11-15): the bearing before the last step. The beam turns in 60 Hz physics steps; drawing
+## sim.bearing directly stepped it on 120 Hz screens (Daniel's playtest: "the lighthouse stutters").
+var prev_bearing := 0.0
+
+
+## R2: the bearing to draw this frame, between the last two physics steps (call from _process).
+## A jump larger than any real step (a load, a capture forcing the angle) is drawn at once.
+func draw_bearing() -> float:
+	var d := wrapf(bearing - prev_bearing, -PI, PI)
+	if absf(d) > 0.2:
+		return bearing
+	return wrapf(prev_bearing + d * Engine.get_physics_interpolation_fraction(), -PI, PI)
+
+
 func step(dt: float) -> Array:
+	prev_bearing = bearing
 	var ev: Array = []
 	if result != Result.RUNNING:
 		return ev

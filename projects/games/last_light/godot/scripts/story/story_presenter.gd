@@ -24,6 +24,9 @@ var thought: Label                       # brief item 16: Callum's short, non-bl
 var duty_hud: DutyHUD                     # G2b layer A: the duty line top-left (replaced the item 20 panel)
 var _last_hint := ""                     # G2b: the last story hint, for the J / R3 recall
 var _queued_thought := ""                # G2b: a thought held back while dialogue was up
+var _queued_expire := -1.0               # R1: seconds left before a queued device answer goes stale (-1 never)
+var _dlg_idle_t := 0.0                   # R1: seconds since the last conversation closed
+const QUEUE_GAP_S := 0.6                 # R1: a queued thought waits this long after a conversation ends
 ## G2b layer C: the logbook (the log page with tonight's written rows, the pencil Duties page) and the
 ## completion slip that appears top-right as Callum writes a row.
 var log_pages: LogbookPages
@@ -212,6 +215,7 @@ func _ready() -> void:
 func bind(d: StoryDirector) -> void:
 	director = d
 	d.line_shown.connect(dialogue.show_line)
+	d.line_shown.connect(_hide_thought)      # R1: a story line never shares the screen with a device thought
 	d.choices_shown.connect(dialogue.show_choices)
 	d.dialogue_closed.connect(dialogue.close)
 	dialogue.advance_requested.connect(d.advance_line)
@@ -303,6 +307,7 @@ func duty_nudge(level: int, nudge: String, hint_text: String) -> void:
 				director.log_thought(nudge)
 			elif nudge != "":
 				_queued_thought = nudge
+				_queued_expire = -1.0
 		_:
 			if g >= DutyHUD.GUIDE_STANDARD and hint_text != "":
 				show_hint(hint_text, true)
@@ -395,9 +400,16 @@ func timeskip(clock_text: String) -> void:
 ## Item 16: a device check's thought. It never waits for a key (it fades by itself) and is skipped while a
 ## story line is on screen, so it can't talk over the story. Returns true if it was shown.
 ## G2b: a thought that must not be lost (a failed crank, a duty nudge) waits for the dialogue to finish.
-func queue_thought(t: String) -> void:
-	if not show_thought(t):
-		_queued_thought = t
+## R1: max_age > 0 drops the thought if it can't be shown within that many seconds (a device check's
+## answer is only worth saying while the player is still looking at the device).
+func queue_thought(t: String, max_age := -1.0) -> bool:
+	if show_thought(t):
+		return true
+	if _queued_thought != "" and _queued_expire < 0.0 and max_age > 0.0:
+		return false                       # a must-say thought (crank, nudge) is already waiting: keep it
+	_queued_thought = t
+	_queued_expire = max_age
+	return false
 
 
 func show_thought(t: String) -> bool:
@@ -411,6 +423,15 @@ func show_thought(t: String) -> bool:
 	_thought_tw.tween_interval(2.6 + t.length() * 0.035)
 	_thought_tw.tween_property(thought, "modulate:a", 0.0, 0.6)
 	return true
+
+
+func _hide_thought(_item = null) -> void:
+	if thought.modulate.a <= 0.01:
+		return
+	if _thought_tw:
+		_thought_tw.kill()
+	_thought_tw = create_tween()
+	_thought_tw.tween_property(thought, "modulate:a", 0.0, 0.2)
 
 
 ## A sound caption outside a conversation: small capitals, low centre, about three seconds.
@@ -760,7 +781,13 @@ func _process(delta: float) -> void:
 	duty_hud.tick(delta, is_screen_held() or is_document_open())
 	duty_hud.visible = not is_document_open()                  # G4a: the 82 % shade let the plate read through
 	_tick_log_card()
-	if _queued_thought != "" and not dialogue.is_active() and not is_screen_held():
+	_dlg_idle_t = 0.0 if dialogue.is_active() else _dlg_idle_t + delta
+	if _queued_thought != "" and _queued_expire > 0.0:
+		_queued_expire -= delta
+		if _queued_expire <= 0.0:
+			_queued_thought = ""           # R1: stale device answer
+	if _queued_thought != "" and not dialogue.is_active() and not is_screen_held() and _dlg_idle_t >= QUEUE_GAP_S \
+			and not (director and director.is_busy_starting()):
 		var qt := _queued_thought
 		_queued_thought = ""
 		if show_thought(qt) and director:

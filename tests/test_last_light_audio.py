@@ -49,6 +49,6 @@ def test_audio_gates_pass():
 
 
 def test_referenced_sounds_exist():
-    need = [f"thunder_{k}" for k in range(6)] + ["carrier_click", "amb_gust", "amb_rain_glass", "amb_wind", "amb_rain", "amb_sea"]
+    need = [f"thunder_{k}" for k in range(8)] + ["carrier_click", "amb_gust", "amb_rain_glass", "amb_wind", "amb_rain", "amb_sea"]
     missing = [n for n in need if not (ASSETS / f"{n}.wav").exists()]
     assert not missing, missing

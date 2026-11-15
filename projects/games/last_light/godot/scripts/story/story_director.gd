@@ -897,10 +897,19 @@ func _dialogue_tick(delta: float) -> void:
 				advance_line()
 
 
+## R1: a conversation is running or about to start this frame (the presenter holds a queued thought).
+func is_busy_starting() -> bool:
+	if _talking:
+		return true
+	return _wait <= 0.0 and not _actions.is_empty() and _actions[0] is Array and String(_actions[0][0]) == "talk"
+
+
 ## UI: player finished reading the current line.
 func advance_line() -> void:
 	if not _talking or not _pending_choice.is_empty():
 		return
+	if _pending_after_wait:
+		return             # R1: an in-dialogue "! wait" runs its course (Space used to skip it and leave the flag set)
 	_waiting_line = false
 	_step_dialogue()
 

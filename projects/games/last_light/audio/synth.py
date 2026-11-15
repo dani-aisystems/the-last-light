@@ -132,6 +132,37 @@ def drops(sec, count, f_lo, f_hi, a_lo, a_hi, d_lo=0.002, d_hi=0.006):
     return x
 
 
+def pink(sec, lo=None, hi=None, tilt=0.5):
+    """Noise with a 1/f^tilt spectrum (tilt 0.5 = pink), band-limited with soft edges."""
+    x = noise(sec)
+    X = np.fft.rfft(x)
+    f = np.fft.rfftfreq(len(x), 1 / SR)
+    X *= 1 / np.maximum(f, 20.0) ** tilt
+    return band(np.fft.irfft(X, n=len(x)), lo, hi)
+
+
+def grain_train(sec, rate, d_lo, d_hi, attack=0.001, sigma=0.7, classes=4):
+    """R3 (2026-11-15): an envelope made of many overlapping drop impacts. Impulses at random times with
+    log-normal sizes are CIRCULARLY convolved with smooth attack/decay kernels (a few decay classes), so
+    every impact runs down to silence (no cut-off ping = no click) and the train loops seamlessly. Used as
+    an amplitude envelope on band-limited noise: impacts are noise bursts, never pitched sine pings."""
+    n = int(round(sec * SR))
+    out = np.zeros(n)
+    for c in range(classes):
+        d = d_lo * (d_hi / d_lo) ** (c / max(classes - 1, 1))
+        L = min(n, int((attack * 4 + 7.0 * d) * SR))
+        tt = np.arange(L) / SR
+        k = (1 - np.exp(-tt / attack)) * np.exp(-tt / d)
+        k *= np.cos(np.linspace(0, np.pi / 2, L)) ** 2          # the last stretch tapers to exactly 0
+        kk = np.zeros(n)
+        kk[:L] = k / k.max()
+        imp = np.zeros(n)
+        cnt = int(rate * sec / classes)
+        np.add.at(imp, rng.integers(0, n, cnt), rng.lognormal(0.0, sigma, cnt))
+        out += np.fft.irfft(np.fft.rfft(imp) * np.fft.rfft(kk), n=n)
+    return out
+
+
 # ------------------------------------------------------------------ ambience loops
 
 def wind():
@@ -156,19 +187,30 @@ def gust():
 
 
 def rain():
-    """Rain on the lantern roof and the gallery: hiss, light drops and a dull drumming on metal."""
+    """Rain on the lantern roof, the gallery and the rock (R3, 2026-11-15). Daniel's playtest: "the rain
+    sounds like clicking". The old layers were sparse sine pings whose envelopes were cut off mid-decay
+    (about 45 clicks a second) over almost no low end. Now: a diffuse pink wash that breathes slowly, a
+    dense haze of tiny impacts (noise grains, ~3000/s) and a softer low-mid patter on stone and iron."""
     sec = 49.5
-    hiss = band(noise(sec), 1500, 9000) * 0.35 * (0.85 + 0.15 * smooth_rand(sec, 0.2, 31))
-    light = band(drops(sec, 8000, 2500, 6000, 0.2, 1.0), 1200, 12000) * 0.8
-    roof = band(drops(sec, 2600, 300, 900, 0.2, 0.7, 0.008, 0.02), 200, 2500) * 0.35
-    save("amb_rain", loopify(hiss + light + roof), -6, loop=True)
+    drift = 0.8 + 0.2 * smooth_rand(sec, 0.12, 31) * (0.85 + 0.15 * smooth_rand(sec, 0.45, 32))
+    wash = pink(sec, 140, 7500, 0.55) * drift
+    fine = band(noise(sec) * grain_train(sec, 3200, 0.0018, 0.006, 0.0008, 0.6), 1500, 7000)
+    patter = band(noise(sec) * grain_train(sec, 420, 0.008, 0.03, 0.002, 0.7), 260, 1800, 1.5)
+    heavy = band(noise(sec) * grain_train(sec, 35, 0.025, 0.06, 0.004, 0.5, 2), 120, 700)
+    def rms(v):
+        return np.sqrt(np.mean(v ** 2)) + 1e-12
+    x = wash / rms(wash) * 0.55 + fine / rms(fine) * 0.32 * drift + patter / rms(patter) * 0.3 * drift + heavy / rms(heavy) * 0.12
+    save("amb_rain", loopify(x, 3.0), -6, loop=True)
 
 
 def rain_glass():
-    """Close patter on the window glass, plus the odd running trickle. 37 s, so it never lines up
-    with the 48 s roof rain."""
+    """Rain against the window glass (R3): the old patter was sine pings at 3-8 kHz. Now soft noise
+    grains on the pane, a damp low thrum of the glass, and the odd running trickle. 37 s, so it never lines
+    up with the 48 s roof rain."""
     sec = 38.5
-    patter = band(drops(sec, 5200, 3000, 8000, 0.3, 1.0, 0.0015, 0.004), 2000, 14000)
+    drift = 0.85 + 0.15 * smooth_rand(sec, 0.2, 41)
+    tap = band(noise(sec) * grain_train(sec, 1100, 0.0015, 0.005, 0.0012, 0.65), 1800, 6500)
+    thrum = band(noise(sec) * grain_train(sec, 260, 0.01, 0.035, 0.003, 0.6), 300, 1400, 1.5)
     trickle = np.zeros(int(sec * SR))
     for i in rng.integers(0, len(trickle) - 3 * SR, 14):
         L = int(rng.uniform(0.8, 2.4) * SR)
@@ -176,8 +218,11 @@ def rain_glass():
         f = 1800 + 900 * np.sin(2 * np.pi * rng.uniform(3, 7) * tt) * np.exp(-tt)
         tone = np.sin(2 * np.pi * np.cumsum(f) / SR) * band(noise(L / SR), 1500, 4000) * 0.15
         trickle[i:i + L] += tone * np.sin(np.pi * tt / tt[-1]) ** 2
-    hiss = band(noise(sec), 4000, 11000) * 0.12
-    save("amb_rain_glass", loopify(patter + trickle + hiss), -8, loop=True)
+    wash = pink(sec, 400, 6000, 0.6)
+    def rms(v):
+        return np.sqrt(np.mean(v ** 2)) + 1e-12
+    x = (tap / rms(tap) * 0.4 + thrum / rms(thrum) * 0.3) * drift + wash / rms(wash) * 0.35 + trickle / rms(trickle) * 0.05
+    save("amb_rain_glass", loopify(x, 3.0), -8, loop=True)
 
 
 def sea():
@@ -256,30 +301,69 @@ def motor_grind():
 
 # ------------------------------------------------------------------ one-shots
 
-THUNDER_VARIANTS = 6       # 0-2 near, 3-5 far (audio_director picks by strike distance)
+THUNDER_VARIANTS = 8       # R3: 0-2 near, 3-5 mid, 6-7 far (audio_director picks by strike distance)
+
+
+def _tail_reverb(x, rr, sec=1.8, wet=0.3):
+    """A plain synthetic room-of-sky: an exponentially decaying noise impulse response (early cluster,
+    diffuse tail), convolved in. Gives thunder its echo off the sea and the cloud base."""
+    L = int(sec * SR)
+    tt = np.arange(L) / SR
+    ir = band(rr.standard_normal(L), 60, 2500) * np.exp(-tt / (sec / 6.9))
+    for j in range(6):                                   # a few early reflections (cliffs, the island)
+        ir[int(rr.uniform(0.03, 0.25) * SR)] += rr.uniform(0.3, 0.8)
+    ir /= np.sqrt(np.sum(ir ** 2))
+    n = len(x) + L
+    y = np.fft.irfft(np.fft.rfft(x, n) * np.fft.rfft(ir, n), n)[:len(x)]
+    return x * (1 - wet) + y * wet * (np.sqrt(np.mean(x ** 2)) / (np.sqrt(np.mean(y ** 2)) + 1e-12))
 
 
 def thunder(k):
+    """R3 (2026-11-15): Daniel's playtest: thunder "sounds like a strange pop". The old far variants were
+    almost all below 150 Hz (inaudible on small speakers, so only the onset thump survived), with no
+    fade-out and no echo. Now each strike is layered:
+      crack (near only: a tearing 2-7 kHz noise burst, then a short crackle),
+      body (30-250 Hz bursts that arrive over a second or two from different parts of the channel),
+      roll (80-600 Hz, the rumble you hear on any speaker, fluttering 3-9 Hz),
+      a long decaying tail, a synthetic sky/sea reverb, and a fade to silence."""
     rr = np.random.default_rng(100 + k)
-    far = k >= 3
-    sec = rr.uniform(8.0, 10.0) if far else rr.uniform(5.0, 6.0)
+    cls = "near" if k < 3 else ("mid" if k < 6 else "far")
+    sec = {"near": rr.uniform(9.0, 11.0), "mid": rr.uniform(11.0, 13.0), "far": rr.uniform(12.0, 14.5)}[cls]
     n = len(t(sec))
-    hi = rr.uniform(140, 190) if far else rr.uniform(320, 420)
-    body = band(rr.standard_normal(n), 18, hi)
-    # rolling: a few overlapping bursts, the sound arriving from different parts of the channel
-    roll = np.zeros(n)
-    bursts = rr.integers(3, 6) if far else rr.integers(2, 4)
-    for b in range(bursts):
-        start = rr.uniform(0.0, sec * (0.45 if far else 0.3)) if b else 0.0
-        i = int(start * SR)
+    tt = np.arange(n) / SR
+    onset = {"near": 0.0, "mid": rr.uniform(0.15, 0.4), "far": rr.uniform(0.5, 1.0)}[cls]
+    body_hi = {"near": 260.0, "mid": 200.0, "far": 160.0}[cls]
+    roll_hi = {"near": 900.0, "mid": 650.0, "far": 480.0}[cls]
+    # the rolling envelope: overlapping bursts, denser early, the last ones late in the tail
+    rollenv = np.zeros(n)
+    nb = int(rr.integers(4, 7)) if cls == "near" else int(rr.integers(5, 9))
+    for b in range(nb):
+        st = onset + (0.0 if b == 0 else rr.gamma(1.6, sec * 0.09))
+        i = int(min(st, sec * 0.7) * SR)
         L = n - i
-        roll[i:] += rr.uniform(0.5, 1.0) * env(L, rr.uniform(0.15, 0.5) if far else rr.uniform(0.02, 0.08),
-                                               rr.uniform(2.0, 3.5) if far else rr.uniform(1.2, 2.2))
-    y = body * roll * (0.6 + 0.4 * smooth_rand(sec, 3, 200 + k))
-    if not far:
-        cl = int(0.25 * SR)
-        crack = band(rr.standard_normal(cl), 300, 4000) * env(cl, 0.001, 0.08)
-        y[:cl] += crack * (0.8 if k == 0 else 0.45) * np.abs(y).max()
+        a = rr.uniform(0.02, 0.08) if (cls == "near" and b == 0) else rr.uniform(0.12, 0.6)
+        rollenv[i:] += rr.uniform(0.45, 1.0) * (0.85 ** b) * env(L, a, rr.uniform(1.4, 3.2))
+    fl_n = band(rr.standard_normal(n), 3, 9)
+    flutter = np.clip(0.7 + 0.3 * fl_n / (fl_n.std() + 1e-12), 0.25, 1.4)
+    body = band(rr.standard_normal(n), 28, body_hi, 1.5) * rollenv
+    roll = band(rr.standard_normal(n), 80, roll_hi, 1.2) * rollenv * flutter
+    def rms(v):
+        return np.sqrt(np.mean(v ** 2)) + 1e-12
+    y = body / rms(body) * 0.8 + roll / rms(roll) * {"near": 0.75, "mid": 0.65, "far": 0.55}[cls]
+    if cls == "near":
+        cl = int(0.04 * SR)
+        crack = band(rr.standard_normal(cl), 1800, 7000) * env(cl, 0.0015, 0.012)
+        crackle = np.zeros(int(0.6 * SR))
+        for j in range(int(rr.integers(10, 22))):
+            p = int(rr.uniform(0.01, 0.5) * SR)
+            Lc = int(rr.uniform(0.004, 0.015) * SR)
+            crackle[p:p + Lc] += rr.uniform(0.2, 0.7) * band(rr.standard_normal(Lc), 900, 5000) * env(Lc, 0.001, 0.004) * np.exp(-p / SR / 0.25)
+        y[:cl] += crack * (1.2 if k == 0 else 0.8) * np.abs(y).max()
+        y[:len(crackle)] += crackle * 0.6 * np.abs(y).max()
+    y = _tail_reverb(y, rr, 1.8 if cls == "near" else 2.4, 0.3 if cls == "near" else 0.4)
+    # fade to silence over the last 25 %: no sound ends while still audible
+    fl = int(0.25 * n)
+    y[-fl:] *= np.cos(np.linspace(0, np.pi / 2, fl)) ** 2
     save(f"thunder_{k}", y, -2)
 
 

@@ -12,6 +12,7 @@ var _fault_seen := -1.0
 var _breaker_seen := -1.0
 var _manual_for := -1
 var orders_sent := 0
+var title := false                      # R2: the title's keeper keeps the beam on AUTO (no manual focusing)
 
 
 func _init(bot_mode: String = "expert", seed_value: int = 1) -> void:
@@ -95,7 +96,7 @@ func act(k: KeeperSim, dt: float) -> Array:
 			orders_sent += 1
 			_order_cd = (7.0 if novice else 0.3) + rng.randf_range(0.0, 1.0 if novice else 0.2)
 	# expert: focus the beam manually on a ship that is blind and in danger late in the storm
-	if not novice:
+	if not novice and not title:
 		_manual_focus(k)
 	return ev
 

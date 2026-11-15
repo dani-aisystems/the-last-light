@@ -1,6 +1,6 @@
 {
   "links": [
-    {"label": "Instagram", "url": "https://www.instagram.com/_d.yanchev_/", "icon": "camera"},
+    {"label": "Instagram", "url": "https://www.instagram.com/_d.yanchev_/", "icon": "instagram"},
     {"label": "Contact", "url": "mailto:daniel.aisystems@gmail.com", "icon": "mail"}
   ]
 }

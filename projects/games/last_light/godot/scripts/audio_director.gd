@@ -13,14 +13,18 @@ extends Node
 ##    it opens up;
 ##  - the close rain on the glass (amb_rain_glass) is unmuffled and placed at the window bays;
 ##  - gusts: amb_gust follows a runtime gust envelope whose depth and rate follow the storm value;
-##  - thunder: near strikes (< 650 m) use thunder_0..2, far ones thunder_3..5; the delay is the
-##    strike distance / 343 m/s (KeeperSim), and the level falls with distance.
+##  - thunder: near strikes (< 700 m) use thunder_0..2, mid ones (< 1500 m) thunder_3..5, far ones
+##    thunder_6..7 (R3, 2026-11-15: re-synthesised with a rolling body, an echo and a fade; each play is
+##    pitched +-6 % so repeats never sound identical); the delay is the strike distance / 343 m/s
+##    (KeeperSim / TitleStorm), and the level falls with distance.
 
 const A := "res://assets/audio/%s.wav"
 const EXT_BUS := "Exterior"
 const MUFFLE_HZ := 2400.0          # indoors: the storm heard through the lantern glass and stone
-const OPEN_HZ := 20000.0           # attract menu: the camera is outside
-const NEAR_STRIKE_M := 650.0
+const OPEN_HZ := 6500.0            # attract menu: the camera is outside (R3: was 20 kHz, which laid every
+                                   # raindrop's top end bare; 6.5 kHz is open air heard through a downpour)
+const NEAR_STRIKE_M := 700.0
+const FAR_STRIKE_M := 1500.0
 const GLASS_LAYERS := 3            # amb_rain_glass emitters, spread round the window bays
 
 var sim: KeeperSim
@@ -163,12 +167,22 @@ func set_menu(on: bool) -> void:
 		_music_fade = 2.0
 
 
+## R3: which thunder recording a strike at d metres gets (near 0-2, mid 3-5, far 6-7, varied at random).
+static func thunder_variant(d: float) -> int:
+	if d < NEAR_STRIKE_M:
+		return randi_range(0, 2)
+	if d < FAR_STRIKE_M:
+		return randi_range(3, 5)
+	return randi_range(6, 7)
+
+
 ## One-shot (2D unless pos given).
-func sfx(n: String, db := 0.0, bus := "SFX") -> void:
+func sfx(n: String, db := 0.0, bus := "SFX", pitch := 1.0) -> void:
 	var p := AudioStreamPlayer.new()
 	p.stream = _stream(n)
 	p.bus = bus
 	p.volume_db = db
+	p.pitch_scale = pitch
 	add_child(p)
 	p.play()
 	p.finished.connect(p.queue_free)
@@ -199,9 +213,10 @@ func on_events(events: Array) -> void:
 				var p: float = e.get("power", 0.7)
 				var delay: float = e.get("thunder_delay", 1.0)
 				var d: float = e.get("distance", delay * 343.0)
-				var k := (0 if d < NEAR_STRIKE_M else 3) + int(d) % 3
+				var k := thunder_variant(d)
 				var db := lerpf(-10.0, 0.0, p) - 10.0 * log(d / 400.0) / log(10.0)   # about -3.5 dB at 900 m
-				_later(delay, func(): sfx("thunder_%d" % k, db, EXT_BUS))
+				var pitch := randf_range(0.94, 1.06)
+				_later(delay, func(): sfx("thunder_%d" % k, db, EXT_BUS, pitch))
 			"click":
 				var dev: String = e["device"]
 				sfx("click_knob" if dev in ["mode", "intensity"] else ("click_button" if dev == "start" else "click_switch"), -4.0)

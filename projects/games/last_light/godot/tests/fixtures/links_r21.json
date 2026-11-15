@@ -1,7 +1,7 @@
 {
   "_note": "regress R21 and G6c captures only: placeholder destinations, never shipped",
   "links": [
-    {"label": "Instagram", "url": "https://example.com/instagram", "icon": "camera"},
+    {"label": "Instagram", "url": "https://example.com/instagram", "icon": "instagram"},
     {"label": "Trailer", "url": "https://example.com/video", "icon": "play"},
     {"label": "Contact", "url": "mailto:contact@example.com", "icon": "mail"},
     {"label": "Plain http", "url": "http://example.com", "icon": "camera"},

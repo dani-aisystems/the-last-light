@@ -35,6 +35,10 @@ const TITLE_SPRAY_N := 64                      # particles per spray burst (many
 ## The menu column's right edge in screen width (16:9; main_fp's column ends near 0.5): the beam's cone
 ## fades out over this span and its fog scatter drops while it points into the column.
 const TITLE_BEAM_MASK := Vector2(0.50, 0.66)
+## R2: the shaft keeps 45 % over the column (it used to stop dead at a vertical line left of the lantern),
+## and the mask follows the column's real right edge (set_title_column), not a fixed 16:9 guess.
+const TITLE_BEAM_FLOOR := 0.45
+var title_mask := TITLE_BEAM_MASK
 var title_fx: Node3D                           # every title-only effect lives under this node
 var near_rain: GPUParticles3D
 var splashes: GPUParticles3D
@@ -566,8 +570,18 @@ func _title_storm_fx() -> void:
 	_title_spray(raining and not off.has("spray"))
 	# 3) the beam: a longer, stronger shaft than the story's (seen from 100 m, not from the gallery), its
 	# cone faded out before the menu column (beam.gdshader mask_x)
-	beam_mat.set_shader_parameter("mask_x", TITLE_BEAM_MASK)
+	beam_mat.set_shader_parameter("mask_x", title_mask)
+	beam_mat.set_shader_parameter("mask_floor", TITLE_BEAM_FLOOR)
+	beam_mat.set_shader_parameter("near_fade", Vector2(2.0, 12.0))
 	beam_mat.set_shader_parameter("decay", 2.6)
+
+
+## R2: main_fp tells the title where its text column ends (fraction of the width). The cone softens from
+## just inside that edge to well clear of it, never below TITLE_BEAM_FLOOR.
+func set_title_column(right: float) -> void:
+	title_mask = Vector2(clampf(right - 0.05, 0.05, 0.9), clampf(right + 0.15, 0.1, 0.98))
+	if title_fx:
+		beam_mat.set_shader_parameter("mask_x", title_mask)
 
 
 ## Splashes: drops bursting up off every upward face of the landing and walkway (decks, steps, bollards).
@@ -775,9 +789,29 @@ func _title_step(delta: float, storm: float, level: float) -> void:
 			var p: Vector3 = beam_pivot.global_position + fwd * d
 			if not cam.is_position_behind(p):
 				minx = minf(minx, cam.unproject_position(p).x / maxf(vw, 1.0))
-		var k2 := smoothstep(TITLE_BEAM_MASK.x, TITLE_BEAM_MASK.y, minx)
-		beam_light.light_volumetric_fog_energy = lerpf(0.3, 1.7, k2)
-		beam_mat.set_shader_parameter("intensity", 0.72 * level)
+		var k2 := smoothstep(title_mask.x, title_mask.y, minx)
+		# R2: the scatter keeps half its strength over the column too (it used to drop to 0.3: the beam
+		# visibly went out as it crossed the title)
+		var face := beam_facing_cam(cam)
+		beam_light.light_volumetric_fog_energy = lerpf(0.85, 1.7, k2) + 0.6 * face
+		beam_mat.set_shader_parameter("intensity", 0.72 * level * (1.0 + 0.25 * face))
+		# R2 (issue 10): as the beam swings toward the lens the night answers a little: a touch more glow
+		# and exposure, the lantern brighter. Physically modest, no flare; follows the beam frame by frame.
+		env.glow_intensity = 0.45 + 0.2 * face
+		env.tonemap_exposure *= 1.0 + 0.05 * face
+		lamp_glow.light_energy = 2.5 * level * (1.0 + 1.2 * face)
+
+
+## 0..1: how squarely the turning beam points at the camera (horizontal plane, sharpened so it only swells
+## as the beam sweeps past). game_fp.beam_facing() is the same measure for the menu's glow.
+func beam_facing_cam(cam: Camera3D) -> float:
+	var f: Vector3 = -beam_pivot.global_transform.basis.z
+	var to_cam: Vector3 = cam.global_position - beam_pivot.global_position
+	f.y = 0.0
+	to_cam.y = 0.0
+	if f.length() < 1e-4 or to_cam.length() < 1e-4:
+		return 0.0
+	return pow(maxf(f.normalized().dot(to_cam.normalized()), 0.0), 10.0)
 
 
 func _landing_frame() -> Array:
@@ -1087,9 +1121,10 @@ func _process_body(delta: float) -> void:
 	if lit and sim.battery < 8.0:
 		level *= 0.6 + 0.4 * float(randf() > 0.2)
 	var focused := sim.mode == KeeperSim.Mode.MANUAL
-	beam_pivot.rotation.y = Geo.yaw_for(sim.bearing)
+	var drawn := sim.draw_bearing()         # R2: interpolated between physics steps (no 60 Hz stepping)
+	beam_pivot.rotation.y = Geo.yaw_for(drawn)
 	if optic:
-		optic.rotation.y = Geo.yaw_for(sim.bearing)
+		optic.rotation.y = Geo.yaw_for(drawn)
 	beam_light.visible = lit
 	beam_cone.visible = lit
 	beam_light.light_energy = 40.0 * level * (1.3 if focused else 1.0)

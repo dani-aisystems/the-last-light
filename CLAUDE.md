@@ -82,6 +82,7 @@ A first-person narrative lighthouse-keeper game: **Godot 4.7.2** (`tools/godot`)
   - `tools/godot --headless --path projects/games/last_light/godot -s res://tests/story_test.gd`
   - `… -s res://tests/sim_v2.gd`
   - `… -s res://tests/run_tests.gd`
+  - `… -s res://tests/opening_test.gd` (the ch1 opening in human mode)
   - `tools/py -m pytest -q`
 - **Visual QA:** `tools/godot_bg --path projects/games/last_light/godot -- --capture=NAME --shots=menu,60@fp_desk,120@focus_radio --bot=expert`. View the PNGs in `renders/last_light/` with Read.
 - **Rules agreed with Daniel:**

@@ -62,10 +62,13 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 	attract = attract_mode
 	story_mode = story
 	var night: Dictionary = {"ships": [], "faults": []} if story else JSON.parse_string(FileAccess.get_file_as_string("res://data/night.json"))
+	if attract_mode:
+		night["faults"] = []                # R2: no motor jams on the title: the beam turns at a steady 12 rpm
 	sim.setup(KeeperConfig.new(), LayoutData.load_file(), night, seed_value)
 	sim.story_mode = story
 	if bot_mode != "":
 		bot = KeeperBot2.new(bot_mode, seed_value)
+		bot.title = attract_mode
 	radar_vp = SubViewport.new()
 	radar_vp.size = Vector2i(512, 512)
 	radar_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -711,6 +714,8 @@ func _route(events: Array) -> void:
 				var line: String = station.inspect_line(String(e["device"]))
 				if presenter and presenter.show_thought(line):
 					director.log_thought(line)             # item 16: the check's answer, kept in the transcript
+				elif presenter and line != "":
+					presenter.queue_thought(line, 6.0)     # R1: said after the current line, or dropped once stale
 	if ui:
 		_ui_events(events)
 	if not story_mode:

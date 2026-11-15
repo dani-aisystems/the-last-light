@@ -28,6 +28,17 @@ uniform float salt : hint_range(0.0, 1.0) = 0.0;      // salt bloom, strongest a
 uniform float salt_top_y = 7.5;                       // fades out by this height
 uniform float rust_runs : hint_range(0.0, 1.0) = 0.0; // brown runs from the iron gallery down
 uniform float rust_top_y = 20.0;                      // the gallery's underside
+// R2 (2026-11-15, issue 7): the tower read as flat grey from the title (the 1k scan mipmaps away at 100 m).
+// macro: paint and harl that vary over metres (albedo +-6 %, roughness 0.45-0.8); courses: the masonry
+// courses under the paint, a faint horizontal relief; windward: the SW face darker and glossier with rain.
+uniform float macro : hint_range(0.0, 1.0) = 0.0;
+uniform float course_h = 0.62;                        // course height (m)
+uniform float courses : hint_range(0.0, 1.0) = 0.0;
+uniform float windward : hint_range(0.0, 1.0) = 0.0;
+uniform vec2 wind_from = vec2(-0.707, 0.707);         // xz of the weather side (SW: bearing 225)
+// R2: > 0 wraps the scan round the tower axis (this many repeats per turn, up the wall at `scale`) instead
+// of the triplanar blend, whose 45-degree seams showed as hard vertical lines on the round tower.
+uniform float cyl_repeats = 0.0;
 
 varying vec3 w_pos;
 
@@ -75,6 +86,14 @@ void fragment() {
 	vec3 ny = vec3(ty.xy + n.xz, abs(ty.z) * n.y).xzy;
 	vec3 nz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
 	vec3 wn = normalize(nx * bw.x + ny * bw.y + nz * bw.z);
+	if (cyl_repeats > 0.0 && abs(n.y) < 0.7) {
+		vec2 uvc = vec2(atan(w_pos.x, w_pos.z) / 6.2831853 * cyl_repeats, -w_pos.y * scale);
+		c = texture(albedo_tex, uvc).rgb;
+		r = texture(rough_tex, uvc).r;
+		vec3 tc = texture(normal_tex, uvc).xyz * 2.0 - 1.0;
+		vec3 T = normalize(vec3(w_pos.z, 0.0, -w_pos.x));
+		wn = normalize(T * tc.x * normal_strength + vec3(0.0, 1.0, 0.0) * tc.y * normal_strength + n * max(tc.z, 0.2));
+	}
 	vec3 col = grade(c);
 	float rough = clamp(r * rough_mul + rough_add, 0.04, 1.0);
 	if (grime_amount > 0.0) {
@@ -98,6 +117,24 @@ void fragment() {
 		float sb = (1.0 - smoothstep(salt_top_y - 4.0, salt_top_y, w_pos.y)) * smoothstep(0.45, 0.75, vnoise(vec2(u * 2.0, w_pos.y * 2.2)));
 		col = mix(col, vec3(0.86, 0.86, 0.82), salt * sb * 0.55);
 		rough = mix(rough, 0.95, salt * sb * 0.5);
+	}
+	if (macro > 0.0 || courses > 0.0 || windward > 0.0) {
+		float rr2 = max(length(w_pos.xz), 0.001);
+		float u2 = atan(w_pos.x, w_pos.z) * rr2;
+		float m1 = vnoise(vec2(u2 * 0.35, w_pos.y * 0.3)) * 0.6 + vnoise(vec2(u2 * 1.1, w_pos.y * 0.9 + 11.0)) * 0.4;
+		col *= 1.0 + macro * (m1 - 0.5) * 0.12;
+		rough = mix(rough, mix(0.45, 0.8, vnoise(vec2(u2 * 0.6 + 5.0, w_pos.y * 0.5))), macro * 0.6);
+		// courses: a soft groove at each joint, joints broken by the harl so they never read as ruled lines
+		float cy = fract(w_pos.y / course_h);
+		float joint = (1.0 - smoothstep(0.0, 0.06, cy)) + smoothstep(0.94, 1.0, cy);
+		float brk = smoothstep(0.25, 0.65, vnoise(vec2(u2 * 1.7, floor(w_pos.y / course_h) * 3.1)));
+		float dh = (smoothstep(0.0, 0.06, cy) - smoothstep(0.94, 1.0, cy) > 0.0 ? 1.0 : -1.0) * joint * brk;
+		wn = normalize(wn + vec3(0.0, dh * 0.18 * courses, 0.0));
+		col *= 1.0 - courses * joint * brk * 0.07;
+		// the weather side: wetter, darker, glossier
+		float ww = smoothstep(-0.2, 0.85, dot(normalize(n.xz + vec2(1e-4)), wind_from));
+		col *= 1.0 - windward * ww * 0.14;
+		rough = mix(rough, rough * 0.6, windward * ww);
 	}
 	col *= 1.0 - wetness * 0.45;
 	rough = mix(rough, rough * 0.35, wetness);

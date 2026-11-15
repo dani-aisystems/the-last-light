@@ -4,14 +4,16 @@ extends HBoxContainer
 ## Yanchev" is always there, in small letterspaced caps. To its left, the developer's links, read from
 ## data/links.json:
 ##   {"links": [{"label": "Instagram", "url": "https://...", "icon": "camera"}, ...]}
-## icon: camera | mail | play (anything else draws a plain link arrow). Only https:// and mailto: URLs are
-## accepted. The icons are drawn here in code (generic shapes, no brand glyphs, no image files). Each link
+## icon: instagram | camera | mail | play (anything else draws a plain link arrow). Only https:// and mailto:
+## URLs are accepted. The icons are drawn here in code (no image files). R2 (Daniel's playtest 2026-11-15):
+## the Instagram link uses the recognisable Instagram glyph (rounded square, lens, dot), as Instagram's
+## brand resources allow for linking to a profile; it replaced the generic camera. Each link
 ## rests at 45 % alpha and rises to full on hover or focus (hover takes the focus: one highlight only);
 ## pressing it opens the system browser or mail client. With no links (the shipped file is empty until
 ## Daniel sends them) only the signature shows.
 
 const DEFAULT_PATH := "res://data/links.json"
-const ICONS := ["camera", "mail", "play"]
+const ICONS := ["instagram", "camera", "mail", "play"]
 const REST_ALPHA := 0.45
 const SIGNATURE := "A GAME BY DANIEL YANCHEV"
 
@@ -150,16 +152,25 @@ class LinkItem extends Button:
 	func _draw() -> void:
 		var c := UIStyle.INK
 		var k := _k()
-		var o := Vector2(2.0, floorf((size.y - 16.0 * k) * 0.5))
-		var w := 1.4 * k
+		# R2 (issues 5, 6): the icon is centred on the capitals, not on the button (the camera and the envelope
+		# sat at different heights against the text), and drawn on one 16-unit grid with one stroke weight.
+		var f := get_theme_font("font")
+		var fs := get_theme_font_size("font_size")
+		var cy := (size.y - f.get_height(fs)) * 0.5 + f.get_ascent(fs) - 0.66 * fs * 0.5
+		var o := Vector2(2.0, roundf(cy - 8.0 * k))
+		var w := 1.5 * k
 		match kind:
+			"instagram":                 # the Instagram glyph: rounded square, lens ring, viewfinder dot
+				_rrect(Rect2(0, 0, 16, 16), 4.6, o, c, w)
+				draw_arc(o + Vector2(8, 8) * k, 3.7 * k, 0.0, TAU, 36, c, w, true)
+				draw_circle(o + Vector2(12.3, 3.7) * k, 1.05 * k, c, true, -1.0, true)
 			"camera":                    # a generic camera: body, viewfinder hump, round lens
 				_poly([Vector2(0, 5), Vector2(4, 5), Vector2(5.5, 2.5), Vector2(10.5, 2.5), Vector2(12, 5),
 					Vector2(16, 5), Vector2(16, 15), Vector2(0, 15), Vector2(0, 5)], o, c, w)
 				draw_arc(o + Vector2(8, 10) * k, 3.4 * k, 0.0, TAU, 28, c, w, true)
-			"mail":                      # an envelope
-				_poly([Vector2(0, 3), Vector2(16, 3), Vector2(16, 13), Vector2(0, 13), Vector2(0, 3)], o, c, w)
-				_poly([Vector2(0, 3), Vector2(8, 9), Vector2(16, 3)], o, c, w)
+			"mail":                      # an envelope: rounded corners, the flap meeting just below the middle
+				_rrect(Rect2(0, 2.5, 16, 11), 1.6, o, c, w)
+				_poly([Vector2(0.9, 3.6), Vector2(8, 9.2), Vector2(15.1, 3.6)], o, c, w)
 			"play":                      # a play triangle in a rounded screen
 				_poly([Vector2(2, 2), Vector2(14, 2), Vector2(16, 4), Vector2(16, 12), Vector2(14, 14), Vector2(2, 14),
 					Vector2(0, 12), Vector2(0, 4), Vector2(2, 2)], o, c, w)
@@ -168,6 +179,18 @@ class LinkItem extends Button:
 				_poly([Vector2(8, 2), Vector2(1, 2), Vector2(1, 15), Vector2(14, 15), Vector2(14, 8)], o, c, w)
 				_poly([Vector2(7, 9), Vector2(15, 1)], o, c, w)
 				_poly([Vector2(10, 1), Vector2(15, 1), Vector2(15, 6)], o, c, w)
+
+	## A rounded rectangle outline (grid units), closed, with 6 segments per corner.
+	func _rrect(r: Rect2, rad: float, o: Vector2, c: Color, w: float) -> void:
+		var pts: Array = []
+		var corners := [[r.position + Vector2(r.size.x - rad, rad), -PI * 0.5], [r.end - Vector2(rad, rad), 0.0],
+			[Vector2(r.position.x + rad, r.end.y - rad), PI * 0.5], [r.position + Vector2(rad, rad), PI]]
+		for cn in corners:
+			for i in 7:
+				var a: float = cn[1] + PI * 0.5 * i / 6.0
+				pts.append(cn[0] + Vector2(cos(a), sin(a)) * rad)
+		pts.append(pts[0])
+		_poly(pts, o, c, w)
 
 	func _poly(pts: Array, o: Vector2, c: Color, w: float) -> void:
 		var k := _k()

@@ -166,6 +166,8 @@ static func glyph(what: String) -> String:
 				return "Share" if ps else "View"
 			"duty":
 				return "R3"
+			"dialogue_next":
+				return "R2" if ps else "RT"
 			"wheel", "handwheel":
 				return "Left stick"
 			"move":
@@ -198,6 +200,8 @@ static func glyph(what: String) -> String:
 			return "H"
 		"duty":
 			return "J"
+		"dialogue_next":
+			return "Space"
 		"compass":
 			return "G"
 		"binoculars":

@@ -12,6 +12,11 @@ uniform float time_s = 0.0;
 // its length, and a screen-space fade so the cone dissolves before the menu column (x0 -> x1 of the width).
 uniform float decay = 3.2;
 uniform vec2 mask_x = vec2(-2.0, -1.0);
+// R2 (2026-11-15): the masked side keeps this fraction of the shaft, so the beam sweeps on across the
+// title instead of being cut by a vertical edge (Daniel's playtest); and the shaft fades within near_fade
+// metres of the camera, so the cone never slices through the near plane as it sweeps past the lens.
+uniform float mask_floor = 0.0;
+uniform vec2 near_fade = vec2(-1.0, 0.0);
 
 varying vec3 l_pos;
 
@@ -29,7 +34,8 @@ void fragment() {
 	// original's subtle shaft (the SpotLight's own volumetric scatter carries most of the beam)
 	float fade = 0.5 * smoothstep(0.0, 0.025, d) * exp(-decay * d) * (1.0 - smoothstep(0.35, 0.85, d));
 	float n = texture(noise, vec2(l_pos.y * 0.02 - time_s * 0.15, atan(l_pos.x, l_pos.z) * 0.3)).r;
-	float a = edge * fade * (0.55 + 0.6 * n) * intensity * smoothstep(mask_x.x, mask_x.y, SCREEN_UV.x);
+	float m = mix(mask_floor, 1.0, smoothstep(mask_x.x, mask_x.y, SCREEN_UV.x));
+	float a = edge * fade * (0.55 + 0.6 * n) * intensity * m * smoothstep(near_fade.x, near_fade.y, -VERTEX.z);
 	ALBEDO = color * a;
 	ALPHA = 1.0;
 }
