@@ -35,6 +35,9 @@ var v := {
 	# Stage 2: how often the player has used a control that has a one-time tip (tab, wheel, back);
 	# a tip retires once its control has been used TIP_RETIRE times
 	"tips": {},
+	# audit D5 (2026-11-16): where the player dragged the VHF command panel (top-left corner as a fraction of
+	# the screen); (-1, -1) = the default place on the right edge
+	"vhf_pos": Vector2(-1, -1),
 }
 const TIP_RETIRE := 2
 ## false: never write settings.cfg (tests, captures and bot runs must not change Daniel's preferences)

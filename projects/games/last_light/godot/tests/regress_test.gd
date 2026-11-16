@@ -109,7 +109,8 @@ func _run() -> void:
 	await _r10_narrative_mechanics()
 	await _r11_brief_g1()
 	await _r12_brief_g2()
-	print("REGRESS_RESULT ", JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
+	await _r24_vhf_panel()
+	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
 
@@ -367,6 +368,90 @@ func _aim_at(id: String) -> void:
 ## A device-view ease (0.45 s, time-based) blends the camera, and with it the crosshair ray, between the
 ## views. A fixed frame count is not enough windowed: at a 120 Hz display 40 frames can end inside the ease
 ## (cabin pass CP4: R6/R7 failed windowed with the camera 1.97 m off the eye). Wait for the ease itself.
+## R24 audit D5 (2026-11-16): the VHF command panel's default place clears the radar scope at 16:9, 16:10 and
+## 720p; the title row drags it (clamped on screen, kept in Settings, the room never sees the click) and a
+## double click puts it back.
+func _r24_vhf_panel() -> void:
+	print("R24 VHF panel vs the radar scope (audit D5)")
+	var st_node: Node = root.get_node("Settings")
+	var saved_pos: Vector2 = st_node.v.get("vhf_pos", Vector2(-1, -1))
+	st_node.v["vhf_pos"] = Vector2(-1, -1)
+	var scr: MeshInstance3D = null
+	for n in g.station.find_children("SCR_radar*", "MeshInstance3D", true, false):
+		scr = n
+	_check(scr != null, "the radar screen mesh is found")
+	g.player.enter_focus("radio")
+	await _frames(2)
+	await _settle_focus()
+	var panel: Control = g.ui.radio_panel
+	for s in [Vector2i(1920, 1080), Vector2i(1920, 1200), Vector2i(1280, 720)]:
+		root.size = s
+		await _frames(3)
+		# the scope's real outline: its rim vertices projected (a tilted disc's AABB is far wider than the disc);
+		# with the canvas_items stretch, unproject_position already returns canvas coordinates
+		var cam: Camera3D = g.player.camera
+		var verts: PackedVector3Array = scr.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+		var canvas_scope := Rect2(cam.unproject_position(scr.global_transform * verts[0]), Vector2.ZERO)
+		for v in verts:
+			canvas_scope = canvas_scope.expand(cam.unproject_position(scr.global_transform * v))
+		var pr: Rect2 = panel.get_global_rect()
+		_check(panel.visible and not pr.intersects(canvas_scope),
+			"%dx%d: VHF panel %s clear of the radar scope %s" % [s.x, s.y, pr, canvas_scope])
+	root.size = Vector2i(1920, 1080)
+	await _frames(3)
+	# drag by the title: the panel follows, stays on screen, the position is kept; the room gets no click
+	var title: Control = g.ui.vhf_title
+	var start: Vector2 = title.get_global_rect().get_center()
+	var before: Vector2 = panel.global_position
+	var holding_before: String = g.player._holding
+	_mouse(start, true)
+	await _frames(2)
+	for k in 6:
+		var m := InputEventMouseMotion.new()
+		m.position = start + Vector2(-60.0 * (k + 1), 2000.0)        # far below the screen: must clamp
+		m.global_position = m.position
+		m.button_mask = MOUSE_BUTTON_MASK_LEFT
+		root.push_input(m)
+		await _frames(1)
+	var end_pos: Vector2 = start + Vector2(-360.0, 2000.0)
+	_mouse(end_pos, false)
+	await _frames(2)
+	var vp: Rect2 = panel.get_viewport_rect()
+	var pr2: Rect2 = panel.get_global_rect()
+	_check(pr2.position.x < before.x - 300.0 and vp.encloses(pr2),
+		"dragging the title moves the panel and keeps it on screen (%s -> %s)" % [before, pr2])
+	var f: Vector2 = st_node.v["vhf_pos"]
+	_check(f.x >= 0.0 and absf(f.x * vp.size.x - pr2.position.x) < 1.0, "the dragged place is kept in Settings (%s)" % f)
+	_check(g.player._holding == holding_before and g.player.focused == "radio", "the drag never reached the room (holding '%s')" % g.player._holding)
+	# leaving and re-entering the view keeps the place
+	g.player.leave_focus()
+	await _frames(2)
+	await _settle_focus()
+	g.player.enter_focus("radio")
+	await _frames(2)
+	await _settle_focus()
+	_check(panel.get_global_rect().position.distance_to(pr2.position) < 1.0, "the moved panel comes back where it was left")
+	# double click on the title resets it
+	var dc := InputEventMouseButton.new()
+	dc.button_index = MOUSE_BUTTON_LEFT
+	dc.pressed = true
+	dc.double_click = true
+	dc.position = title.get_global_rect().get_center()
+	dc.global_position = dc.position
+	root.push_input(dc)
+	var dcu := dc.duplicate()
+	dcu.pressed = false
+	dcu.double_click = false
+	root.push_input(dcu)
+	await _frames(3)
+	_check(st_node.v["vhf_pos"] == Vector2(-1, -1) and panel.anchor_left == 1.0,
+		"a double click on the title puts the panel back on the right edge")
+	g.player.leave_focus()
+	await _frames(2)
+	await _settle_focus()
+	st_node.v["vhf_pos"] = saved_pos
+
+
 func _settle_focus() -> void:
 	var n := 0
 	while g.player._focus_t < 1.0 and n < 600:

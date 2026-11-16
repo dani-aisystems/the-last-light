@@ -1,5 +1,22 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-16): audit Stage B (cabin and interface) done and committed locally; Stage A still to do
+- **Record:** `docs/last_light/audit-2026-11/10_stageB_evidence.md`. Daniel said "Start stage B" and skipped Stage A for now.
+- **Done:** C1 to C5 and C7 to C10 (cabin, in Blender: v064 `.blend`, watch_room GLB v053). D5: the VHF panel is narrower, draggable and saved as `Settings.v.vhf_pos`. D7: Orders, the supply diagram and the radio card are documents (`documents.py --extra` writes only those). D8: given hints are saved in `duties[id].hinted` and stay on the Duties page.
+- **Evidence:** before/after sheet `renders/last_light/b1_sheet_cabin.png`; in-game captures `renders/last_light/b1_t0*.png` (Daniel's OK). All suites green (regress 371/371).
+- **Open:** the stair door reads very dark in the game: 0.032 mean luminance against the plan's 0.10 to 0.14. It was already 0.028 at Stage 0, so the cause is the remediation pass, not lamp 4's removal. It moves to Stage S.
+- **Deferred:** the 1953 Tide Tables volume (with D6, Stage A); C6 phone polish (Stage G); dragging the panel with a gamepad. J stays tap/hold (Claude's call, Daniel delegated it).
+- **Not committed on purpose:** the `--film` hunk in `capture_fp.gd` and `film_fp.gd` (another session's); `CLAUDE.md` and `.claude/settings.json` (Daniel's 2026-11-15 permissions change); the untracked `.blend` versions, character references and CC0 textures.
+- **Gotchas:** in `-s` test scripts autoloads are not compile-time names (use `DutyHUD.guidance()`-style run-time lookups or `root.get_node`); `Camera3D.unproject_position` already returns canvas coordinates under `canvas_items` stretch; `Settings.set_value` re-applies the window mode, so the panel uses `v[...]` plus `save_settings()`.
+
+## LATEST (2026-11-15, later): audit and improvement plan approved; its Stage 0 (baseline) done, nothing committed
+- **Plan:** `~/.claude/plans/pasted-content-id-89e5-role-floating-jellyfish.md`, split into `docs/last_light/audit-2026-11/` (start with its README; `00_stage0_evidence.md` holds the baseline). Daniel's decisions: DECISIONS Q15 and Q16.
+- **Stages:** 0 baseline (done) → A critical systems → B cabin and interface → S stairwell → P player body → C narrative → R Ross → D audio → E sea and vessels → F radar, larger sea, fuel run → H endings and score → G integration. Each needs Daniel's approval.
+- **Stage 0 results:** all suites green (same counts as the remediation record); every reported issue confirmed on screen except the repeating shore mask and anything audible; **bench FAIL: Medium 27 to 30 ms median against 16.7** (5 Nov: 17 to 18 ms), cause not isolated, so Stage A starts with a performance bisect.
+- **Uncommitted:** the audit folder, DECISIONS Q15/Q16, and capture-only states in `capture_fp.gd` (`door_open`, `storm_full`, `ship_<kind>_<range>`, `sitseq`). The film hunk in that file is still another session's.
+- **Gates:** no `.dlg` change before Daniel approves the script document (Stage C); CC0 audio downloads only after he approves the list; he supplies the Ross photograph, nine ending images, the score cues and any new portraits.
+- **Gotchas:** `godot_bg` benches report `focused: false` and are indicative only (run `tools/godot --audio-driver Dummy` for a real bench, with his OK); binocular shots need a downward pitch (a vessel at 90 m is about 13 degrees below level); Stage A must capture save fixtures before any `chapters.json` edit.
+
 ## LATEST (2026-11-15): playthrough remediation (Daniel's 29 issues) done, committed locally (R1-R6 + docs)
 - **Record:** `docs/qa/playthrough-remediation.md` (cause, fix, evidence, status per issue). Plan: `~/.claude/plans/pasted-content-id-46d5-the-misty-music.md`.
 - **Root causes worth remembering:**

@@ -34,6 +34,11 @@ var _notice_last := {}          # text -> ticks_msec it was last shown (refusals
 var subs: VBoxContainer
 var notice: Label
 var radio_panel: PanelContainer
+var vhf_title: Label                        # audit D5: the drag handle
+var _vhf_drag := false
+var _vhf_grab := Vector2.ZERO
+const VHF_W := 330.0                        # audit D5: default width (was 430; the content held it at 424)
+const VHF_MARGIN := 24.0
 var vessel_list: VBoxContainer
 var radio_status: Label
 var logbook: PanelContainer
@@ -122,20 +127,21 @@ func _ready() -> void:
 func _build_radio(root: Control) -> void:
 	radio_panel = PanelContainer.new()
 	radio_panel.add_theme_stylebox_override("panel", UIStyle.panel_box(0.82))
-	radio_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
-	radio_panel.offset_left = -470
-	radio_panel.offset_right = -40
-	radio_panel.offset_top = -300
-	radio_panel.offset_bottom = 300
-	# Stage 3A: larger text makes the panel wider; it grows to the LEFT (it ran off the right edge at 1.5)
-	radio_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	radio_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_vhf_default_layout()
 	radio_panel.visible = false
 	root.add_child(radio_panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	radio_panel.add_child(v)
-	v.add_child(UIStyle.label("VHF  ·  Channel 16", 26, UIStyle.AMBER, UIStyle.serif()))
+	# audit D5 (2026-11-16): the title row is the panel's handle: drag it anywhere on screen (kept in
+	# Settings "vhf_pos"); a double click puts it back. The press is accepted here, so it never reaches the
+	# room (player.gd reads clicks in _unhandled_input).
+	vhf_title = UIStyle.label("VHF  ·  Channel 16", 26, UIStyle.AMBER, UIStyle.serif())
+	vhf_title.mouse_filter = Control.MOUSE_FILTER_STOP
+	vhf_title.mouse_default_cursor_shape = Control.CURSOR_MOVE
+	vhf_title.tooltip_text = "Drag to move · double-click to reset"
+	vhf_title.gui_input.connect(_on_vhf_title_input)
+	v.add_child(vhf_title)
 	radio_status = UIStyle.label("", 16, UIStyle.DIM)
 	radio_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(radio_status)
@@ -167,6 +173,78 @@ func _build_radio(root: Control) -> void:
 	radio_legend = UIStyle.label("", 13, UIStyle.DIM)    # text follows keyboard or pad (_refresh_vessels)
 	radio_legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART    # wraps instead of widening the panel
 	v.add_child(radio_legend)
+
+
+## Audit D5 (2026-11-16): the default place, on the right edge. It was 430 px wide from x -470, and its left
+## edge covered the radar scope's right side (22 px at 16:9; 79 px at 16:10, where the horizontal view narrows
+## and the scope, measured x 1215-1535, moves right). 330 px from -354 clears it at 16:9, 16:10 and 720p
+## (regress R24). Larger text still widens it to the left; the player can then drag it.
+func _vhf_default_layout() -> void:
+	radio_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	radio_panel.offset_left = -VHF_W - VHF_MARGIN
+	radio_panel.offset_right = -VHF_MARGIN
+	radio_panel.offset_top = -300
+	radio_panel.offset_bottom = 300
+	# Stage 3A: larger text makes the panel wider; it grows to the LEFT (it ran off the right edge at 1.5)
+	radio_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	radio_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+
+
+## The saved place, if the player moved the panel: its top-left corner as a fraction of the canvas, so it
+## lands in the same spot after a resolution change. Clamped fully on screen.
+func _vhf_apply_saved() -> void:
+	var f: Vector2 = Settings.v.get("vhf_pos", Vector2(-1, -1))
+	if f.x < 0.0 or f.y < 0.0:
+		_vhf_default_layout()
+		return
+	var vp := radio_panel.get_viewport_rect().size
+	radio_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	radio_panel.grow_horizontal = Control.GROW_DIRECTION_END
+	radio_panel.grow_vertical = Control.GROW_DIRECTION_END
+	radio_panel.position = _vhf_clamp(Vector2(f.x * vp.x, f.y * vp.y))
+
+
+func _vhf_clamp(p: Vector2) -> Vector2:
+	var vp := radio_panel.get_viewport_rect().size
+	var s := radio_panel.size
+	return Vector2(clampf(p.x, 0.0, maxf(0.0, vp.x - s.x)), clampf(p.y, 0.0, maxf(0.0, vp.y - s.y)))
+
+
+func _on_vhf_title_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed and event.double_click:
+			_vhf_drag = false
+			_vhf_store(Vector2(-1, -1))
+			_vhf_default_layout()
+		elif event.pressed:
+			_vhf_drag = true
+			_vhf_grab = event.global_position - radio_panel.global_position
+			_vhf_apply_saved_if_default()
+		elif _vhf_drag:
+			_vhf_drag = false
+			var vp := radio_panel.get_viewport_rect().size
+			_vhf_store(Vector2(radio_panel.position.x / vp.x, radio_panel.position.y / vp.y))
+		vhf_title.accept_event()
+	elif event is InputEventMouseMotion and _vhf_drag:
+		radio_panel.position = _vhf_clamp(event.global_position - _vhf_grab)
+		vhf_title.accept_event()
+
+
+## Kept without Settings.apply() (that re-applies the window mode and every other option).
+func _vhf_store(f: Vector2) -> void:
+	Settings.v["vhf_pos"] = f
+	Settings.save_settings()
+
+
+## First drag from the default place: switch to free (top-left) positioning without the panel jumping.
+func _vhf_apply_saved_if_default() -> void:
+	if radio_panel.anchor_left == 0.0 and radio_panel.anchor_top == 0.0:
+		return
+	var p := radio_panel.global_position
+	radio_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	radio_panel.grow_horizontal = Control.GROW_DIRECTION_END
+	radio_panel.grow_vertical = Control.GROW_DIRECTION_END
+	radio_panel.position = p
 
 
 func _build_logbook(root: Control) -> void:
@@ -226,6 +304,7 @@ func pulse(_accepted: bool) -> void:
 func set_focus(id: String) -> void:
 	radio_panel.visible = id == "radio"
 	if id == "radio":
+		_vhf_apply_saved()
 		_refresh_vessels()
 
 
@@ -391,7 +470,10 @@ func _send(cmd: String) -> void:
 ## Stage 2C gives them focus only while a gamepad is driving the panel.
 func _panel_button(text: String, h: int, font_size: int) -> Button:
 	var b := UIStyle.button(text)
-	b.custom_minimum_size = Vector2(380, h)
+	# audit D5 (2026-11-16): no fixed 380 px width (it held the panel at 424 px, over the radar scope); the
+	# label wraps instead, so "Turn starboard 30° (right)" takes two lines in a narrow panel
+	b.custom_minimum_size = Vector2(0, h)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	UIStyle.track(b, font_size)
 	b.focus_mode = Control.FOCUS_NONE
 	return b
@@ -528,6 +610,8 @@ func _process_body(delta: float) -> void:
 		radio_status.text = "%s   ·   battery %d%%" % [st, int(sim.battery)]
 		if Engine.get_process_frames() % 30 == 0:
 			_refresh_vessels()
+		if radio_panel.anchor_left == 0.0 and not _vhf_drag:     # moved by the player: keep it on screen as it grows
+			radio_panel.position = _vhf_clamp(radio_panel.position)
 
 
 # ------------------------------------------------------------------ pause / end

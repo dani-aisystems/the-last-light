@@ -124,7 +124,10 @@ func view(name_: String) -> Array:
 		# --- Cabin repair (Iteration A): one matched close-up per defect in Daniel's screenshot brief ---
 		"cu_gauges": return eye(80, 2.15, 82, 2.85, 1.42, 1.17) + [34.0, false, 0.02]    # console hood dials (IMG_3117)
 		"cu_selectors": return eye(84, 1.95, 86, 2.6, 1.42, 0.9) + [36.0, false, 0.02]   # mode / intensity knobs
-		"cu_battery": return eye(-55, 2.05, -55, 2.92, 1.62, 1.52) + [42.0, false, 0.02] # charger dials (IMG_3121)
+		"cu_battery": return eye(-61.5, 2.05, -61.5, 2.92, 1.62, 1.52) + [42.0, false, 0.02] # charger dials (IMG_3121; audit C3: charger at -61.5)
+		"cu_west": return eye(-62, 1.2, -62, 3.0, 1.6, 1.75) + [62.0, false, 0.02]       # audit B: lamp 0, diagram, charger, jamb
+		"cu_wheel": return eye(176, 1.1, 177, 2.6, 1.15, 1.05) + [50.0, false, 0.02]     # audit C4: stair-door handwheel and both dogs
+		"cu_phone": return eye(20, 2.2, 15, 2.95, 1.3, 0.8) + [40.0, false, 0.02]        # audit C7/C10: mug, ashtray, phone, binoculars
 		"cu_photo": return eye(-105, 2.35, -105, 3.2, 1.78, 1.85) + [30.0, false, 0.02]  # keepers' photo (IMG_3122)
 		"cu_logbook": return eye(-12, 1.75, -13, 2.5, 1.5, 0.79) + [42.0, false, 0.02]   # open station log (IMG_3119)
 		"cu_radio": return eye(-4, 1.75, -6, 2.75, 1.38, 0.95) + [50.0, false, 0.02]     # transceiver + mic (IMG_3118)
@@ -207,6 +210,20 @@ func _run() -> void:
 		while g.sim.t < target - 1.0 and g.sim.result == KeeperSim.Result.RUNNING and not (g.story_mode and g.director.finished):
 			await _frames(1)
 		Engine.time_scale = 1.0
+		if vname == "sitseq":                   # audit stage 0: sitting down at the radio, frame by frame
+			_place(g, "pp_radio")               # (the player's own camera; every frame for 0.3 s, then every 4th)
+			await _frames(30)
+			g.player.enter_focus("radio")
+			for fi in 40:
+				await _frames(1)
+				if fi < 18 or fi % 4 == 0:
+					_save("%s_t%03d_sitseq_f%02d" % [name_, int(target), fi])
+			g.player.leave_focus()
+			for fo in 40:
+				await _frames(1)
+				if fo < 18 or fo % 4 == 0:
+					_save("%s_t%03d_standseq_f%02d" % [name_, int(target), fo])
+			continue
 		_place(g, vname)
 		for st in states:
 			_force(g, st)
@@ -359,6 +376,15 @@ func _force(g, st: String) -> void:
 			_restore_state["photo_door"] = true
 			g.director.state.clues["photo_1953"] = true
 			g._update_story_props()
+		"storm_full":                            # audit stage 0: storm 1.0 from this shot on (not restored)
+			g.sim.storm_override = 1.0
+		"door_open":                             # audit stage 0: the stair door open, nobody in it (restored)
+			_restore_state["door_only"] = g.station.door_open
+			g.station.door_open = true
+		_ when st.begins_with("ship_"):          # audit stage 0: ship_<kind>_<range m>, held due north (not
+			var sp := st.split("_")              # restored: put such shots last). Pair with binoculars!face_north
+			g._route(g.sim.spawn_story_ship({"name": "Capture " + sp[1], "kind": sp[1], "bearing": 0, "aim": 90,
+				"range": float(sp[2]) if sp.size() > 2 else 120.0, "hold": true, "protected": true}))
 		"caption":
 			g.presenter.caption.text = "FOOTSTEPS ON THE STAIR. ONE STEP AT A TIME."
 			g.presenter.caption.modulate.a = 0.85
@@ -431,6 +457,8 @@ func _unforce(g) -> void:
 	if _restore_state.has("photo_door"):
 		g.director.state.clues.erase("photo_1953")
 		g._update_story_props()
+	if _restore_state.has("door_only"):
+		g.station.door_open = _restore_state["door_only"]
 	if _restore_state.has("caption"):
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
@@ -642,6 +670,9 @@ func _place_view(g, v: Array) -> void:
 		g.player.enabled = false            # would describe a different view than this camera shows
 		g.ui.clear_prompt()
 		_player_muted = true
+	if g.player.body and g.player.body.visible:   # audit B: the keeper's body stood (and cast its shadow)
+		g.player.body.process_mode = Node.PROCESS_MODE_DISABLED   # wherever the bot was; a detached camera
+		g.player.body.visible = false                             # never shows it in play
 	_hud(g, not GameState.user_args.has("nohud"))
 
 
@@ -688,6 +719,8 @@ func _restore(g) -> void:
 	if _player_muted:
 		g.player.enabled = true
 		_player_muted = false
+	if g.player and g.player.body and g.player.body.process_mode == Node.PROCESS_MODE_DISABLED:
+		g.player.body.process_mode = Node.PROCESS_MODE_INHERIT     # its _process shows it again
 	if cam:
 		cam.current = false
 	if g.player:

@@ -303,6 +303,11 @@ func _on_doc(id: String) -> void:
 				presenter.show_hint("The old vapour burner and its mantle, from before the electric.")
 		"photo53", "photo53desk":
 			doc = "photo_1953"
+		"orders":                              # audit D7: the board as a document; reading it still teaches the valve
+			doc = "orders"
+			director.on_player_event("used_orders")
+		"diagram", "radio_card":
+			doc = id
 	if doc != "":
 		player.enabled = false
 		ui.clear_prompt()                   # the reading view has no crosshair target

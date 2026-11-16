@@ -390,6 +390,7 @@ func _duty_escalation() -> void:
 	var dt1: float = eng_ev[1][2] - t_new if eng_ev.size() > 1 else -1.0
 	var dt2: float = eng_ev[2][2] - t_new if eng_ev.size() > 2 else -1.0
 	var torch_quiet: bool = got.filter(func(x): return String(x[1]).begins_with("The torch")).is_empty()
+	_hints_kept(dir, data)
 	k.set_start(true)                       # a failed crank: the fuel valve is known, and comes first
 	step.call(3.0)
 	k.set_start(false)
@@ -404,6 +405,39 @@ func _duty_escalation() -> void:
 		fails.append("G2b escalation wrong: levels %s at +%.1f / +%.1f s, torch quiet %s, next fuel %s, quiet %s (all %s)" % [lv, dt1, dt2, torch_quiet, next_is_fuel, no_early_nudge, got])
 	print("DUTY_ESCALATION ok=%s events=%s" % [ok, got])
 	dir.queue_free()
+
+
+## Audit D8 (2026-11-16): after a minute with nothing done the engine step's hint has been given; it is
+## recorded, kept on the Duties page under its step, survives a save and load, and is gone once done.
+func _hints_kept(dir: StoryDirector, data: Dictionary) -> void:
+	var sid := ""
+	for d in data["chapters"][0].get("duties", []):
+		if String(d["id"]) == "power":
+			for sb in d.get("sub", []):
+				if String(sb.get("hint", "")).begins_with("The generator cag"):
+					sid = String(sb["id"])
+	var hinted: Array = dir.state.duties.get("power", {}).get("hinted", [])
+	if sid == "" or not (sid in hinted):
+		fails.append("D8: the engine step's hint should be recorded once given (step '%s', hinted %s)" % [sid, hinted])
+		return
+	var pages := LogbookPages.new()
+	root.add_child(pages)
+	pages.build_duties(dir)
+	if not ("hint:power.%s" % sid in pages.shown):
+		fails.append("D8: the Duties page should keep the engine hint under its step (shown %s)" % [pages.shown])
+	var st2 := StoryState.new()
+	st2.from_dict(JSON.parse_string(JSON.stringify(dir.state.to_dict())))
+	if not (sid in st2.duties.get("power", {}).get("hinted", [])):
+		fails.append("D8: a kept hint should survive a save and load")
+	var e: Dictionary = dir.state.duties["power"]
+	var was_done: Array = e.get("done", []).duplicate()
+	e["done"] = was_done + [sid]
+	pages.build_duties(dir)
+	if "hint:power.%s" % sid in pages.shown:
+		fails.append("D8: a done step's hint should leave the page")
+	e["done"] = was_done
+	pages.queue_free()
+	print("D8_HINTS ok step=%s" % sid)
 
 
 ## G2b layer C: every log row a duty or a beat writes exists in chapters.json "station_log", each row's
@@ -431,6 +465,8 @@ func _station_log_canon() -> void:
 			for sb in d.get("sub", []):
 				if not ResourceLoader.exists(LogbookPages.DIR + "sub_%s_%s.png" % [d["id"], sb["id"]]):
 					fails.append("G2b duties page: sub_%s_%s.png missing (run blender/log_strips.py)" % [d["id"], sb["id"]])
+				if String(sb.get("hint", "")) != "" and not ResourceLoader.exists(LogbookPages.DIR + "hint_%s_%s.png" % [d["id"], sb["id"]]):
+					fails.append("D8 duties page: hint_%s_%s.png missing (run blender/log_strips.py)" % [d["id"], sb["id"]])
 		for b in c["beats"]:
 			for a in b.get("do", []):
 				if String(a[0]) == "log":

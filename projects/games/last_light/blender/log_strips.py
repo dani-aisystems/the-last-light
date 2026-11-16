@@ -7,6 +7,8 @@ Renders, in Callum's hand (Bradley Hand, as documents.py: "small square letters 
   godot/assets/docs/log/card_ink_<id>.png    its ink alone, which the game reveals left to right as written
   godot/assets/docs/log/page_duties.png      the pencil "Tonight" page at the back of the log
   godot/assets/docs/log/duty_<id>.png, sub_<duty>_<sub>.png   pencil strips for every duty line
+  godot/assets/docs/log/hint_<duty>_<sub>.png   each step's hint, smaller, for under its step (audit D8;
+                                                 hint_<duty>__.png = the duty's own hint)
   godot/assets/docs/log/manifest.json        row positions on the page, strip sizes
 The rows and duties come from godot/data/story/chapters.json ("station_log", "duties"), so the game and
 these images share one source. Everything is seeded: running it twice gives identical files (unlike the
@@ -129,6 +131,22 @@ def pencil_strip(text, size, seed):
     return img.filter(ImageFilter.GaussianBlur(0.35))
 
 
+HINT_W = 1240                    # audit D8: a hint wraps inside the page (Duties page x 200 .. 1440)
+
+
+def hint_strip(text, size, seed):
+    """Audit D8 (2026-11-16): a step's hint, pencilled smaller under the step, wrapped to HINT_W."""
+    f = CALLUM(size)
+    probe = ImageDraw.Draw(Image.new("RGBA", (10, 10)))
+    lines = wrap(probe, "- " + text, f, HINT_W - 24)
+    lh = size + 10
+    img = Image.new("RGBA", (HINT_W, lh * len(lines) + 14), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    for i, ln in enumerate(lines):
+        jitter_text(d, (8 + (0 if i == 0 else 18), 6 + i * lh), ln, f, PENCIL + (215,), seed + i)
+    return img.filter(ImageFilter.GaussianBlur(0.35))
+
+
 def main():
     data = json.loads((GODOT / "data" / "story" / "chapters.json").read_text())
     rows = data["station_log"]["1971-11-14"]
@@ -150,10 +168,19 @@ def main():
             s = pencil_strip(dd["line"], 30, 500 + k)
             s.save(OUT / f"duty_{dd['id']}.png", optimize=True)
             man["duties"][dd["id"]] = {"w": s.width, "h": s.height, "sub": {}}
+            man["duties"][dd["id"]]["hint"] = {}
+            if dd.get("hint"):                                  # audit D8: the duty's own hint ("_")
+                hs = hint_strip(dd["hint"], 22, 800 + k)
+                hs.save(OUT / f"hint_{dd['id']}__.png", optimize=True)
+                man["duties"][dd["id"]]["hint"]["_"] = {"w": hs.width, "h": hs.height}
             for j, sb in enumerate(dd.get("sub", [])):
                 t = pencil_strip(sb["line"], 26, 600 + k * 10 + j)
                 t.save(OUT / f"sub_{dd['id']}_{sb['id']}.png", optimize=True)
                 man["duties"][dd["id"]]["sub"][sb["id"]] = {"w": t.width, "h": t.height}
+                if sb.get("hint"):
+                    hs = hint_strip(sb["hint"], 22, 900 + k * 10 + j)
+                    hs.save(OUT / f"hint_{dd['id']}_{sb['id']}.png", optimize=True)
+                    man["duties"][dd["id"]]["hint"][sb["id"]] = {"w": hs.width, "h": hs.height}
     (OUT / "manifest.json").write_text(json.dumps(man, indent=1))
     print("LOG_STRIPS_RESULT", json.dumps({"rows": len(rows), "duties": len(man["duties"]), "out": str(OUT)}))
 

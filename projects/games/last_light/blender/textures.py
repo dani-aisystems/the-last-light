@@ -179,18 +179,21 @@ def radio_dial(seed=0):
     return aged(img, seed, 8).filter(ImageFilter.GaussianBlur(0.6))
 
 
-def notice(seed=0):
-    img = Image.new("RGB", (512, 512), (226, 220, 200))
+ORDERS = ["1. THE LIGHT SHALL BE KEPT", "    FROM SUNSET TO SUNRISE.", "2. RUN THE ENGINE TO CHARGE",
+          "    BEFORE THE BATTERY FALLS", "    BELOW ONE QUARTER.", "3. A TRIPPED MAIN BREAKER", "    MAY BE RESET ONCE THE",
+          "    FAULT IS CLEARED.", "4. ANSWER EVERY CALL", "    ON CHANNEL 16.",
+          "5. FUEL VALVE OPEN", "    BEFORE START."]               # G4a (G2b decision): learned by failing, or read here
+
+
+def notice(seed=0, k=1):
+    """KEEPER'S ORDERS. k scales it: 1 = the 512 px atlas cell, 2 = the readable sheet (documents.py, audit D7)."""
+    img = Image.new("RGB", (512 * k, 512 * k), (226, 220, 200))
     d = ImageDraw.Draw(img)
-    d.rectangle([0, 0, 512, 90], fill=(170, 40, 30))
-    d.text((256, 46), "KEEPER'S ORDERS", font=font("DIN Condensed Bold.ttf", 60), fill=(245, 240, 225), anchor="mm")
-    lines = ["1. THE LIGHT SHALL BE KEPT", "    FROM SUNSET TO SUNRISE.", "2. RUN THE ENGINE TO CHARGE",
-             "    BEFORE THE BATTERY FALLS", "    BELOW ONE QUARTER.", "3. A TRIPPED MAIN BREAKER", "    MAY BE RESET ONCE THE",
-             "    FAULT IS CLEARED.", "4. ANSWER EVERY CALL", "    ON CHANNEL 16.",
-             "5. FUEL VALVE OPEN", "    BEFORE START."]               # G4a (G2b decision): learned by failing, or read here
-    f = font("Courier New Bold.ttf", 27)                               # 12 lines now (was 10 at 30 px)
-    for i, l in enumerate(lines):
-        d.text((24, 106 + i * 33), l, font=f, fill=INK)
+    d.rectangle([0, 0, 512 * k, 90 * k], fill=(170, 40, 30))
+    d.text((256 * k, 46 * k), "KEEPER'S ORDERS", font=font("DIN Condensed Bold.ttf", 60 * k), fill=(245, 240, 225), anchor="mm")
+    f = font("Courier New Bold.ttf", 27 * k)                           # 12 lines now (was 10 at 30 px)
+    for i, l in enumerate(ORDERS):
+        d.text((24 * k, (106 + i * 33) * k), l, font=f, fill=INK)
     return aged(img, seed, 20)
 
 

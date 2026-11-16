@@ -212,7 +212,9 @@ func _make_slot(id: String) -> Control:
 ## doesn't count.
 func _wait(dwell: float, auto: float) -> void:
 	_t = 0.0
-	_press = false
+	if _press:                          # pressed during the fade-in: before the dwell, so ignored (and counted)
+		_press = false
+		early_presses += 1
 	while _t < auto:
 		await get_tree().process_frame
 		if not get_tree().paused:

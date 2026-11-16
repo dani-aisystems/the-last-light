@@ -171,6 +171,10 @@ def m4(loc, b3=None):
 
 
 BEVEL = {"on": True, "max": 0.006}
+# audit C2/C3 (2026-11-16): where the charger's conduits enter its top (metres along the cabinet, + = right):
+# battery feed, generator feed, two ring-main drops. The supply diagram hangs over the middle between them.
+CHARGER_GLANDS = (-0.34, -0.29, 0.29, 0.34)
+SMOOTH_ONLY = ("SM_CoatCloth",)       # buckets shaded smooth with no angle split (cloth: audit C5)
 STAIR_DEPTH = 0.62                    # stair bulkhead depth into the room (Stage 1 iteration 3)    # Stage 1 iteration 2: small chamfers so edges catch the light
 
 
@@ -340,7 +344,7 @@ class Builder:
         if not name.startswith("COL_"):
             for poly in me.polygons:
                 poly.use_smooth = True
-            if hasattr(me, "set_sharp_from_angle"):
+            if hasattr(me, "set_sharp_from_angle") and not name.startswith(SMOOTH_ONLY):
                 me.set_sharp_from_angle(angle=math.radians(35.0))
         for mname in (mat, *extra_mats):
             me.materials.append(material(mname))
@@ -951,9 +955,8 @@ def build_desk(B):
     logbook(B, lbc, lb3)
     B.empty("IA_logbook", lbc + u * 0.05, (0.3, 0.12, 0.06), lb3)
     B.empty("IA_chart", dp(b, 0.1, top + 0.05, c - 0.12), (0.42, 0.32, 0.06), top_b3)
-    cc = dp(b, 0.45, top + 0.0215, c - 0.2)        # stands on the chart (iteration 5: the sheet is 1.2 mm up)
-    cyl(B.bm("M_LL_Brass"), cc, 0.07, 0.07, 0.04, 24)
-    disc_uv(B.bm("M_LL_Atlas"), B.uv(B.bm("M_LL_Atlas")), cc + u * 0.021, Matrix.Identity(3), 0.06, 32, CELLS["bearing"])
+    # audit C8 (2026-11-16): the brass bearing dial that stood on the chart is gone. It looked like a compass,
+    # did nothing, and sat beside the working hand compass's old place; the real one is on the east sill.
     build_desk_detail(B)     # Stage 1 iteration 5: mug, pencil pot, books, binoculars, mic, cables, papers, pipe
     # chair + rug (R1/R3)
     chair_d = c - d / 2 - 0.45
@@ -1207,7 +1210,10 @@ def build_desk_detail(B):
     # ---- the enamel mug: cold tea at ~55 %, beside its newest ring
     mx, my = uv_xy(DC["mug_uv"])
     mb3 = basis(r, o, u) @ rot_about((0, 0, 1), 35.0)
-    mc = D(0.62, 0.0, back - 0.62)          # cabin pass: off the chart (IMG_3139), in front of the radar
+    # cabin pass: off the chart (IMG_3139). Audit C7 (2026-11-16): at (0.62, back - 0.62) it stood 1.9 cm into
+    # the pipe's ashtray; now beside the radar case's right side (1.8 cm clear), under nothing, 11 cm from the
+    # ashtray and clear of the forecast sheet and the binocular strap
+    mc = D(0.70, 0.0, back - 0.50)
     enamel_mug(B, mc, mb3)
     pm = B.bm("M_LL_Props")                  # the props atlas bucket, used below
     # ---- brass shell-case pencil pot with five things in it, each leaning on the rim at its own angle
@@ -1304,7 +1310,10 @@ def build_desk_detail(B):
     for x, y in ((-0.265, 0.128), (0.265, 0.128), (-0.265, -0.128), (0.265, -0.128), (-0.274, 0.0), (0.274, 0.0)):
         cyl(B.bm("M_LL_Iron", "SM_Props"), fc + fb3 @ Vector((x, y, 0.0088)), 0.0038, 0.0034, 0.0016, 10, fb3)
     kb3 = fb3 @ rot_about((0, 0, 1), 5.0)
-    quad_uv(pm, B.uv(pm), fc + fb3 @ Vector((-0.212, 0.122, 0.0042)), kb3, 0.1, 0.0667, region_rect("sked"))
+    # audit C9 (2026-11-16): its top third was over the bezel strip (y 0.122 = 2 cm above the face's edge),
+    # so the card read as stuck on the frame; now only its top edge is tucked under the bezel (y 0.108)
+    quad_uv(pm, B.uv(pm), fc + fb3 @ Vector((-0.212, 0.108, 0.0042)), kb3, 0.1, 0.0667, region_rect("sked"))
+    B.empty("IA_radio_card", fc + fb3 @ Vector((-0.212, 0.108, 0.02)), (0.058, 0.04, 0.02), kb3)   # audit D7: readable
     # radar case: cooling louvres on its right side
     rd = back - 0.24
     for k in range(7):
@@ -1353,7 +1362,7 @@ def build_desk_detail(B):
     # ---- 7x50 binoculars lying on the desk, strap trailing. G3a: own buckets (PROP_binoculars_*), a pickup
     #      (IA_binoculars): the game hides them when taken and shows a copy in the keeper's hands.
     nb3 = bs @ rot_about((0, 0, 1), 25.0)
-    nc = D(0.88, 0.0, back - 0.31)
+    nc = D(0.87, 0.0, back - 0.35)          # audit C10 (2026-11-16): at (0.88, back - 0.31) an objective sat 1.3 cm into the phone's plinth
     Np = lambda x, y, z: nc + nb3 @ Vector((x, y, z))
     yb3 = basis_z(nb3.col[1])
     for s in (-1, 1):
@@ -1414,7 +1423,7 @@ def build_power(B):
     # charger wall cabinet
     b = R["charger"]
     bs = wb(b)
-    w = 0.85
+    w = 0.76                                                       # audit C3: was 0.85 (spec.py)
     back = back_dist(w, 0.02)
     box(steel, dp(b, 0, 1.45, back - 0.14), (w, 0.28, 0.8), bs)
     fb3, fc = face_frame(b, 0, 1.45, back - 0.28 - 0.002)
@@ -1433,11 +1442,13 @@ def build_power(B):
         rivets(B, at(x, 1.1), at(x, 1.82), 8, fb3)
     for k in range(6):                                             # louvres along the bottom of the charger
         box(B.bm("M_LL_Iron", "SM_PowerDetail"), at(-0.3 + k * 0.06, 1.11) + fb3.col[2] * 0.003, (0.04, 0.008, 0.004), fb3)
-    for along in (-0.3, -0.18, 0.0, 0.3):                          # cable glands where the conduits enter
+    # audit C2: the supply diagram hangs over the cabinet's middle, so every conduit enters at the ends:
+    # the battery and generator feeds on the left (build_conduits), the two ring-main drops on the right
+    for along in CHARGER_GLANDS:                                   # cable glands where the conduits enter
         cyl(B.bm("M_LL_Brass", "SM_PowerDetail"), dp(b, along, 1.865, back - 0.1), 0.024, 0.024, 0.03, 12)
     B.collider("charger", dp(b, 0, 1.45, back - 0.14), (w + 0.02, 0.3, 0.82), bs)
-    drop(B, b, -0.3, 2.78, 1.85, back - 0.1)
-    drop(B, b, 0.3, 2.78, 1.85, back - 0.1, 0.015)
+    drop(B, b, CHARGER_GLANDS[2], 2.78, 1.85, back - 0.1)
+    drop(B, b, CHARGER_GLANDS[3], 2.78, 1.85, back - 0.1, 0.015)
     # distribution cabinet (floor-standing)
     b = R["distribution"]
     bs = wb(b)
@@ -1678,20 +1689,32 @@ def build_stair(B):
             box(bm, (x, -0.033, z), (sx, 0.016, sz))                   # raised flange + mid rail: two panels
         for z in (0.32, 1.04, 1.76):
             cyl(bm, (0.0, -0.01, z), 0.026, 0.026, 0.2, 14)             # hinge knuckles
+        # audit C4 (2026-11-16): the dogs were painted boxes. Each is now a wedge block on the frame, a lever
+        # pivoting on a through-bolt with a nut, and a rounded handle end (Stage S animates them).
         for z in (0.45, 1.65):                                         # lever dogs on the latch side
-            box(bm, (0.99, -0.05, z), (0.035, 0.035, 0.13))
-            cyl(bm, (0.99, -0.045, z + 0.05), 0.014, 0.014, 0.03, 10, basis_z(yb))
+            box(bm, (1.005, -0.045, z), (0.05, 0.022, 0.06))           # wedge block bolted to the flange
+            lv = rot_about((0, 1, 0), -12.0)                           # lever slightly off vertical, latched
+            box(bm, Vector((0.985, -0.066, z)) + lv @ Vector((0, 0, 0.045)), (0.024, 0.014, 0.13), lv, bevel=0.004)
+            cyl(bm, Vector((0.985, -0.066, z)) + lv @ Vector((0, 0, 0.108)), 0.014, 0.014, 0.016, 12, basis_z(yb))  # handle end
+            cyl(bm, (0.985, -0.06, z), 0.011, 0.011, 0.04, 12, basis_z(yb))          # pivot bolt
+            cyl(bm, (0.985, -0.078, z), 0.015, 0.015, 0.008, 6, basis_z(yb))         # hex nut
         box(bm, (0.95, -0.05, 1.3), (0.14, 0.03, 0.03))                # the bolt that rattles at the knock
+        # audit C4: the diagonal spokes were unrotated boxes 0.17 m square (a brass plate). Now a hub on its
+        # boss, five round spokes and a rim with a grip bulge per spoke.
+        wc = Vector((0.78, -0.09, 1.05))
         wheel = made(bm, lambda: (cyl(bm, (0.78, -0.06, 1.05), 0.03, 0.03, 0.05, 14, basis_z(yb)),
-                                  torus(bm, (0.78, -0.09, 1.05), 0.11, 0.013, 24, 6, basis_z(yb))))
-        for k in range(4):                                             # brass handwheel spokes
-            a = math.pi * k / 4
-            wheel += made(bm, lambda a=a: box(bm, (0.78, -0.09, 1.05), (0.22 * abs(math.cos(a)) + 0.012,
-                                                                        0.012, 0.22 * abs(math.sin(a)) + 0.012)))
+                                  torus(bm, wc, 0.11, 0.012, 32, 8, basis_z(yb)),
+                                  cyl(bm, wc, 0.026, 0.026, 0.03, 16, basis_z(yb)),
+                                  cyl(bm, wc - yb * 0.017, 0.012, 0.012, 0.006, 12, basis_z(yb))))   # hub and its cap nut
+        for k in range(5):
+            a = 2 * math.pi * k / 5 + math.pi / 2
+            dv = Vector((math.cos(a), 0.0, math.sin(a)))
+            wheel += made(bm, lambda dv=dv: seg_cyl(bm, wc + dv * 0.022, wc + dv * 0.104, 0.0065, 8))
+            wheel += made(bm, lambda dv=dv: sphere(bm, wc + dv * 0.11, 0.0155, 10, 6))                    # grip bulge
         tag(wheel, 1)
     B.part("PT_stair_door", "M_LL_SteelPaint", hinge, db3, door, extra_mats=("M_LL_Brass",))
-    # a bulkhead lamp over the door, so the door is lit from the room side (the wall lamps sit behind it)
-    well_glass(B, 4, dp(b, 0, 2.12, front - 0.03), r, o, u)
+    # audit C1 (2026-11-16): the bulkhead lamp over the door (LMP_wall_4) is gone: its backplate overlapped the
+    # leaf's top by 2.5 cm and it glared on the door. Wall lamps 2 (148) and 3 (-160) light the door.
     B.empty("IA_door", dp(b, 0, 1.1, front - 0.15), (0.55, 0.15, 0.9), bs)
     B.collider("stair_l", dp(b, -w / 2, h / 2, (front + back) / 2), (0.1, back - front, h), bs)
     B.collider("stair_r", dp(b, w / 2, h / 2, (front + back) / 2), (0.1, back - front, h), bs)
@@ -2143,7 +2166,7 @@ def well_glass(B, i, base, r, o, u):
 
 def build_wall_lamps(B):
     """Cast well-glass bulkhead fittings (Stage 1 iteration 2). SM_WallLamps casts no shadows
-    (station.gd), so the guard throws no stripes. A fifth one hangs over the stair door (build_stair)."""
+    (station.gd), so the guard throws no stripes. (The fifth, over the stair door, was removed in audit C1.)"""
     for i, b in enumerate(R["wall_lamps"]):
         z = 2.15 if abs(b) < 120 else 2.25
         r, o, u = wall_frame(b)
@@ -2168,11 +2191,15 @@ def build_conduits(B):
     distribution -> the room / lamp / radar circuits (the ring mains at 2.78 m)."""
     gen, chg, bat, dist = R["generator"], R["charger"], R["batteries"], R["distribution"]
     d = R_IN - 0.045
-    conduit(B, gen, chg, 2.35)                                  # generator output to the charger
+    # audit C2: both feeds now come down at the charger's left end (CHARGER_GLANDS), passing over the supply
+    # diagram (top 2.275) and stopping at their drop instead of running on to the cabinet's centre
+    ab, ag = CHARGER_GLANDS[0], CHARGER_GLANDS[1]
+    deg = lambda along: chg + math.degrees(math.atan2(along, d))
+    conduit(B, gen, deg(ag), 2.35)                              # generator output to the charger
     drop(B, gen, 0.25, 2.35, 1.72, d, 0.013)
-    drop(B, chg, -0.18, 2.35, 1.82, d, 0.013)
-    conduit(B, chg, bat, 2.45)                                  # charger to the battery bank
-    drop(B, chg, 0.0, 2.45, 1.82, d, 0.013)
+    drop(B, deg(ag), 0.0, 2.35, 1.82, d, 0.013)
+    conduit(B, deg(ab), bat, 2.45)                              # charger to the battery bank
+    drop(B, deg(ab), 0.0, 2.45, 1.82, d, 0.013)
     drop(B, bat, -0.3, 2.45, 0.95, d, 0.013)
     conduit(B, bat, dist, 2.55)                                 # battery bank to the distribution board
     drop(B, bat, 0.3, 2.55, 0.95, d, 0.013)
@@ -2193,14 +2220,17 @@ def build_props(B):
     px = lambda x0, y0, x1, y1: (x0 / A, 1 - y1 / A, x1 / A, 1 - y0 / A)                    # image px -> UV rect
     quad_uv(pm, B.uv(pm), cc, fb3, 0.25, 0.357, px(0, 0, 700, 1000))
     sphere(B.bm("M_LL_Iron"), cc + cu * 0.19 - co * 0.004, 0.006, 6, 4)                          # the nail
-    # (R/S) the station wiring diagram, framed under glass, between the distribution board and the charger
-    db = -67.0
+    # (R/S) the station wiring diagram, framed under glass. Audit C2 (2026-11-16): at -67 lamp 0's backplate
+    # cut its top-right corner, and the charger now needs that wall: it hangs centred over the charger (frame
+    # 1.925-2.275 m, 7.5 cm over the cabinet top; the conduits come down at the cabinet's ends, clear of it)
+    db = R["charger"]
     dr, do_, du = wall_frame(db)
-    dc = dp(db, 0, 2.02, R_IN - 0.02)
+    dc = dp(db, 0, 2.10, R_IN - 0.02)
     db3 = basis(dr, du, -do_)
     box(B.bm("M_LL_WoodDark", "SM_Props"), dc + do_ * 0.006, (0.47, 0.35, 0.012), db3)
     quad_uv(pm, B.uv(pm), dc - do_ * 0.001, db3, 0.42, 0.305, px(720, 0, 1820, 800))
     box(B.bm("M_LL_Glass", "SM_PropsGlass"), dc - do_ * 0.004, (0.43, 0.315, 0.002), db3, bevel=0.0)
+    B.empty("IA_diagram", dc - do_ * 0.03, (0.24, 0.18, 0.03), db3)                 # audit D7: opens as a document
     for sx in (-1, 1):                                  # mirror-plate screws (iteration 5: it floated on the wall)
         for sy in (-1, 1):
             cyl(B.bm("M_LL_Brass", "SM_Props"), dc + dr * (sx * 0.222) + du * (sy * 0.162) - do_ * 0.0005, 0.006, 0.0055, 0.003, 10, basis_z(-do_))
@@ -2391,7 +2421,10 @@ def build_coat_rack(B):
     import coat_cloth
     from mathutils.bvhtree import BVHTree
     solid_me, shell = coat_cloth.simulate_coat(top, cb3, base + ou * 0.4, base + ou * 1.78, 0.022, B.coll)
-    oil.from_mesh(solid_me)
+    # audit C5 (2026-11-16): the drape has its own bucket, shaded smooth everywhere (SMOOTH_ONLY): the 35-degree
+    # split made every tight fold a hard ridge, and the shared bucket's normal recalculation mixed it with the
+    # pockets and the hat
+    B.bm("M_LL_Oilskin", "SM_CoatCloth").from_mesh(solid_me)
     bvh = BVHTree.FromPolygons([v.co.copy() for v in shell.vertices], [tuple(p_.vertices) for p_ in shell.polygons])
     bpy.data.meshes.remove(solid_me)
     bpy.data.meshes.remove(shell)

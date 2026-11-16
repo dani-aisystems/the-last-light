@@ -22,7 +22,8 @@ const DUTY_HIDDEN := 0
 const DUTY_KNOWN := 1
 const DUTY_ACTIVE := 2
 const DUTY_DONE := 3
-var duties := {}               # id -> {"s": int, "known": [sub ids], "done": [sub ids], "dropped": [sub ids]}
+var duties := {}               # id -> {"s": int, "known": [sub ids], "done": [sub ids], "dropped": [sub ids],
+                               #        "hinted": [sub ids whose hint was given; "_" = the duty's own] (audit D8)}
 var focus_duty := ""           # the duty the HUD is about: the one a beat made active last ("" = none)
 var log_written: Array = []    # station-log entry ids Callum has written tonight, in order (G2b layer C)
 var sim: KeeperSim             # for conditions that read the station
@@ -58,6 +59,16 @@ func has_active_duty() -> bool:
 
 func duty_state(id: String) -> int:
 	return int(duties.get(id, {}).get("s", DUTY_HIDDEN))
+
+
+## Audit D8 (2026-11-16): the step's hint has been shown, so the Duties page keeps it under the step.
+func mark_hinted(duty: String, sub: String) -> void:
+	if not duties.has(duty):
+		return
+	var h: Array = duties[duty].get("hinted", [])
+	if not (sub in h):
+		h.append(sub)
+	duties[duty]["hinted"] = h
 
 
 ## For conditions: the duty (or "duty.sub") is done.
@@ -202,7 +213,8 @@ func from_dict(d: Dictionary) -> void:
 		var e: Dictionary = dd[id]
 		duties[String(id)] = {"s": int(e.get("s", DUTY_HIDDEN)), "known": Array(e.get("known", [])).map(func(x): return String(x)),
 			"done": Array(e.get("done", [])).map(func(x): return String(x)),
-			"dropped": Array(e.get("dropped", [])).map(func(x): return String(x))}
+			"dropped": Array(e.get("dropped", [])).map(func(x): return String(x)),
+			"hinted": Array(e.get("hinted", [])).map(func(x): return String(x))}     # audit D8 (older saves: none)
 	focus_duty = String(d.get("focus_duty", ""))
 	log_written = Array(d.get("log_written", [])).map(func(x): return String(x))
 

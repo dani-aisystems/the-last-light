@@ -38,5 +38,17 @@
  "photo_1953": {
   "title": "Photograph: the Mary Ellen's crew, July 1953",
   "text": "Eight men on a deck at Leverburgh pier. The one at the wheel is laughing. On the back, in pencil: \"Mary Ellen, July 1953. A. Ross, master.\" Beneath, in another hand: \"Kenny B. on the hatch.\""
+ },
+ "orders": {
+  "title": "Keeper's Orders",
+  "text": "KEEPER'S ORDERS\n1. THE LIGHT SHALL BE KEPT FROM SUNSET TO SUNRISE.\n2. RUN THE ENGINE TO CHARGE BEFORE THE BATTERY FALLS BELOW ONE QUARTER.\n3. A TRIPPED MAIN BREAKER MAY BE RESET ONCE THE FAULT IS CLEARED.\n4. ANSWER EVERY CALL ON CHANNEL 16.\n5. FUEL VALVE OPEN BEFORE START."
+ },
+ "diagram": {
+  "title": "Station electrical supply (Drg. NP/E/7)",
+  "text": "NORTH POINT LIGHT - STATION ELECTRICAL SUPPLY. Watch room. Drg. No. NP/E/7 (revised 1962).\nAUX. SET No.2 (diesel) -> CHARGER -> BATTERY, 12 cells -> DISTRIBUTION.\nFrom the distribution board: LAMP, ROOM LIGHTS, RADAR / W.T.\nMAIN ENGINES (engine room): DISCONNECTED.\nInitialled C.M. 4.6.62"
+ },
+ "radio_card": {
+  "title": "Card in the radio's bezel",
+  "text": "STORNOWAY C.G.\nCh 16  /  2182 kc/s\nRadio check 2100\n& as required."
  }
 }

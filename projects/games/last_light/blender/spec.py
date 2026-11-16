@@ -67,14 +67,19 @@ SPEC = {
         "window": {"sill": 0.95, "top": 2.55, "frame": 0.08, "glass_r": 3.42},
         "eye_height": 1.65,
         # device bearings (deg) from R1
-        "desk": 0.0, "charger": -55.0, "distribution": -80.0, "batteries": -105.0, "generator": -140.0,
+        # Audit Stage B (C3, 2026-11-16): the charger's right 0.3 m hung in front of the west bay's opening
+        # (-52.5): -55 -> -61.5 and 0.85 -> 0.76 m wide (right edge -54.8, 13 cm clear of the jamb)
+        "desk": 0.0, "charger": -61.5, "distribution": -80.0, "batteries": -105.0, "generator": -140.0,
         # Daniel 2026-11-04 (Stage 1 iteration 3): stair door moved 10 deg left of R1's 180 so the housing
         # clears the generator cage (was 4 cm) and the archive (3 cm); storage, extinguisher and one lamp follow
         "stair": 170.0, "storage": 128.0, "extinguisher": 106.0, "console": 78.0, "optic_drive": 45.0,
         # R6 (2026-11-15): -48 hung 0.4 m in front of the west window's glass (that bay's wall opening runs
         # -52.5..-22.5, the 96 wall segments), so it floated with its reflection beside it: now on solid wall
         # 5.5 deg past the jamb, above the charger
-        "wall_lamps": [-62.0, 62.0, 148.0, -160.0],   # (-58 sat on the charger conduit drop at -58.2: its shadow crossed the bay)
+        # (-58 sat on the charger conduit drop at -58.2: its shadow crossed the bay). Audit Stage B (C2): -62's
+        # backplate cut the supply diagram's corner; the charger and diagram moved under it, so lamp 0 now
+        # sits in the gap between the distribution board (edge -72.0) and the charger (edge -68.2)
+        "wall_lamps": [-70.0, 62.0, 148.0, -160.0],
     },
     "lantern": {
         "base_z": 23.3, "glass_z": [23.95, 25.85], "radius": 2.05, "sides": 12,

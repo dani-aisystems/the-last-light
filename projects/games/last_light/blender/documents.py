@@ -597,16 +597,20 @@ def mug_wrap(w, h, mv, seed=31):
     return img, rough
 
 
-def sked_card(w, h):
+SKED = (("STORNOWAY C.G.", 30), ("Ch 16  /  2182 kc/s", 26), ("Radio check 2100", 26), ("& as required.", 26))
+
+
+def sked_card(w, h, k=1):
+    """The radio-check card in the radio's bezel. k scales the writing (k=3: the readable card, audit D7)."""
     img = paper(w, h, 44, (226, 218, 196), 0)
     d = ImageDraw.Draw(img, "RGBA")
-    y = 14
-    for line, size in (("STORNOWAY C.G.", 30), ("Ch 16  /  2182 kc/s", 26), ("Radio check 2100", 26), ("& as required.", 26)):
-        jitter_text(d, (16, y), line, CALLUM(size), INK, seed=y)
-        y += size + 14
-    d.rectangle([0, 0, w - 1, h - 1], outline=(150, 135, 110), width=2)
+    y = 14 * k
+    for line, size in SKED:
+        jitter_text(d, (16 * k, y), line, CALLUM(size * k), INK, seed=y // k)
+        y += (size + 14) * k
+    d.rectangle([0, 0, w - 1, h - 1], outline=(150, 135, 110), width=2 * k)
     for x in range(0, w, 3):                              # thumb-grime along the bottom edge
-        d.point((x, h - 4 - (x * 7) % 5), fill=(90, 70, 50, 60))
+        d.point((x, h - 4 * k - (x * 7) % (5 * k)), fill=(90, 70, 50, 60))
     return img
 
 
@@ -934,11 +938,46 @@ def props_atlas():
     rough.save(TEX / "T_LL_Props_rough.png", optimize=True)
 
 
+def extra_docs():
+    """Audit D7 (2026-11-16): the room's notices as readable documents, drawn by the same code that paints
+    them into the atlases (one source): KEEPER'S ORDERS (textures.notice at 2x), the supply diagram and the
+    radio-check card (3x)."""
+    import textures
+    add("orders", "Keeper's Orders", textures.notice(12, 2),
+        "KEEPER'S ORDERS\n" + "\n".join(textures.ORDERS).replace("\n    ", " "))
+    add("diagram", "Station electrical supply (Drg. NP/E/7)", wiring_diagram(),
+        "NORTH POINT LIGHT - STATION ELECTRICAL SUPPLY. Watch room. Drg. No. NP/E/7 (revised 1962).\n"
+        "AUX. SET No.2 (diesel) -> CHARGER -> BATTERY, 12 cells -> DISTRIBUTION.\n"
+        "From the distribution board: LAMP, ROOM LIGHTS, RADAR / W.T.\n"
+        "MAIN ENGINES (engine room): DISCONNECTED.\nInitialled C.M. 4.6.62")
+    sw, sh = PA_SIZE("sked")
+    add("radio_card", "Card in the radio's bezel", sked_card(sw * 3, sh * 3, 3), "\n".join(t for t, _s in SKED))
+
+
+def PA_SIZE(name):
+    x0, y0, x1, y1 = load_props_spec()["regions"][name]
+    return x1 - x0, y1 - y0
+
+
+def load_props_spec():
+    import importlib.util
+    s = importlib.util.spec_from_file_location("ll_spec", HERE / "spec.py")
+    m = importlib.util.module_from_spec(s)
+    s.loader.exec_module(m)
+    return m.SPEC["props_atlas"]
+
+
 def main():
     import sys
     if "--props" in sys.argv:
         props_atlas()
         print("DOCS_RESULT props_only")
+        return
+    if "--extra" in sys.argv:            # audit D7: only the notice documents, merged into the existing docs.json
+        DOCS.update(json.loads((OUT / "docs.json").read_text()))
+        extra_docs()
+        (OUT / "docs.json").write_text(json.dumps(DOCS, indent=1))
+        print("DOCS_RESULT extra", json.dumps(["orders", "diagram", "radio_card"]))
         return
     C = CALLUM
     rows71 = [
@@ -1012,6 +1051,7 @@ def main():
     # one 2048 atlas for the three prop faces (one material, not three): calendar top-left (700x1000),
     # wiring diagram top-right (1100x800 at x 720), barometer dial bottom-left (1024x1024 at y 1024)
     props_atlas()
+    extra_docs()
     (OUT / "docs.json").write_text(json.dumps(DOCS, indent=1))
     print("DOCS_RESULT", json.dumps(sorted(DOCS)))
 

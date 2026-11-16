@@ -10,6 +10,7 @@ extends SubViewport
 const DIR := "res://assets/docs/log/"
 const DUTY_X := 110
 const SUB_X := 160
+const HINT_X := 200                    # audit D8: hints under their step
 const TOP_Y := 128
 const DUTY_GAP := 52
 const SUB_GAP := 46
@@ -17,7 +18,8 @@ const PENCIL := Color(0.30, 0.30, 0.31, 0.85)
 
 var manifest: Dictionary = {}
 var page := ""                    # "log" | "duties"
-var shown: Array = []             # what is on the page: row ids, or "duty:<id>" / "sub:<id>.<sub>" (+ "~" if struck)
+var shown: Array = []             # what is on the page: row ids, or "duty:<id>" / "sub:<id>.<sub>" (+ "~" if struck),
+                                  # "hint:<id>.<sub>" for a hint kept under its step (audit D8)
 
 
 func _init() -> void:
@@ -88,6 +90,8 @@ func build_duties(director: StoryDirector) -> String:
 			shown.append("duty:" + id + ("~" if done else ""))
 			lines.append(("[done] " if done else "") + String(d.get("line", "")))
 			y += DUTY_GAP
+			if not done and d.get("sub", []).is_empty():
+				y = _hint(id, "_", String(d.get("hint", "")), e, y, lines)
 			for sb in d.get("sub", []):
 				var sid := String(sb["id"])
 				if not (sid in e.get("known", [])) or sid in e.get("dropped", []):
@@ -97,9 +101,21 @@ func build_duties(director: StoryDirector) -> String:
 				shown.append("sub:%s.%s%s" % [id, sid, "~" if sdone else ""])
 				lines.append("    " + ("[done] " if sdone else "") + String(sb.get("line", "")))
 				y += SUB_GAP
+				if not sdone:
+					y = _hint(id, sid, String(sb.get("hint", "")), e, y, lines)
 			y += 14
 	render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	return "\n".join(lines)
+
+
+## Audit D8 (2026-11-16): a hint the keeper has been given stays under its step until the step is done.
+func _hint(duty: String, sub: String, text: String, e: Dictionary, y: float, lines: Array) -> float:
+	if not (sub in e.get("hinted", [])) or not manifest.get("duties", {}).get(duty, {}).get("hint", {}).has(sub):
+		return y
+	_add_tex(DIR + "hint_%s_%s.png" % [duty, sub], Vector2(HINT_X, y - 6))
+	shown.append("hint:%s.%s" % [duty, sub])
+	lines.append("        (hint) " + text)
+	return y + float(manifest["duties"][duty]["hint"][sub]["h"]) - 4.0
 
 
 func _strip(path: String, pos: Vector2, struck: bool) -> void:

@@ -90,7 +90,11 @@ var DEVICES := {
 	"photo53": {"kind": "doc", "prompt": "Pick up the photograph"},
 	"photo53desk": {"kind": "doc", "prompt": "Look at the photograph he left"},
 	"power_panel": {"kind": "info", "prompt": "Check the distribution board"},
-	"orders": {"kind": "info", "prompt": "Read the keeper's orders"},     # G4a: line 5 teaches the fuel valve
+	# G4a: line 5 teaches the fuel valve. Audit D7 (2026-11-16): the orders, the supply diagram and the
+	# radio-check card open full-screen like every other paper (documents.py extra_docs)
+	"orders": {"kind": "doc", "prompt": "Read the keeper's orders"},
+	"diagram": {"kind": "doc", "prompt": "Study the supply diagram"},
+	"radio_card": {"kind": "doc", "prompt": "Read the card in the radio"},
 	"pipe": {"kind": "info", "prompt": "Look at the pipe"},               # G4a: Iain's pipe (Daniel 2026-11-08)
 }
 ## Set by game_fp (Stage 2): documents only open in the story campaign; the door's prompt and whether

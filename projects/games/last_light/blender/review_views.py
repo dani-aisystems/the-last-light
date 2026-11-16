@@ -69,6 +69,13 @@ VIEWS = {
     "cu_chair": (*eye(34, 1.08, 1.7, 1.73, 1.5, 0.6), lens_for_vfov(55), False),
     "cu_radio": (*eye(-4, 1.75, -6, 2.75, 1.38, 0.95), lens_for_vfov(50), False),
     "cu_logbook": (*eye(-12, 1.75, -13, 2.5, 1.5, 0.79), lens_for_vfov(42), False),
+    # audit Stage B (2026-11-16): matched to capture_fp.gd, for the cabin before/after sheets
+    "cu_battery": (*eye(-61.5, 2.05, -61.5, 2.92, 1.62, 1.52), lens_for_vfov(42), False),
+    "cu_west": (*eye(-62, 1.2, -62, 3.0, 1.6, 1.75), lens_for_vfov(62), False),      # lamp 0, diagram, charger, jamb
+    "cu_coat": (*eye(149, 1.0, 150, 2.75, 1.55, 1.05), lens_for_vfov(55), False),
+    "cu_door_top": (*eye(170, 1.75, 170, 2.6, 1.85, 2.0), lens_for_vfov(32), False),
+    "cu_wheel": (*eye(176, 1.1, 177, 2.6, 1.15, 1.05), lens_for_vfov(50), False),     # handwheel and both dogs
+    "cu_phone": (*eye(20, 2.2, 15, 2.95, 1.3, 0.8), lens_for_vfov(40), False),       # mug, ashtray, phone, binoculars
     "ext": ((24, -38, 12), (0, 0, 17), 40, False),
 }
 

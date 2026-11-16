@@ -462,6 +462,8 @@ func _tick_escalation(delta: float) -> void:
 		_esc_t = 0.0
 		_esc_level = 0
 		story_event.emit("duty_nudge", [0, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+		if DutyHUD.guidance() == DutyHUD.GUIDE_FULL:      # (Settings is not a compile-time name under -s tests)
+			_mark_hinted(sub)                  # Full guidance shows the hint at once (story_presenter.duty_nudge)
 	if _talking or _hold != 0 or _radio_wait != "":
 		return
 	_esc_t += delta
@@ -473,6 +475,16 @@ func _tick_escalation(delta: float) -> void:
 	elif _esc_level >= 1 and _esc_t >= HINT_S * _esc_level:      # the hint at 60 s, then every 60 s
 		_esc_level += 1
 		story_event.emit("duty_nudge", [2, String(sub.get("nudge", "")), String(sub.get("hint", ""))])
+		_mark_hinted(sub)
+
+
+## Audit D8 (2026-11-16): once a step's hint has been given it stays on the Duties page (L, then the pencil
+## page) under its step until the step is done; the HUD hint still fades after 14 s.
+func _mark_hinted(sub: Dictionary) -> void:
+	if String(sub.get("hint", "")) == "":
+		return
+	var d := duty_def(state.focus_duty)
+	state.mark_hinted(state.focus_duty, "_" if d.get("sub", []).is_empty() else String(sub["id"]))
 
 
 ## Item 32: what the keeper should fix when the story waits on power (radio or light).

@@ -3,7 +3,7 @@
 The coat starts as a closed garment shell (collar, sloped shoulders, body to the hem) around an empty
 hanging axis, pinned only at the collar loop on the back of the neck, and falls under gravity for SETTLE
 frames with Blender's built-in cloth (fixed settings, so every build gives the same drape). It collides
-with the coat stand's post behind it. The settled shell is applied and given 2 mm of thickness (oilskin).
+with the coat stand's post behind it. The settled shell is smoothed, applied and given THICK of thickness.
 
 simulate_coat() returns a world-space Mesh datablock; the caller appends it to its bucket and frees it.
 Called from build.py build_coat_rack(); usable alone for previews (tools/bl -P a harness).
@@ -20,7 +20,11 @@ SETTLE = 120                  # frames at 24 fps
 NOISE = 0.004                 # seeded radial jitter (m) so the shell buckles into folds, not a smooth tube
 # cloth settings (overridable for previews): soft in bending and compression so the empty shoulders give way
 CLOTH = {"mass": 0.45, "tension": 30.0, "compression": 40.0, "shear": 5.0, "bending": 0.35, "air": 2.0}   # compression 4 let the shell shrink to 22 cm
-THICK = 0.002                 # oilskin
+# audit C5 (2026-11-16): 2 mm read as paper: the rim showed as a razor edge and the thin shell's folds as
+# sawtooth ridges. 4.5 mm (waxed cotton over a lining) and SMOOTH passes of the settled shell before the
+# thickness is added, which take out the one-face crumples without moving the big folds
+THICK = 0.0045
+SMOOTH = (4, 0.5)             # (iterations, factor)
 # the shell as cut, before it falls (z down from the collar loop, half-width, depth ratio): wider and
 # rounder than it will hang, so the empty shoulders collapse into folds that run down from the loop
 PROFILE = [(0.0, 0.045, 1.0), (-0.025, 0.09, 0.75), (-0.06, 0.17, 0.6), (-0.11, 0.215, 0.55),
@@ -114,7 +118,14 @@ def simulate_coat(top, b3, post_a, post_b, post_r, coll):
     for o in (ob, post):
         bpy.data.objects.remove(o, do_unlink=True)
     bpy.data.meshes.remove(me)
-    # 2 mm thick, outward, through a throwaway object (solidify is a modifier)
+    sbm = bmesh.new()
+    sbm.from_mesh(settled)
+    for _ in range(SMOOTH[0]):
+        bmesh.ops.smooth_vert(sbm, verts=sbm.verts, factor=SMOOTH[1], use_axis_x=True, use_axis_y=True, use_axis_z=True)
+    bmesh.ops.recalc_face_normals(sbm, faces=sbm.faces)
+    sbm.to_mesh(settled)
+    sbm.free()
+    # THICK, outward, through a throwaway object (solidify is a modifier)
     tmp = bpy.data.objects.new("TMP_coat_solid", settled)
     coll.objects.link(tmp)
     sol = tmp.modifiers.new("thick", "SOLIDIFY")
