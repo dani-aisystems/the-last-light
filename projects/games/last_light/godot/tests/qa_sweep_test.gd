@@ -78,6 +78,8 @@ func _fit() -> void:
 		dlg.apply_settings(42.0, scale)
 		var worst_radio := 0.0
 		var worst_sub := 0.0
+		var panel0 := Rect2()                  # D3: the radio panel's rect at this text size (must never change)
+		var paged := 0
 		for id in db.convs:
 			var conv: Dictionary = db.convs[id]
 			var mode: String = conv["mode"]
@@ -88,14 +90,30 @@ func _fit() -> void:
 					last = {"mode": mode, "speaker": s["speaker"], "text": s["text"]}
 					await _show_full(last)
 					var tag := "x%.1f %s '%s…'" % [scale, id, String(s["text"]).left(40)]
-					if dlg.line_look == "radio":
-						var r: Rect2 = dlg.radio_panel.get_global_rect()
-						worst_radio = maxf(worst_radio, r.size.y)
-						_check(vp.encloses(r), "%s radio panel fully on screen (%s)" % [tag, r])
-					else:
-						var sr: Rect2 = dlg.sub_box.get_global_rect()
-						worst_sub = maxf(worst_sub, sr.size.y)
-						_check(vp.encloses(sr), "%s subtitle block fully on screen (%s)" % [tag, sr])
+					var src := " ".join(String(s["text"]).strip_edges().split(" ", false))
+					_check(" ".join(dlg._pages) == src, "%s pages join back to the line (%d pages)" % [tag, dlg._pages.size()])
+					if dlg._pages.size() > 1:
+						paged += 1
+					for pi in dlg._pages.size():
+						if pi > 0:
+							dlg._set_page(pi)
+							dlg._shown = dlg._full.length()
+							dlg._render()
+							await _frames(2)
+						var lab: RichTextLabel = dlg.r_text if dlg.line_look == "radio" else dlg.s_text
+						_check(lab.get_line_count() <= dlg.MAX_LINES, "%s page %d shows %d lines (<= %d)" % [tag, pi + 1, lab.get_line_count(), dlg.MAX_LINES])
+						if dlg.line_look == "radio":
+							var r: Rect2 = dlg.radio_panel.get_global_rect()
+							worst_radio = maxf(worst_radio, r.size.y)
+							_check(vp.encloses(r), "%s radio panel fully on screen (%s)" % [tag, r])
+							if panel0.size == Vector2.ZERO:
+								panel0 = r
+							_check(r.is_equal_approx(panel0), "%s radio panel is the same size as every other line (%s vs %s)" % [tag, r, panel0])
+							_check(dlg.card.size.is_equal_approx(dlg.CARD_SIZE), "%s the card is %s (never stretched)" % [tag, dlg.card.size])
+						else:
+							var sr: Rect2 = dlg.sub_box.get_global_rect()
+							worst_sub = maxf(worst_sub, sr.size.y)
+							_check(vp.encloses(sr), "%s subtitle block fully on screen (%s)" % [tag, sr])
 				elif s["kind"] == "choice":
 					# the replies exactly as the player meets them: after the line they answer
 					await _show_full(last)
@@ -122,7 +140,7 @@ func _fit() -> void:
 			_check(vp.encloses(cp), "x%.1f radio command panel fully on screen (%s)" % [scale, cp])
 			_check(not cp.intersects(dlg.radio_panel.get_global_rect()), "x%.1f command panel clear of the dialogue radio panel" % scale)
 		dlg.close()
-		print("  x%.1f: tallest radio panel %.0f px, tallest subtitle block %.0f px" % [scale, worst_radio, worst_sub])
+		print("  x%.1f: radio panel %.0f px (fixed), tallest subtitle block %.0f px, %d lines paged" % [scale, worst_radio, worst_sub, paged])
 	print("  checked %d line renders and %d reply renders across 3 text sizes" % [n_lines, n_choices])
 	dlg.apply_settings(Settings.v["text_speed"], Settings.v["subtitle_size"])
 

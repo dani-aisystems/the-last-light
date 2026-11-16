@@ -35,11 +35,11 @@ func _ready() -> void:
 	_build_menu()
 	_show_menu()
 	if args.has("capture"):
-		capture = preload("res://scripts/capture.gd").new()
+		capture = load("res://scripts/capture.gd").new()      # D9: not exported
 		capture.main = self
 		add_child(capture)
 	elif args.has("autotest"):
-		var at := preload("res://scripts/autotest.gd").new()
+		var at = load("res://scripts/autotest.gd").new()       # D9: not exported
 		at.main = self
 		add_child(at)
 		start_game(args.get("bot", "average"))

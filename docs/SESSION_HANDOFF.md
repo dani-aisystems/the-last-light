@@ -1,6 +1,31 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
-## LATEST (2026-11-16): audit Stage B (cabin and interface) done and committed locally; Stage A still to do
+## LATEST (2026-11-16, end of session): audit Stage A done and committed locally; resume at the perf bisect, then Stage S
+- **Record:** `docs/last_light/audit-2026-11/11_stageA_evidence.md`; decisions DECISIONS Q17 (Daniel delegated them: "determine all choices ... according to suggested").
+- **Done:**
+  - save fixtures (`tests/fixtures/saves_v1/`, 70 files; never overwrite);
+  - save v2 and `save_compat_test.gd`;
+  - D1 no skipping, every line auto-advances, Options > Reading time;
+  - D2 asides queue;
+  - D3 three-line pages in a fixed panel;
+  - D4 the portrait fills its card;
+  - D6 the Tide Tables document and the 1953 volume;
+  - A5 the generator lock (ch4 stair to the ch5 sediment bowl, beat layout 4);
+  - D9 release gating (a release export was verified);
+  - E1 `p1_alone`.
+- **Build:** v067 `.blend`, watch_room GLB v056.
+- **Suite loop:** add `save_compat_test` to the suites listed in CLAUDE.md (not edited: `CLAUDE.md` has Daniel's uncommitted permissions change).
+- **Next session:**
+  1. Ask Daniel whether the Mac is free, then run the performance bisect. Stage 0 measured Medium at 27 to 30 ms against 16.7; use `--bench` with `--bench_toggle` and the `--no*` flags, foreground, `tools/godot --audio-driver Dummy`.
+  2. Stage S (stairwell and door), which also takes the dark stair door (0.032 luminance) and possibly a catch-light on the sediment bowl.
+- **Gotchas:**
+  - `-s` test scripts must reach autoloads through `root.get_node("Name")`;
+  - `documents.py --extra=<ids>` renders only those documents;
+  - a release run migrates (and backs up once) the player's v1 autosave when the menu reads it (Daniel's folder now has `slot_auto*_v1_backup.json`);
+  - the bowl device refuses until the story's `bowl_open` fault (end of the ch5 drawer beat);
+  - captures: detached views hide the keeper's body; `say_gale` / `say_gale2` show the paged gale warning.
+
+## (earlier 2026-11-16): audit Stage B (cabin and interface) done and committed locally
 - **Record:** `docs/last_light/audit-2026-11/10_stageB_evidence.md`. Daniel said "Start stage B" and skipped Stage A for now.
 - **Done:** C1 to C5 and C7 to C10 (cabin, in Blender: v064 `.blend`, watch_room GLB v053). D5: the VHF panel is narrower, draggable and saved as `Settings.v.vhf_pos`. D7: Orders, the supply diagram and the radio card are documents (`documents.py --extra` writes only those). D8: given hints are saved in `duties[id].hinted` and stay on the Duties page.
 - **Evidence:** before/after sheet `renders/last_light/b1_sheet_cabin.png`; in-game captures `renders/last_light/b1_t0*.png` (Daniel's OK). All suites green (regress 371/371).

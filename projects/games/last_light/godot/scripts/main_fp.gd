@@ -51,12 +51,12 @@ func _ready() -> void:
 		DisplayServer.window_set_position(DisplayServer.screen_get_usable_rect().position + Vector2i(10, 10))
 	Settings.apply_render_scale()          # preset x HiDPI fit (or --scale3d), re-applied on resize
 	if args.has("capture"):
-		var cap := preload("res://scripts/capture_fp.gd").new()
+		var cap = load("res://scripts/capture_fp.gd").new()      # D9: loaded, not preloaded: not exported
 		cap.main = self
 		add_child(cap)
 		show_menu()
 	elif args.has("autotest"):
-		var at := preload("res://scripts/autotest.gd").new()
+		var at = load("res://scripts/autotest.gd").new()          # D9: loaded, not preloaded: not exported
 		at.main = self
 		add_child(at)
 		start_game(args.get("bot", "expert"), args.get("mode", "story") == "story")
@@ -677,7 +677,7 @@ func _open_options() -> void:
 	_opt_toggle(ct, "Hold E to crank the generator (off: press once to crank)", "hold_to_crank")
 	ct.add_child(UIStyle.label("Controls", 22, UIStyle.AMBER, UIStyle.serif()))
 	for b in [["", "Keyboard and mouse", "Gamepad"], ["Walk", "W A S D / arrows", "Left stick"], ["Look", "Mouse", "Right stick"],
-			["Use", "E · left click", "A"], ["Continue dialogue", "Space", "RT"],
+			["Use", "E · left click", "A"],
 			["Choose a reply", "1 – 4 (click in a device view)", "D-pad + A"],
 			["Walk faster", "Shift", "Left stick click"], ["Station log", "L", "Y"], ["Current duty (hold: latest hint)", "J", "Right stick click"], ["Hand compass", "G", "—"], ["Binoculars", "B", "—"], ["Step back", "Esc · right click", "B"],
 			["Pause", "Esc", "Start"], ["Selector knobs", "Wheel · right click", "LB / RB"],
@@ -696,6 +696,7 @@ func _open_options() -> void:
 	_opt_toggle(ac, "Show ship radio chatter subtitles (story dialogue always shows)", "subtitles")
 	_opt_slider(ac, "Text size (dialogue and interface)", "subtitle_size", 0.8, 1.5, 0.05)
 	_opt_slider(ac, "Text speed (characters / s)", "text_speed", 15.0, 120.0, 1.0)
+	_opt_slider(ac, "Reading time (how long each line stays)", "reading_time", 0.75, 3.0, 0.05)
 	_opt_toggle(ac, "Reduce flashing (lightning)", "reduce_flashing")
 	_opt_toggle(ac, "Reduce motion (title menu animation and glow)", "reduce_motion")
 	_opt_choice(ac, "Guidance", "guidance", [["Minimal: the room and the logbook", 0],

@@ -12,12 +12,11 @@ extends Control
 ## to the next line while typing and the panel doesn't grow as it types.
 ## Input (brief items 7 and 25, 2026-11-06): responsibilities are separate.
 ##   E (interact) is NEVER read here: it always reaches the player, so devices work while a line shows.
-##   Space / pad RT (action "dialogue_next") finishes the typewriter, then advances, but only once the
-##   line has been fully shown for ADVANCE_DWELL_S, so a double tap can't skip a line unread.
-##   Remediation R1 (2026-11-15): thought / in-room / sound lines (not radio) also advance BY THEMSELVES
-##   after a reading time (auto_advance_s), counted only while nothing holds the screen. The ch1 opening
-##   thoughts used to wait for an unprompted Space, and the whole story waited behind them. Radio lines
-##   still wait for Space / RT and show a dim cue once fully shown.
+##   Audit D1 (2026-11-16, DECISIONS Q15): no line can be finished early or skipped. EVERY line (radio,
+##   in-room, thought, sound) advances by itself after its reading time (line_read_s), counted only while
+##   nothing holds the screen (pause, a document, a fade). Slower readers lengthen it with Options >
+##   Reading time; nobody can shorten it below the base. (Before: Space / RT finished and advanced lines,
+##   and radio lines waited for it, which stalled the story and let a tap skip a line unread.)
 ##   Replies: number keys 1-4 only (physical keys); a click in a device view; the pad d-pad + A. The wheel,
 ##   E, W/S, the arrows and Space never pick a reply, and nothing is picked in its first CHOICE_GUARD_S.
 ## This layer never touches the mouse mode (game_fp owns it). Radio replies show only in the radio view.
@@ -60,18 +59,34 @@ var _t := 0.0
 var _choice_age := 0.0                      # seconds since the replies appeared (CHOICE_GUARD_S)
 var _auto_t := 0.0                          # R1: unheld seconds this line has been on screen
 var _advance_sent := false                  # R1: one advance per line (a wait after it must not be skipped)
-var auto_advance := true                    # R1: thought / person / sound lines advance by themselves
+var auto_advance := true                    # tests only: false freezes every line (proof runs)
+var reading_mul := 1.0                      # D1: Settings "reading_time" (0.75 to 3)
+var _read_s := 0.0                          # D1: this line's reading time
+var _prev_speaker := ""                     # D1: the previous line's speaker in this conversation
+var _source := ""                           # D3: the whole message as written
+var _pages: Array = [""]                    # D3: the message in pages of MAX_LINES lines or fewer
+var _page := 0
+const MAX_LINES := 3                        # D3: no message shows more than three lines
+const RADIO_W := 820.0                      # the radio panel's width (offsets below)
+const RADIO_SEP := 18.0                     # card | text gap
+const SUB_W := 1280.0                       # the subtitle column
+const WRAP_MARGIN := 3.0                    # measured fit is this much narrower than the label
 
-const ADVANCE_DWELL_S := 0.5                # a fully shown line must stay this long before Space advances it
 const CHOICE_GUARD_S := 0.4                 # replies ignore input this long after they appear
 const AUTO_BASE_S := 1.0                    # R1: reading time = base + per character, clamped
 const AUTO_PER_CHAR_S := 0.06
 const AUTO_MIN_S := 2.8
-const AUTO_MAX_S := 9.0
+const AUTO_MAX_S := 12.0                    # D1: was 9 (radio lines now advance by themselves too)
 const AUTO_AFTER_SHOWN_S := 1.2             # and always at least this long after the last character
+const SPEAKER_CHANGE_S := 0.7               # D1: a new voice takes a moment to place
+const FULL_STOP_S := 0.4                    # D1: a message that ends a sentence lets it land
+const READING_MIN := 0.75                   # D1: Options > Reading time range
+const READING_MAX := 3.0
 ## Stage 3C: the card is a print. The photo is 4:5 (the portraits are 512x640) inside a paper border.
 const CARD_SIZE := Vector2(152, 190)
-const PHOTO_RECT := Rect2(8, 10, 136, 170)
+const PHOTO_RECT := Rect2(8, 10, 136, 170)  # pre-D4 window (kept for reference; photo_rect() is drawn)
+const KEYLINE := 2.0                        # D4: the dark line round the photo
+const KEYLINE_COLOR := Color(0.07, 0.06, 0.05, 0.95)
 
 var _portrait: Texture2D                    # the current radio speaker's print, or null (line drawing)
 
@@ -94,10 +109,11 @@ func _ready() -> void:
 	radio_panel.visible = false
 	add_child(radio_panel)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 18)
+	h.add_theme_constant_override("separation", int(RADIO_SEP))
 	radio_panel.add_child(h)
 	card = Control.new()
 	card.custom_minimum_size = CARD_SIZE
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # D4: the card never stretches with the row
 	card.draw.connect(_draw_card)
 	h.add_child(card)
 	var v := VBoxContainer.new()
@@ -110,6 +126,7 @@ func _ready() -> void:
 	r_ident.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(r_ident)
 	r_text = _rich(25)
+	r_text.fit_content = false                 # D3: a fixed three-line box (fix_heights), never fit-to-text
 	v.add_child(r_text)
 	r_hint = UIStyle.label("", 15, UIStyle.DIM)
 	r_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -151,6 +168,7 @@ func _ready() -> void:
 	choice_hint.offset_right = 52 + 700
 	choice_hint.visible = false
 	add_child(choice_hint)
+	fix_heights()
 
 
 func _rich(size: int) -> RichTextLabel:
@@ -160,11 +178,50 @@ func _rich(size: int) -> RichTextLabel:
 
 
 ## Typewriter speed, and the text size (UIStyle scales every registered label, button and rich text).
-func apply_settings(cps: float, scale: float) -> void:
+func apply_settings(cps: float, scale: float, reading := 1.0) -> void:
 	speed_cps = cps
 	text_scale = scale
+	reading_mul = clampf(reading, READING_MIN, READING_MAX)
 	if not is_equal_approx(UIStyle.text_scale, scale):
 		UIStyle.set_text_scale(scale, get_tree())
+	fix_heights()
+
+
+## D3: the radio panel is one fixed size per text size. The text box holds exactly MAX_LINES lines
+## (no fit-to-content); the identity row and the hint row reserve the most lines any speaker / the reply
+## gate needs at this size. So the panel never changes size between lines, pages or speakers.
+func fix_heights() -> void:
+	var serif: Font = UIStyle.serif()
+	var tsz := UIStyle.px(25)
+	r_text.custom_minimum_size.y = ceilf(serif.get_height(tsz) * MAX_LINES) + 4.0
+	var w := text_width("radio")
+	var most := 1
+	for sp in Speakers.TABLE:
+		var e: Dictionary = Speakers.TABLE[sp]
+		if String(e.get("where", "")) != "radio":
+			continue
+		var r := Speakers.resolve(sp, null)
+		var parts: Array = []
+		for k in ["call", "sub"]:
+			if String(r.get(k, "")) != "":
+				parts.append(String(r[k]))
+		most = maxi(most, _label_lines("  ·  ".join(parts), UIStyle.sans(), UIStyle.px(15), w))
+	r_ident.custom_minimum_size.y = _label_h(UIStyle.sans(), UIStyle.px(15), most)
+	var gate := InputSetup.resolve("▸ Look at the radio on the desk and press {interact} to answer.")
+	var hint_font: Font = r_hint.get_theme_font("font")
+	r_hint.custom_minimum_size.y = _label_h(hint_font, UIStyle.px(15), _label_lines(gate, hint_font, UIStyle.px(15), w))
+
+
+func _label_lines(t: String, font: Font, size: int, w: float) -> int:
+	var p := TextParagraph.new()
+	p.width = w - WRAP_MARGIN
+	p.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	p.add_string(t, font, size)
+	return maxi(1, p.get_line_count())
+
+
+func _label_h(font: Font, size: int, lines: int) -> float:
+	return ceilf(font.get_height(size) * lines + 3.0 * (lines - 1)) + 2.0
 
 
 # ------------------------------------------------------------------ API
@@ -176,16 +233,29 @@ func show_line(item: Dictionary) -> void:
 	_item = _resolved(item)
 	_speaker = _item["speaker"]
 	line_look = _item["look"]
-	_full = String(item["text"])
+	var changed := _prev_speaker != "" and _prev_speaker != _speaker
+	_prev_speaker = _speaker
+	var radio := line_look == "radio"
+	radio_panel.visible = radio
+	sub_box.visible = not radio
+	_source = String(item["text"])
+	_pages = paginate(_source, line_look)
+	_set_page(0, changed)
+
+
+## D3: one page of the message: typed, read and timed like a line of its own. The panel, the name and the
+## card do not change between pages (only the first page squelches).
+func _set_page(i: int, speaker_changed := false) -> void:
+	_page = i
+	_full = String(_pages[i])
 	_shown = 0.0
 	_pause = 0.15
 	_done_t = 0.0
 	_auto_t = 0.0
 	_advance_sent = false
+	_read_s = line_read_s(_full, speaker_changed)
 	var radio := line_look == "radio"
-	radio_panel.visible = radio
-	sub_box.visible = not radio
-	if radio:
+	if radio and i == 0:
 		r_name.text = _item["name"]
 		var ident: Array = []
 		for k in ["call", "sub"]:
@@ -197,7 +267,7 @@ func show_line(item: Dictionary) -> void:
 		_portrait = load(pp) as Texture2D if pp != "" else null
 		card.queue_redraw()
 		blip.emit("squelch")
-	else:
+	elif not radio:
 		s_name.text = _item["name"] if line_look == "person" else ""
 		s_name.visible = s_name.text != ""
 	_bb = _compose()
@@ -241,6 +311,7 @@ func show_choices(item: Dictionary) -> void:
 
 func close() -> void:
 	_active = false
+	_prev_speaker = ""
 	radio_panel.visible = false
 	sub_box.visible = false
 	_choices = []
@@ -406,32 +477,110 @@ func _process(delta: float) -> void:
 				blip.emit("char")
 			_render()
 	else:
-		_done_t += delta
-		if line_look == "radio" and _choices.is_empty() and not _advance_sent:
-			_set_cue(true)          # R1: radio lines wait for Space / RT: say so, quietly
-		elif auto_advance and line_look != "radio" and _choices.is_empty() and not _advance_sent and not held \
-				and _done_t >= AUTO_AFTER_SHOWN_S and _auto_t >= auto_advance_s(_full):
-			_advance_sent = true
-			advance_requested.emit()
+		if not held:
+			_done_t += delta
+		if auto_advance and _choices.is_empty() and not _advance_sent and not held \
+				and _done_t >= AUTO_AFTER_SHOWN_S and _auto_t >= _read_s:
+			if _page < _pages.size() - 1:
+				_set_page(_page + 1)        # D3: the next page of the same message
+			else:
+				_advance_sent = true
+				advance_requested.emit()
 
 
-## R1: how long a thought / in-room line stays before it advances by itself (longer lines read longer;
-## a slower typewriter setting reads slower too).
-func auto_advance_s(text: String) -> float:
+# ------------------------------------------------------------------ D3: three lines at most
+
+## The width the line's text wraps in, in px (radio: the column beside the card; others: the subtitles).
+func text_width(look: String) -> float:
+	if look == "radio":
+		var sb := radio_panel.get_theme_stylebox("panel")
+		var inner := RADIO_W - (sb.get_content_margin(SIDE_LEFT) + sb.get_content_margin(SIDE_RIGHT) if sb else 44.0)
+		return inner - CARD_SIZE.x - RADIO_SEP
+	return SUB_W
+
+
+## How many lines `text` takes in the label that shows `look` (TextParagraph with the label's own font,
+## size and word-smart wrapping, less a small safety margin so a measured fit always fits on screen).
+func line_count(text: String, look: String) -> int:
+	var p := TextParagraph.new()
+	p.width = text_width(look) - WRAP_MARGIN
+	p.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	var font: Font = UIStyle.serif_italic() if look == "thought" else UIStyle.serif()
+	var size := UIStyle.px(25 if look == "radio" else 28)
+	var t := Speakers.caption_text(text).to_upper() if look == "sound" else text
+	p.add_string(t, font, size)
+	return p.get_line_count()
+
+
+## D3: the message as pages of MAX_LINES lines or fewer: whole sentences where they fit, else clauses, else
+## words. Joined with single spaces the pages are the message (whitespace normalised).
+func paginate(text: String, look: String) -> Array:
+	var src := " ".join(text.strip_edges().split(" ", false))
+	if src == "" or line_count(src, look) <= MAX_LINES:
+		return [src]
+	var pages: Array = []
+	_pack(_split_after(src, ".!?…"), look, pages, 0)
+	return pages
+
+
+## Greedy packing; a piece that alone is too long is split at the next finer boundary.
+func _pack(pieces: Array, look: String, pages: Array, level: int) -> void:
+	var cur := ""
+	for piece in pieces:
+		var s := String(piece)
+		if line_count(s, look) > MAX_LINES:
+			if cur != "":
+				pages.append(cur)
+				cur = ""
+			if level == 0:
+				_pack(_split_after(s, ",;:—"), look, pages, 1)
+			else:
+				_pack(Array(s.split(" ", false)), look, pages, 2)
+			continue
+		var joined := s if cur == "" else cur + " " + s
+		if line_count(joined, look) <= MAX_LINES:
+			cur = joined
+		else:
+			pages.append(cur)
+			cur = s
+	if cur != "":
+		pages.append(cur)
+
+
+## Splits after any of `marks` followed by a space, keeping the mark with its piece.
+static func _split_after(s: String, marks: String) -> Array:
+	var out: Array = []
+	var start := 0
+	for i in s.length() - 1:
+		if s[i] in marks and s[i + 1] == " ":
+			out.append(s.substr(start, i + 1 - start))
+			start = i + 2
+	out.append(s.substr(start))
+	return out.filter(func(x): return String(x) != "")
+
+
+## D1: how long a line stays before it advances by itself. Longer lines read longer, a slower typewriter
+## reads slower, a new voice and a closing full stop add a beat, and Options > Reading time scales it all.
+func line_read_s(text: String, speaker_changed := false) -> float:
 	var pace := clampf(42.0 / maxf(speed_cps, 1.0), 0.8, 1.6)
-	return clampf(AUTO_BASE_S + AUTO_PER_CHAR_S * text.length(), AUTO_MIN_S, AUTO_MAX_S) * pace
+	var s := clampf(AUTO_BASE_S + AUTO_PER_CHAR_S * text.length(), AUTO_MIN_S, AUTO_MAX_S) * pace
+	if speaker_changed:
+		s += SPEAKER_CHANGE_S
+	if text.strip_edges().ends_with("."):
+		s += FULL_STOP_S
+	return s * reading_mul
 
 
-## R1: the dim "Space ▸" cue under a fully shown radio line (the hint row is kept for the reply gate).
-func _set_cue(on: bool) -> void:
-	if on:
-		var cue := "%s  ▸" % InputSetup.glyph("dialogue_next")
-		if r_hint.text != cue and (r_hint.text == "" or r_hint.modulate.a < 1.0):
-			r_hint.text = cue
-			r_hint.modulate.a = 0.6
-	else:
-		r_hint.text = ""
-		r_hint.modulate.a = 1.0
+## R1: kept for callers that ask how long a plain line reads (no speaker change).
+func auto_advance_s(text: String) -> float:
+	return line_read_s(text)
+
+
+## The hint row under the radio text is only the reply gate's "look at the radio" now (D1 removed the
+## Space cue); clearing it is all that is left.
+func _set_cue(_on: bool) -> void:
+	r_hint.text = ""
+	r_hint.modulate.a = 1.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -455,31 +604,36 @@ func _unhandled_input(event: InputEvent) -> void:
 			_pad_focus()
 			get_viewport().set_input_as_handled()
 		return                                # E, Space, the wheel and W/S are not answers (items 7, 25)
-	if not event.is_action_pressed("dialogue_next"):
-		return                                # E is never consumed here: it belongs to interaction (item 7)
-	if _shown < _full.length():
-		_shown = _full.length()      # first press completes the line
-		_render()
-		_done_t = 0.0
-	elif _done_t >= ADVANCE_DWELL_S and not _advance_sent: # the full line has been on screen long enough to be read
-		_advance_sent = true
-		if line_look == "radio":
-			_set_cue(false)
-		advance_requested.emit()
-	get_viewport().set_input_as_handled()
+	# D1: nothing finishes or advances a line. Every other event passes through untouched (E belongs to
+	# interaction, item 7).
+
+
+## D4: where the photo is drawn on the card: everything inside the keyline.
+func photo_rect() -> Rect2:
+	return Rect2(Vector2(KEYLINE, KEYLINE), CARD_SIZE - Vector2(KEYLINE, KEYLINE) * 2.0)
+
+
+## D4: the part of a `tex` sized image that covers `win` without stretching (centred crop).
+static func cover_src(tex: Vector2, win: Vector2) -> Rect2:
+	var k := maxf(win.x / tex.x, win.y / tex.y)
+	var sz := win / k
+	return Rect2((tex - sz) * 0.5, sz)
 
 
 func _draw_card() -> void:
 	# Stage 3A: the identity text moved to the name row (it was drawn here at 9-10 px and never scaled);
 	# the card keeps the live signal meter; Stage 3C: a speaker with a portrait gets the print in a paper
 	# border, everyone else (the Corrie May, the Lowestoft Star, the Mary Ellen caller) keeps the drawing
+	# Audit D4 (2026-11-16): a portrait fills the card edge to edge (cover-cropped, centred) inside a thin
+	# dark keyline; there is no cream margin or band, and the card is always CARD_SIZE (it never stretches).
 	var w := card.size.x
 	var h := card.size.y
-	card.draw_rect(Rect2(0, 0, w, h), Color(0.86, 0.82, 0.7, 0.92))
 	if _portrait != null:
-		card.draw_texture_rect(_portrait, PHOTO_RECT, false)
-		card.draw_rect(PHOTO_RECT, Color(0.25, 0.2, 0.15, 0.7), false, 1.0)
+		var win := photo_rect()
+		card.draw_rect(Rect2(0, 0, w, h), KEYLINE_COLOR)
+		card.draw_texture_rect_region(_portrait, win, cover_src(_portrait.get_size(), win.size))
 	else:
+		card.draw_rect(Rect2(0, 0, w, h), Color(0.86, 0.82, 0.7, 0.92))
 		card.draw_rect(Rect2(4, 4, w - 8, h - 8), Color(0.25, 0.2, 0.15, 0.6), false, 2.0)
 	var kind: String = "" if _portrait != null else String(_item.get("art", ""))
 	var ink := Color(0.18, 0.14, 0.11)

@@ -1,7 +1,8 @@
 {
- "_doc": "G6a (item 34): the ending panels. tex: the image (res://assets/ending/<id>.png); a missing file shows a stand-in plate labelled with `standin` (art pending, G6b). dwell: seconds before Space can move on; auto: seconds before it moves on by itself (P4's lines add their own reading time). grade: the panel_grade strength (0 = as supplied). The P3 log pages are rendered by blender/ending_pages.py in Callum's hand; the others are supplied images.",
+ "_doc": "G6a (item 34): the ending panels. tex: the image (res://assets/ending/<id>.png); a missing file shows a stand-in plate labelled with `standin` (art pending, G6b). dwell: legacy (audit D1, 2026-11-16: nothing moves a panel on early any more); auto: seconds before it moves on by itself, times Options > Reading time (P4's lines add their own reading time). grade: the panel_grade strength (0 = as supplied). The P3 log pages are rendered by blender/ending_pages.py in Callum's hand; the others are supplied images.",
  "panels": {
   "p1_wheel":            {"standin": "Two men to one wheel", "dwell": 3.0, "auto": 9.0, "grade": 0.75},
+  "p1_alone":            {"standin": "One man at the wheel", "dwell": 3.0, "auto": 9.0, "grade": 0.75},
   "p2_gut":              {"standin": "The Iona Star through the Gut", "dwell": 3.0, "auto": 9.0, "grade": 0.75},
   "p2_ledge":            {"standin": "The Iona Star upright on the sand ledge", "dwell": 3.0, "auto": 9.0, "grade": 0.75},
   "p3_correction_ross":  {"standin": "The log page: the correction", "dwell": 4.0, "auto": 12.0, "grade": 0.35},

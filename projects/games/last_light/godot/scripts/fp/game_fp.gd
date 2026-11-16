@@ -29,6 +29,8 @@ var cine_cam: Camera3D
 var _cine_t := 0.0
 var cine_hold := false                 # G6c: true while main_fp's push-in tween drives the camera
 var title_storm: TitleStorm            # G6d stage D: the title's lightning and held storm (attract only)
+## A5 (DECISIONS Q17): START while the generator is locked (water in the sediment bowl).
+const LOCK_CRANK_LINE := "Turning over, not catching. Not till that bowl's drained."
 const CINE_LANTERN_NDC := 0.38         # G6c: the lantern at 0.69 of the width (the right third)
 const CINE_NEAR := 0.62                # G6c (Daniel: "closer"): the orbit at 0.62 of its old distance, ~98 m
 ## G6d stage E: a longer lens from the same place: the island and tower fill about half the width (0.48-0.92
@@ -168,7 +170,7 @@ func _setup_story(save: Dictionary) -> void:
 	ui.call_requested.connect(func(cid):
 		if director.request_call(cid):
 			ui._refresh_calls())
-	presenter.dialogue.apply_settings(Settings.v["text_speed"], Settings.v["subtitle_size"])
+	presenter.dialogue.apply_settings(Settings.v["text_speed"], Settings.v["subtitle_size"], Settings.v.get("reading_time", 1.0))
 	Settings.changed.connect(_on_settings_changed)     # method (not lambda): auto-disconnects when freed
 	presenter.dialogue.blip.connect(func(kind): audio.ui_blip(kind))
 	presenter.document_closed.connect(_on_doc_closed)
@@ -290,13 +292,7 @@ func _on_doc(id: String) -> void:
 			if not director.play_aside(conv):
 				presenter.show_hint("The GPO line. Dead since the September gale.")
 		"tide_tables":
-			var st2 := director.state
-			if not st2.has_flag("found_grants"):
-				director.play_aside("look_grants_a")
-			elif st2.clue("grants") and director.play_aside("look_grants_b"):
-				pass
-			else:
-				presenter.show_hint("Admiralty Tide Tables, 1953. Father's Grant's behind them, still half full.")
+			doc = "tide_tables"                # audit D6: the 1953 volume opens; the Grant's thought follows it
 		"vapour":
 			var conv2 := "look_vapour_b" if director.state.clue("same_hand") else "look_vapour_a"
 			if not director.play_aside(conv2):
@@ -336,6 +332,14 @@ func _on_doc_closed(doc: String) -> void:
 			return
 		"letter_1957":
 			director.on_player_event("read_letter")
+		"tide_tables":
+			# audit D6: the Grant's thought is the Tables' after-read line (any chapter, as before); queued if
+			# the story is talking (D2), so it is never lost
+			var st2 := director.state
+			if not st2.has_flag("found_grants"):
+				director.play_aside("look_grants_a")
+			elif st2.clue("grants"):
+				director.play_aside("look_grants_b")
 	player.enabled = true
 	refresh_mouse()
 	var aside := director.after_read_conv(doc)      # 3B: a room line the first time it's read this chapter
@@ -385,7 +389,7 @@ func can_save() -> bool:
 
 func save_dict() -> Dictionary:
 	var c: Dictionary = director.chapter_data(director.state.chapter)
-	return {"story": director.state.to_dict(), "sim": sim.to_dict(), "chapter_title": c.get("title", ""),
+	return {"story": director.save_data(), "sim": sim.to_dict(), "chapter_title": c.get("title", ""),
 		"clock": sim.clock_text(),
 		"player": {"pos": [player.global_position.x, player.global_position.y, player.global_position.z], "yaw": player._yaw, "pitch": player._pitch,
 			"torch": player.torch_held, "torch_on": player.torch_light != null and player.torch_light.visible,
@@ -556,7 +560,7 @@ func close_backlog() -> void:
 
 func _on_settings_changed() -> void:
 	if presenter:
-		presenter.dialogue.apply_settings(Settings.v["text_speed"], Settings.v["subtitle_size"])
+		presenter.dialogue.apply_settings(Settings.v["text_speed"], Settings.v["subtitle_size"], Settings.v.get("reading_time", 1.0))
 
 
 func refresh_mouse() -> void:
@@ -747,7 +751,13 @@ func _ui_events(events: Array) -> void:
 			"radio_dead":
 				ui.show_notice("The radio is dead: no power.", 2.5)
 			"gen_crank_fail":
-				if e["why"] == "valve" and story_mode and presenter:
+				if e["why"] == "fouled" and story_mode and presenter:
+					var tf := LOCK_CRANK_LINE           # A5: non-blocking, so the timed footsteps aren't stretched
+					if presenter.show_thought(tf):
+						director.log_thought(tf)
+					else:
+						presenter.queue_thought(tf, 20.0)
+				elif e["why"] == "valve" and story_mode and presenter:
 					var t := "Turns, but she won't catch. No fuel getting through."   # G2b: the fuel valve, learned
 					if presenter.show_thought(t):
 						director.log_thought(t)

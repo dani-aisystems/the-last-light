@@ -211,6 +211,9 @@ func _make_slot(id: String) -> Control:
 ## Hold for at least `dwell`, at most `auto` seconds; a press after the dwell moves on. Paused time
 ## doesn't count.
 func _wait(dwell: float, auto: float) -> void:
+	var st := get_node_or_null("/root/Settings")       # audit D1: slower readers hold every panel longer
+	if st:
+		auto *= clampf(float(st.v.get("reading_time", 1.0)), 0.75, 3.0)
 	_t = 0.0
 	if _press:                          # pressed during the fade-in: before the dwell, so ignored (and counted)
 		_press = false

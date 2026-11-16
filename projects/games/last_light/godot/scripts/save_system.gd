@@ -6,7 +6,10 @@ extends Node
 
 const DIR := "user://saves"               # the player's saves
 const TEST_DIR := "user://saves_test"     # tests, captures, autotests and benches
-const VERSION := 1
+## 2 (audit Stage A, 2026-11-16): the story names its beat ("beat_id") as well as its index. A version-1
+## save is migrated when read (the index is remapped by layout, as before) and, the first time, copied
+## to slot_<slot>_v1_backup.json so a migration fault can never cost the only copy.
+const VERSION := 2
 const SLOTS := ["auto", "auto_prev", "1", "2", "3"]
 
 ## Where saves go in this run. G6d (2026-11-09): the headless suites start human story games that
@@ -22,6 +25,8 @@ func _ready() -> void:
 
 ## True for script runs (-s, the test suites) and capture / autotest / bench runs.
 static func isolated() -> bool:
+	if not OS.is_debug_build():
+		return false                           # audit D9: a release build has no test runs; flags are ignored
 	var a := OS.get_cmdline_args()
 	if a.has("-s") or a.has("--script"):
 		return true
@@ -59,8 +64,26 @@ func read(slot: String) -> Dictionary:
 		return {}
 	var txt := FileAccess.get_file_as_string(path(slot))
 	var d = JSON.parse_string(txt)
-	if typeof(d) != TYPE_DICTIONARY or int(d.get("version", 0)) != VERSION or not d.has("story") or not d.has("sim"):
+	if typeof(d) != TYPE_DICTIONARY or not d.has("story") or not d.has("sim"):
 		return {"corrupt": true}
+	var v := int(d.get("version", 0))
+	if v < 1 or v > VERSION:                   # 0: not ours; above VERSION: a newer build's save
+		return {"corrupt": true}
+	if v < VERSION:
+		var backup := dir.path_join("slot_%s_v%d_backup.json" % [slot, v])
+		if not FileAccess.file_exists(backup):
+			DirAccess.copy_absolute(ProjectSettings.globalize_path(path(slot)), ProjectSettings.globalize_path(backup))
+	return migrate(d)
+
+
+## Brings a parsed save of any earlier version up to VERSION (pure: tests call it on fixtures).
+static func migrate(d: Dictionary) -> Dictionary:
+	var v := int(d.get("version", 1))
+	if v < 2:
+		# v1 -> v2: nothing to convert. Without "beat_id" the director falls back to the layout remap of
+		# the beat index, exactly as a v1 build loaded it.
+		d["migrated_from"] = v
+	d["version"] = VERSION
 	return d
 
 

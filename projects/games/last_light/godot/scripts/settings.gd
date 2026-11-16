@@ -25,6 +25,7 @@ var v := {
 	"head_bob": true,            # Stage 2C: subtle walking head motion (off for comfort)
 	# accessibility
 	"subtitles": true, "subtitle_size": 1.0, "text_speed": 42.0, "reduce_flashing": false,
+	"reading_time": 1.0,         # audit D1: x0.75 to x3 on how long every line (and ending panel) stays up
 	"reduce_motion": false,      # G6c: the title menu without its entrance, tick slide or beam glow
 	"hold_to_crank": true,       # START button: hold (true) or press-to-toggle cranking (false)
 	# G2b (Daniel 2026-11-06): how much the game tells the keeper. 0 Minimal (the world and the logbook),

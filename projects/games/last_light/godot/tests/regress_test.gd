@@ -110,6 +110,7 @@ func _run() -> void:
 	await _r11_brief_g1()
 	await _r12_brief_g2()
 	await _r24_vhf_panel()
+	await _r25_no_skip()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -371,6 +372,141 @@ func _aim_at(id: String) -> void:
 ## R24 audit D5 (2026-11-16): the VHF command panel's default place clears the radar scope at 16:9, 16:10 and
 ## 720p; the title row drags it (clamped on screen, kept in Settings, the room never sees the click) and a
 ## double click puts it back.
+## Audit D1 / D2 (2026-11-16): no input finishes or advances any kind of line; every line leaves by itself
+## after its reading time (scaled by Options > Reading time); E on an examinable during a conversation is
+## queued and said right after it, never dropped.
+func _r25_no_skip() -> void:
+	print("R25 no line can be skipped; asides wait their turn (audit D1, D2)")
+	g.player.leave_focus()
+	await _settle_focus()
+	var was_enabled: bool = g.player.enabled
+	g.player.enabled = false                    # clicks and keys reach only the dialogue layer here
+	var adv := [0]
+	var adv_at := [-1.0]                        # the line's own on-screen clock when it advanced
+	var ca := func():
+		adv[0] += 1
+		adv_at[0] = dlg._auto_t
+	dlg.advance_requested.connect(ca)
+	var long := "A long line, long enough to be typing for a good while yet when the keeper starts pressing every key he can find on the desk."
+	for item in [{"mode": "person", "speaker": "VISITOR", "text": long, "_what": "in-room"},
+			{"mode": "radio", "speaker": "MORAG", "text": long, "_what": "radio"},
+			{"mode": "person", "speaker": "", "text": long, "_what": "thought"}]:
+		var what: String = item["_what"]
+		adv[0] = 0
+		dlg.close()
+		dlg.show_line(item)
+		await _frames(2)
+		_key(KEY_SPACE)
+		for i in 6:                                         # Space held down: key repeats
+			var e := InputEventKey.new()
+			e.keycode = KEY_SPACE
+			e.physical_keycode = KEY_SPACE
+			e.pressed = true
+			e.echo = i > 0
+			Input.parse_input_event(e)
+			await _frames(1)
+		var up := InputEventKey.new()
+		up.keycode = KEY_SPACE
+		up.physical_keycode = KEY_SPACE
+		Input.parse_input_event(up)
+		_key(KEY_ENTER)
+		_key(KEY_TAB)
+		_mouse_btn(MOUSE_BUTTON_LEFT, true)
+		_mouse_btn(MOUSE_BUTTON_LEFT, false)
+		var rt := InputEventJoypadMotion.new()
+		rt.axis = JOY_AXIS_TRIGGER_RIGHT
+		rt.axis_value = 1.0
+		Input.parse_input_event(rt)
+		await _frames(2)
+		rt = rt.duplicate()
+		rt.axis_value = 0.0
+		Input.parse_input_event(rt)
+		await _frames(2)
+		_check(adv[0] == 0 and dlg._shown < dlg._full.length() and dlg.line_look == ("thought" if what == "thought" else ("radio" if what == "radio" else "person")),
+			"%s line: Space, held Space, Enter, Tab, a click and RT neither finish nor advance it (shown %d of %d)" % [what, int(dlg._shown), dlg._full.length()])
+		# it leaves by itself after its reading time, never before (game time, sped up)
+		var need: float = dlg._read_s
+		Engine.time_scale = 8.0
+		var gt := 0.0
+		var f := 0
+		while adv[0] == 0 and f < 6000:
+			await process_frame
+			gt += root.get_process_delta_time()
+			f += 1
+		Engine.time_scale = 1.0
+		var typing: float = float(dlg._full.length()) / dlg.speed_cps
+		_check(adv[0] == 1 and adv_at[0] >= need and adv_at[0] <= need + typing + 4.0,
+			"%s line advances by itself after its reading time (on screen %.1f s; reading %.1f s, typing %.1f s)" % [what, adv_at[0], need, typing])
+	# Options > Reading time lengthens every line; nothing goes below the base
+	var base: float = dlg.line_read_s(long)
+	dlg.reading_mul = 2.0
+	_check(is_equal_approx(dlg.line_read_s(long), base * 2.0), "Reading time x2 doubles a line's time (%.1f -> %.1f s)" % [base, dlg.line_read_s(long)])
+	dlg.apply_settings(dlg.speed_cps, dlg.text_scale, 0.1)
+	_check(is_equal_approx(dlg.reading_mul, dlg.READING_MIN), "Reading time cannot go below x%.2f" % dlg.READING_MIN)
+	dlg.apply_settings(dlg.speed_cps, dlg.text_scale, 1.0)
+	_check(dlg.line_read_s("Aye.", true) > dlg.line_read_s("Aye.", false), "a change of speaker adds a moment")
+	_check(not InputMap.has_action("dialogue_next"), "there is no 'advance the line' action left to bind")
+	dlg.advance_requested.disconnect(ca)
+	dlg.close()
+	g.player.enabled = was_enabled
+	# D2: E on the Tide Tables during a radio conversation is queued, then said once the call ends
+	var dir: StoryDirector = g.director
+	var st: StoryState = dir.state
+	var keep_flags: Dictionary = st.flags.duplicate()
+	var keep_done: Dictionary = st.convs_done.duplicate()
+	st.flags.erase("found_grants")
+	st.convs_done.erase("look_grants_a")
+	dir.start_conversation("ch3_forecast")
+	await _frames(3)
+	_check(dir._talking and dlg.is_active() and dlg.line_look == "radio", "a radio conversation is up (ch3_forecast)")
+	g._on_doc("tide_tables")                  # audit D6: E opens the 1953 volume as a document
+	await _frames(4)
+	_check(g.presenter.is_document_open() and g.presenter._doc_open == "tide_tables", "E on the Tide Tables opens the 1953 volume (%s)" % g.presenter._doc_open)
+	g.presenter.close_document()
+	await _frames(3)
+	_check(not g.presenter.is_document_open() and dir.aside_queued("look_grants_a") and String(dir.runner.conv.get("id", "")) == "ch3_forecast",
+		"closing it during the call queues the Grant's thought (not dropped) without interrupting the call")
+	Engine.time_scale = 8.0
+	var gt2 := 0.0
+	var end_at := -1.0
+	var said_at := -1.0
+	var f2 := 0
+	while said_at < 0.0 and f2 < 9000:
+		await process_frame
+		var d := root.get_process_delta_time()
+		gt2 += d
+		if end_at < 0.0 and (not dir._talking or String(dir.runner.conv.get("id", "")) != "ch3_forecast"):
+			end_at = gt2                      # the call has ended (seen before the director's next tick)
+		dir._process(d)                       # the director is held off in this suite; tick it by hand
+		if dir._talking and String(dir.runner.conv.get("id", "")) == "look_grants_a" and dlg.is_active() \
+				and String(dlg._full).begins_with("Admiralty Tide Tables"):
+			said_at = gt2
+		f2 += 1
+	Engine.time_scale = 1.0
+	_check(said_at >= 0.0 and end_at >= 0.0 and said_at - end_at <= 6.0,
+		"the Tide Tables thought is said %.1f s after the call ends (<= 6 s)" % (said_at - end_at))
+	dlg.close()
+	dir._talking = false
+	dir._aside_queue.clear()
+	st.flags = keep_flags
+	st.convs_done = keep_done
+	# D9: the developer flags are a debug-build feature, and the scripts they start are not exported
+	_check(root.get_node("GameState").dev_flags_allowed() == OS.is_debug_build(), "D9 dev flags follow the build type (debug here: %s)" % OS.is_debug_build())
+	var gs_src := FileAccess.get_file_as_string("res://scripts/game_state.gd")
+	_check(gs_src.contains("if not dev_flags_allowed():"), "D9 GameState drops every -- flag in a release build")
+	var ss_src := FileAccess.get_file_as_string("res://scripts/save_system.gd")
+	_check(ss_src.contains("if not OS.is_debug_build():"), "D9 a release build never treats itself as a test run")
+	var pre := 0
+	for f in ["res://scripts/main_fp.gd", "res://scripts/main.gd"]:
+		var s := FileAccess.get_file_as_string(f)
+		for name in ["capture_fp.gd", "capture.gd", "autotest.gd", "film_fp.gd"]:
+			if s.contains('preload("res://scripts/' + name):
+				pre += 1
+	_check(pre == 0, "D9 no shipped script preloads a capture / autotest script (%d)" % pre)
+	var ep := FileAccess.get_file_as_string("res://export_presets.cfg")
+	_check(ep.contains("scripts/capture_fp.gd") and ep.contains("scripts/autotest.gd"), "D9 the export leaves the capture and autotest scripts out")
+
+
 func _r24_vhf_panel() -> void:
 	print("R24 VHF panel vs the radar scope (audit D5)")
 	var st_node: Node = root.get_node("Settings")
@@ -1226,13 +1362,13 @@ func _r10_narrative_mechanics() -> void:
 	_check(g.presenter.ending_root.visible and g.presenter.is_screen_held(), "the ending card covers the screen and holds dialogue")
 	_check(g.presenter.ending_title.text.begins_with("C O R R E C T I O N"), "the title is set in spaced capitals (%s)" % g.presenter.ending_title.text)
 	t = 0
-	while g.presenter.is_ending_open() and t < 2400:
-		if t > 30 and t % 25 == 0:
-			_key(KEY_SPACE)
+	Engine.time_scale = 8.0                   # audit D1: the card reads on its own clock (no Space); sped up here
+	while g.presenter.is_ending_open() and t < 6000:
 		await process_frame
 		t += 1
+	Engine.time_scale = 1.0
 	_check(not g.presenter.is_ending_open() and g.presenter.ending_box.get_child_count() == lines.size(),
-		"every epilogue line was shown, then the card released (%d frames)" % t)
+		"every epilogue line was shown, then the card released by itself (%d frames)" % t)
 	g.presenter.ending_root.visible = false
 	g.presenter.ending_bg.color.a = 0.0
 	g.presenter.dialogue.visible = true
@@ -1343,17 +1479,10 @@ func _r11_brief_g1() -> void:
 	_check(adv[0] == 0 and dlg._shown < dlg._full.length(), "E does not finish or advance a dialogue line (item 7)")
 	var dsrc := FileAccess.get_file_as_string("res://scripts/ui/dialogue_ui.gd")
 	_check(not dsrc.contains('is_action_pressed("interact")'), "the dialogue layer never reads the interact action, so E always reaches the player")
-	# b) Space: the first press finishes the line; a second press inside the dwell does nothing; after it, advances
+	# b) audit D1: Space neither finishes the typewriter nor advances (the full sweep is R25)
 	_key(KEY_SPACE)
 	await _frames(1)
-	_check(dlg._shown >= dlg._full.length() and adv[0] == 0, "Space finishes the typewriter first")
-	_key(KEY_SPACE)
-	await _frames(1)
-	_check(adv[0] == 0, "a second Space inside %.1f s does not skip the line" % dlg.ADVANCE_DWELL_S)
-	dlg._done_t = dlg.ADVANCE_DWELL_S + 0.1
-	_key(KEY_SPACE)
-	await _frames(1)
-	_check(adv[0] == 1, "Space advances once the full line has been up long enough")
+	_check(dlg._shown < dlg._full.length() and adv[0] == 0, "Space does not finish or advance a line (D1)")
 	dlg.advance_requested.disconnect(ca)
 	dlg.close()
 	# c) replies ignore input in their first moments
@@ -1920,6 +2049,7 @@ func _r19_ending_g6a() -> void:
 		dlg.close()
 	st.flags["told_truth"] = 1
 	st.flags["confessed_to_ross"] = 1
+	st.flags["ross_wheel"] = 1                 # audit E1: P1 shows the two at the wheel only when he took it
 	st.rescues["Iona Star"] = "saved"
 	_check(dir.ending_panels().is_empty(), "no ending panels before the ending card")
 	dir._ending_card("ch6_epilogue")
@@ -1946,27 +2076,28 @@ func _r19_ending_g6a() -> void:
 	await _frames(3)
 	_check(g.ui._sub_items.size() == subs0 and st.history.size() == hist0 + 1 and g._comms_queue.is_empty(),
 		"sim radio chatter is logged but never shown over the ending (%d -> %d subtitles)" % [subs0, g.ui._sub_items.size()])
-	# the dwell: Space at once is ignored; after the dwell it moves on
+	# audit D1: nothing moves the ending on, not even after a panel's dwell; it moves on by itself
 	await _wait_until(func(): return seq._slot.modulate.a >= 0.99, 300)
-	_key(KEY_SPACE)
-	await _frames(3)
-	_check(seq.current_id == "p1_wheel" and seq.early_presses == 1, "Space before the panel's dwell is ignored (%d)" % seq.early_presses)
 	await create_timer(float(seq.panel_info("p1_wheel")["dwell"]) + 0.2).timeout
 	_key(KEY_SPACE)
+	_mouse_btn(MOUSE_BUTTON_LEFT, true)
+	_mouse_btn(MOUSE_BUTTON_LEFT, false)
 	await _frames(4)
-	_check(seq.current_id == "p2_gut", "Space after the dwell moves on to the Iona Star panel (%s)" % seq.current_id)
+	_check(seq.current_id == "p1_wheel", "Space and a click after the dwell do not move the ending on (D1)")
+	Engine.time_scale = 8.0                  # the rest plays on its own clock; sped up for the test
+	await _wait_until(func(): return seq.current_id == "p2_gut", 3000)
+	_check(seq.current_id == "p2_gut", "the panel moves on to the Iona Star by itself (%s)" % seq.current_id)
 	# P3 is the real log page (blender/ending_pages.py), graded
 	await _wait_until(func(): return seq.current_id == "p3_correction_ross", 1800)
 	_check(seq.has_image("p3_correction_ross") and seq._slot is TextureRect and seq._slot.material is ShaderMaterial,
 		"P3 is the rendered log page through the panel grade")
-	# the rest plays by itself (Space every 0.5 s after the dwells), then the closing card, then the release
+	# the rest plays by itself, then the closing card, then the release (no input at all)
 	var t := 0
-	while pr.is_ending_open() and t < 7200:
-		if t % 30 == 0:
-			_key(KEY_SPACE)
+	while pr.is_ending_open() and t < 12000:
 		await process_frame
 		t += 1
-	_check(not pr.is_ending_open(), "the sequence and the closing card finish and release the story (%d frames)" % t)
+	Engine.time_scale = 1.0
+	_check(not pr.is_ending_open(), "the sequence and the closing card finish and release the story by themselves (%d frames)" % t)
 	_check(seq.shown == want, "every panel was shown, in order (%s)" % [seq.shown])
 	_check(seq.lines_shown == dir.ending_body.size() and dir.ending_body.size() > 0, "the ending's lines read beside P4 (%d)" % seq.lines_shown)
 	var card_n := 0
@@ -2028,7 +2159,19 @@ func _r20_portraits() -> void:
 	await _frames(2)
 	_check(dlg.radio_panel.visible and dlg._portrait != null and dlg._portrait.resource_path.ends_with("mary_ellen_neutral.png"),
 		"a Mary Ellen radio line shows the boat print on the card")
-	_check(dlg.card.size.x >= dlg.PHOTO_RECT.end.x and dlg.card.size.y >= dlg.PHOTO_RECT.end.y, "the print fits inside the card (%s)" % dlg.card.size)
+	# audit D4: the photo fills the card inside its keyline, cover-cropped (never stretched), at every text size
+	var pr: Rect2 = dlg.photo_rect()
+	_check(dlg.card.size.is_equal_approx(dlg.CARD_SIZE) and pr.position == Vector2(dlg.KEYLINE, dlg.KEYLINE)
+		and pr.end.is_equal_approx(dlg.CARD_SIZE - Vector2(dlg.KEYLINE, dlg.KEYLINE)),
+		"the photo fills the card inside a %.0f px keyline (card %s, photo %s)" % [dlg.KEYLINE, dlg.card.size, pr])
+	var src: Rect2 = dlg.cover_src(dlg._portrait.get_size(), pr.size)
+	_check(absf(src.size.aspect() - pr.size.aspect()) < 0.01 and src.size.x <= dlg._portrait.get_size().x + 0.01
+		and src.size.y <= dlg._portrait.get_size().y + 0.01, "the photo is cover-cropped, not stretched (source %s)" % src)
+	for sc in [0.8, 1.5]:
+		dlg.apply_settings(dlg.speed_cps, sc)
+		await _frames(3)
+		_check(dlg.card.size.is_equal_approx(dlg.CARD_SIZE), "x%.1f text: the card stays %s (got %s)" % [sc, dlg.CARD_SIZE, dlg.card.size])
+	dlg.apply_settings(dlg.speed_cps, 1.0)
 	dlg.close()
 	dlg.show_line({"mode": "radio", "speaker": "MORAG", "expr": "worried", "text": "North Point, Stornoway."})
 	await _frames(2)

@@ -85,18 +85,20 @@
     {"id": "approach", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0, "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "tension"], ["talk", "ch4_watch"]], "duty": []},
     {"id": "identify", "needs_power": true, "when": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "do": [["talk", "ch4_bow"], ["clue", "sy214"]], "duty": ["dark_boat"]},
     {"id": "hail", "when": "has_flag(\"docked_Visitor\")", "do": [["wait", 2], ["talk", "ch4_docked"]], "duty": ["dark_boat_in"]},
-    {"id": "steps", "when": "true", "do": [["wait", 4], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
+    {"id": "steps", "when": "true", "do": [["fault", "gen_out"], ["talk", "ch4_gen_out"], ["wait", 3], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
     {"id": "door", "when": "has_flag(\"at_door\")", "do": [["talk", "ch4_door"], ["autosave"]], "duty": ["door"]}
    ]},
   {"n": 5, "title": "The Truth", "subtitle": "Monday 15 November · 03:04",
    "start": {"fuel": 46, "clock": 1624, "clock_rate": 0.08, "storm": 0.8},
    "duties": [
      {"id": "drawer", "caption": "The desk", "line": "Search the desk drawers.", "done": "has_flag(\"read_letter\")", "nudge": "The desk. Every drawer.", "hint": "The bottom-left drawer of the desk."},
-     {"id": "power_ch5", "caption": "Power", "line": "Get the light back.", "done": "sim.main_breaker and sim.gen == 2", "sub": [{"id": "main", "line": "Reset the MAIN breaker", "done": "sim.main_breaker", "nudge": "MAIN first.", "hint": "MAIN breaker on the west wall: push the lever up ({interact})."}, {"id": "engine", "line": "Engine running again (let her cool if she cut out hot)", "done": "sim.gen == 2", "nudge": "The engine. Let her cool if she's hot.", "hint": "If the generator has cut out hot, let it cool, then hold {interact} on START."}]}
+     {"id": "bowl", "caption": "The engine", "line": "Drain the sediment bowl.", "done": "not sim.gen_locked", "nudge": "The bowl under the fuel filter.", "hint": "The glass bowl under the fuel filter. Open the drain cock until it runs clear."},
+     {"id": "power_ch5", "caption": "Power", "line": "Get the light back.", "done": "sim.main_breaker and sim.gen == 2", "sub": [{"id": "main", "line": "Reset the MAIN breaker", "done": "sim.main_breaker", "nudge": "MAIN first.", "hint": "MAIN breaker on the west wall: push the lever up ({interact})."}, {"id": "engine", "line": "Engine running again (let her cool if she cut out hot)", "done": "sim.gen == 2", "nudge": "The engine. Let her cool if she's hot.", "hint": "Start the engine. The cells won't carry the lamp and the radio for long. (Hold {interact} on START; let her cool first if she cut out hot.)"}]}
    ],
    "beats": [
     {"id": "story", "do": [["talk", "ch5_ross"]], "duty": []},
-    {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"]], "duty": ["drawer"]},
+    {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"], ["fault", "bowl_open"]], "duty": ["drawer"]},
+    {"id": "bowl", "when": "not sim.gen_locked", "do": [["wait", 1], ["talk", "ch5_bowl"]], "duty": ["bowl"]},
     {"id": "morag", "when": "true", "do": [["wait", 4], ["talk", "ch5_morag"]], "duty": []},
     {"id": "mayday", "when": "true", "do": [["wait", 6], ["sfx", "static_burst"], ["talk", "ch5_mayday"], ["fault", "overheat"], ["fault", "trip"], ["talk", "ch5_dark"]]},
     {"id": "power", "when": "sim.main_breaker and sim.gen == 2", "do": [["autosave"]], "duty": ["power_ch5"]}

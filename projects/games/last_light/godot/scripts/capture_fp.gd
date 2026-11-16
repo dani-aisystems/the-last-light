@@ -132,6 +132,7 @@ func view(name_: String) -> Array:
 		"cu_logbook": return eye(-12, 1.75, -13, 2.5, 1.5, 0.79) + [42.0, false, 0.02]   # open station log (IMG_3119)
 		"cu_radio": return eye(-4, 1.75, -6, 2.75, 1.38, 0.95) + [50.0, false, 0.02]     # transceiver + mic (IMG_3118)
 		"cu_gen": return eye(-140, 0.7, -140, 3.0, 1.6, 0.8) + [62.0, false, 0.02]       # generator cage (IMG_3123)
+		"cu_bowl": return eye(-140, 0.7, -157, 1.56, 0.95, 0.52) + [40.0, false, 0.02]      # audit A5: fuel filter and sediment bowl
 		# --- Stage 1 iteration 5: desk micro-detail (mug, pencils, logbook, chart, books, chair) ---
 		"cu_desk_l": return eye(-20, 1.85, -11, 2.5, 1.25, 0.82) + [45.0, false, 0.02]   # mug, pencil pot, logbook
 		"cu_desk_r": return eye(28, 2.1, 16, 2.71, 1.4, 0.85) + [45.0, false, 0.02]      # books, binoculars, forecast
@@ -352,8 +353,15 @@ func _force(g, st: String) -> void:
 			_restore_state["visitor"] = g.station.door_open
 			g.station.door_open = true
 			g._spawn_visitor()
-		"say_radio", "say_thought", "say_inroom", "say_door", "say_choices", "say_sound", "say_phone", "say_grants":
+		"say_radio", "say_thought", "say_inroom", "say_door", "say_choices", "say_sound", "say_phone", "say_grants", "say_gale":
 			_say(g, st)
+		"say_gale2":                             # audit D3: the gale warning's second page
+			_say(g, "say_gale")
+			var dlg2: Control = g.presenter.dialogue
+			if dlg2._pages.size() > 1:
+				dlg2._set_page(1)
+				dlg2._shown = dlg2._full.length()
+				dlg2._render()
 		"timeskip":
 			_hold_director(g)
 			g.presenter.card_title.text = "18:30"
@@ -520,6 +528,8 @@ const SAMPLE_LINES := {
 	"say_sound": {"type": "line", "mode": "person", "speaker": "", "name": "", "look": "sound", "text": "Three slow knocks."},
 	"say_phone": {"mode": "thought", "speaker": "", "text": "The GPO line to Leverburgh exchange. Dead since the September gale took the cable on the shore."},
 	"say_grants": {"mode": "thought", "speaker": "", "text": "Behind them, Father's half-bottle of Grant's. Still half. I've never drunk it, and I've never poured it out."},
+	# audit D3: the longest radio message (ch3_forecast), paged to three lines
+	"say_gale": {"mode": "radio", "speaker": "MORAG", "text": "All stations, all stations, this is Stornoway Coastguard. Gale warning. Hebrides, Minches: south-westerly severe gale nine, increasing storm ten, imminent. Visibility very poor. Stornoway out."},
 }
 const SAMPLE_HISTORY := [
 	{"speaker": "", "name": "", "text": "Sixteen-twenty. The sun's gone behind Pabbay and taken the colour with it.", "look": "thought", "chapter": 1, "clock": "16:20"},

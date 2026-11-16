@@ -1,7 +1,7 @@
 class_name CreditsRoll
 extends Control
 ## G6a (item 34): rolling credits over warm black. data/credits.txt (BBCode) scrolls up from below the
-## screen at a reading pace; Space held runs it faster; Esc (or pad B) jumps to the end. At the end the
+## screen at a reading pace (audit D1: Space no longer speeds it up); Esc (or pad B) jumps to the end. At the end the
 ## "Return to the title" button fades in (after an ending) or "Back" (from the menu's Credits). From the
 ## menu the wheel and a drag also move it. After an ending the credits music plays on the Music bus
 ## (CREDITS_MUSIC: the synthesised menu pad until Daniel picks a track, item 33).
@@ -11,7 +11,6 @@ signal finished
 const CREDITS_PATH := "res://data/credits.txt"
 const CREDITS_MUSIC := "res://assets/audio/music_menu.wav"
 const SPEED_PX := 46.0                  # at 1080 p; scaled with the window height
-const FAST := 5.0                       # Space held
 const MUSIC_DB := -9.0
 const WARM_BLACK := Color(0.035, 0.026, 0.02)
 
@@ -104,7 +103,7 @@ func _process(delta: float) -> void:
 	if _leaving:
 		return
 	if not at_end and not frozen:
-		var k := (size.y / 1080.0) * (FAST if Input.is_key_pressed(KEY_SPACE) or Input.is_action_pressed("dialogue_next") else 1.0)
+		var k := size.y / 1080.0                 # audit D1: no Space speed-up after an ending (Esc still leaves)
 		if not _dragging:
 			scroll += SPEED_PX * k * delta
 		if scroll >= end_scroll():

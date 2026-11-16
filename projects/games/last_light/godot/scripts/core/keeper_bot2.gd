@@ -53,8 +53,11 @@ func act(k: KeeperSim, dt: float) -> Array:
 			ev += k.set_breaker("main", true)
 			_breaker_seen = -1.0
 	# ---- generator ----
+	if k.gen_locked and k.bowl_open and not k.bowl_drained:
+		ev += k.drain_bowl()                 # A5: the step the story asks for once the letter is read
 	var start_at := 25.0 if novice else 55.0
-	if k.gen == KeeperSim.Gen.OFF and k.battery < start_at and k.fuel > 0.0 and not (k.gen_overheated and k.gen_temp > k.cfg.temp_restart):
+	if k.gen == KeeperSim.Gen.OFF and k.battery < start_at and k.fuel > 0.0 and not (k.gen_overheated and k.gen_temp > k.cfg.temp_restart) \
+			and not k.gen_locked:                 # A5: a keeper doesn't keep cranking fouled fuel
 		if not k.fuel_valve:
 			ev += k.set_fuel_valve(true)
 		ev += k.set_start(true)

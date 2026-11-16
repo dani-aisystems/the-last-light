@@ -1602,6 +1602,17 @@ def build_generator(B):
     box(B.bm("M_LL_Iron"), lc_ - lb3_.col[2] * 0.0005, (0.16, 0.045, 0.004), lb3_)           # tag plate on the bars
     label(B, "FUEL VALVE", lc_ + lb3_.col[2] * 0.002, lb3_, 0.14)                # (the label floated 5.8 cm in front)
     B.empty("IA_fuel_valve", vc + vb3.col[2] * 0.06, (0.09, 0.1, 0.07), vb3)
+    # Audit A5 (DECISIONS Q17): the fuel filter on the line below the valve, its glass sediment bowl hanging
+    # on the keeper's side of the line (+o here: the cage is behind the line) and a brass drain cock under it. Draining the bowl ends the chapter 4-5 generator lock.
+    fh = fl + u * 0.6                                                    # filter head, clamped on the line
+    box(B.bm("M_LL_Iron", "SM_FuelFilter"), fh + o * 0.03, (0.05, 0.1, 0.045), bs, bevel=0.004)
+    bowl_c = fh + o * 0.06 - u * 0.075
+    cyl(B.bm("M_LL_Iron", "SM_FuelFilter"), bowl_c + u * 0.05, 0.034, 0.034, 0.012, 20)          # bowl collar
+    cyl(B.bm("M_LL_Glass", "SM_FuelBowlGlass"), bowl_c, 0.028, 0.026, 0.085, 20)                  # the glass bowl
+    cyl(B.bm("M_LL_Whisky", "SM_FuelFilter"), bowl_c - u * 0.008, 0.024, 0.023, 0.065, 16)         # diesel in it (amber)
+    cyl(B.bm("M_LL_Brass", "SM_FuelFilter"), bowl_c - u * 0.05, 0.008, 0.008, 0.016, 10)           # drain cock body
+    box(B.bm("M_LL_Brass", "SM_FuelFilter"), bowl_c - u * 0.062 + o * 0.012, (0.006, 0.03, 0.006), bs)   # its tee handle
+    B.empty("IA_sediment_bowl", bowl_c + o * 0.01, (0.06, 0.08, 0.06), bs)
     B.empty("IA_gen_panel", cb - o * 0.1, (0.28, 0.28, 0.1), bs)
     # fuel day-tank on wall brackets above the cage, with a sight glass; the fuel line rises to it
     tb = b + 9.0
@@ -2257,11 +2268,13 @@ def build_props(B):
     tr0, to0, tu0 = wall_frame(sb_)
     tpm = B.bm("M_LL_Props", "SM_Props")
     tuv = B.uv(tpm)
-    for k in range(3):
+    # Audit canon 7.5 (2026-11-16): a fourth volume at the end of the row, the faded 1953 one the dialogue
+    # names ("Admiralty Tide Tables, nineteen fifty-three"), in front of the Grant's.
+    for k in range(4):
         bc_ = dp(sb_, -0.6 + k * 0.035, 1.24, sc - 0.06)
         box(B.bm("M_LL_ClothBlue", "SM_Props"), bc_, (0.03, 0.2, 0.25), sbs, bevel=0.0025)
         quad_uv(tpm, tuv, bc_ - to0 * 0.1006, basis(tr0, tu0, -to0), 0.0285, 0.246,
-                region_rect("tide_spines", k / 3, 0.0, (k + 1) / 3, 1.0))                # the spine
+                region_rect("tide_spines", k / 4, 0.0, (k + 1) / 4, 1.0))                # the spine
         box(B.bm("M_LL_Paper", "SM_Props"), bc_ + tu0 * 0.1236 + to0 * 0.004, (0.024, 0.19, 0.003), sbs, bevel=0.0)   # page block at the head
         if k == 0:
             quad_uv(tpm, tuv, bc_ - tr0 * 0.0156, basis(-to0, tu0, -tr0), 0.198, 0.248, region_rect("tide_cover"))
@@ -2641,7 +2654,7 @@ def build_anchors(B):
     B.empty("ANCHOR_calendar", dp(-18.0, 0, 1.55, R_IN - 0.02), (0.15, 0.2, 0.01), wb(-18.0))
     B.empty("ANCHOR_diagram", dp(-67.0, 0, 2.0, R_IN - 0.02), (0.3, 0.2, 0.01), wb(-67.0))
     B.empty("ANCHOR_telephone", dp(R["desk"], 0.965, 0.86, 2.912), (0.12, 0.1, 0.08), wb(R["desk"]))     # 3B: on the phone
-    B.empty("ANCHOR_tide_tables", dp(R["storage"], -0.57, 1.2, back_dist(1.4) - 0.23), (0.09, 0.17, 0.16), wb(R["storage"]))
+    B.empty("ANCHOR_tide_tables", dp(R["storage"], -0.55, 1.2, back_dist(1.4) - 0.23), (0.09, 0.17, 0.16), wb(R["storage"]))
     B.empty("ANCHOR_oilskins", dp(R["stair"] - 19.0, 0, 1.7, R_IN - 0.05), (0.2, 0.4, 0.1), wb(R["stair"] - 19.0))   # left of the door
     B.empty("ANCHOR_gear_046", dp(R["optic_drive"], 0, 1.2, 2.78 - 0.3), (0.06, 0.06, 0.06), wb(R["optic_drive"]), kind="SPHERE")
 
@@ -2706,7 +2719,7 @@ def build_story_props(B):
     st = R["storage"]
     stb = wb(st)
     sc = back_dist(1.4) - 0.25
-    B.empty("IA_tide_tables", dp(st, -0.57, 1.2, sc + 0.02), (0.09, 0.17, 0.16), stb)
+    B.empty("IA_tide_tables", dp(st, -0.55, 1.2, sc + 0.02), (0.09, 0.17, 0.16), stb)   # audit 7.5: over all four volumes
     B.empty("IA_vapour", dp(st, 0.52, 0.72, sc), (0.1, 0.1, 0.14), stb)
 
 

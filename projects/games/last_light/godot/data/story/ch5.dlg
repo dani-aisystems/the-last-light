@@ -97,6 +97,10 @@ ROSS: He used to sing that song as well, you know. When he thought nobody could 
 [if has_flag("door_open")] ~ Ross watches me fold it away. He doesn't ask.
 [if has_flag("door_shut")] ~ I fold it away. Through the door he can't know what I've done, and he doesn't ask.
 
+== ch5_bowl mode=thought
+# Audit A5 (DECISIONS Q17): the sediment bowl drained; the generator lock is cleared.
+~ Clear diesel now. She'll take.
+
 == ch5_morag mode=radio
 ! static
 MORAG(worried): North Point, Stornoway. Sixteen's been blocked solid for half an hour. Callum, talk to me. Are you safe? Over.
@@ -124,6 +128,6 @@ ROSS@room: That's Elspeth. That's my girl.
 
 == ch5_dark mode=thought
 ! static fade
-~ The engine coughs and dies. It ran too hot for too long.
+[if sim.gen == 2] ~ The engine coughs and dies. It ran too hot for too long.
 ~ A second later the main breaker goes with a crack like a pistol, and the room is black.
 ~ And overhead the light goes out.

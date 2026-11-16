@@ -708,16 +708,23 @@ def knit(w, h):
     return Image.blend(img, noise, 0.05)
 
 
+TIDE_YEARS = ("1969", "1970", "1971", "1953")
+
+
 def tide_spines(w, h):
-    """R5: three volumes of the Admiralty Tide Tables (1969, 1970, 1971), dark blue buckram, gilt titles, the
-    oldest the most rubbed. Generic lettering, no crest (no publisher's trade dress)."""
+    """R5: volumes of the Admiralty Tide Tables (1969, 1970, 1971), dark blue buckram, gilt titles, the
+    oldest the most rubbed. Generic lettering, no crest (no publisher's trade dress).
+    Audit canon 7.5 (2026-11-16): a fourth, the 1953 volume the dialogue names, at the end of the row:
+    sun-faded cloth, the gilt nearly gone (nobody has opened it in eighteen years)."""
     img = Image.new("RGB", (w, h), (24, 30, 52))
-    n = 3
+    n = len(TIDE_YEARS)
     sw = w // n
-    for k, year in enumerate(("1969", "1970", "1971")):
+    for k, year in enumerate(TIDE_YEARS):
         rnd = random.Random(70 + k)
-        wear = (2 - k) / 2.0                               # 1969 most handled
+        wear = 1.6 if year == "1953" else (2 - k) / 2.0    # 1969 most handled of the three; 1953 faded and dusty
         col = (26 + int(10 * wear), 36 + int(8 * wear), 66 - int(6 * wear))
+        if year == "1953":
+            col = (58, 62, 74)                             # the blue gone grey on the sunny end of the shelf
         sp = Image.new("RGB", (h, sw), col)
         sd = ImageDraw.Draw(sp, "RGBA")
         gilt = (190, 160, 92, 235 - int(70 * wear))
@@ -740,6 +747,73 @@ def tide_spines(w, h):
             sd.ellipse([x - 2, y - 1, x + 2, y + 1], fill=(10, 10, 14, rnd.randint(10, 35)))
         img.paste(sp.rotate(-90, expand=True), (k * sw, 0))
     return img
+
+
+def tide_rows_1953():
+    """Audit D6: Stornoway, November 1953, high and low waters (GMT, feet). The FIGURES ARE INVENTED for
+    the game (not taken from any real table): a plain semi-diurnal sequence, each tide about 50 minutes
+    later than the day before, springs about the 7th and 21st, a 15 ft spring range and 8 ft neaps."""
+    days = {d: [] for d in range(1, 31)}
+    t = 4 * 60 + 12.0                                    # minutes from 1 Nov 00:00: first high water 04:12
+    high = True
+    while t < 30 * 1440:
+        day = int(t // 1440) + 1
+        spring = 0.5 + 0.5 * math.cos((t / 1440.0 + 1 - 7) * 2 * math.pi / 14.0)   # 1 at springs, 0 at neaps
+        ht = 11.4 + 4.0 * spring if high else 2.6 - 1.9 * spring
+        m = int(round(t)) % 1440
+        days[day].append(("%02d%02d" % (m // 60, m % 60), "%.1f" % ht))
+        t += 372.5                                       # high to low: 6 h 12.5 min (12 h 25 min a cycle)
+        high = not high
+    return [(d, days[d]) for d in range(1, 31)]
+
+
+def tide_page_1953():
+    """Audit D6 (2026-11-16): the 1953 Admiralty Tide Tables open at Stornoway, November. Printed, foxed,
+    nobody's pencil on it."""
+    W, H = 1100, 1500
+    img = paper(W, H, 53, (226, 218, 194), 2)
+    d = ImageDraw.Draw(img, "RGBA")
+    ink = (40, 38, 44)
+    d.text((W / 2, 70), "STORNOWAY", font=PRINTB(44), fill=ink, anchor="mm")
+    d.text((W / 2, 122), "LAT. 58° 12′ N.   LONG. 6° 23′ W.", font=PRINT(22), fill=ink, anchor="mm")
+    d.text((W / 2, 160), "TIMES AND HEIGHTS OF HIGH AND LOW WATERS", font=PRINT(22), fill=ink, anchor="mm")
+    d.text((W / 2, 196), "TIME ZONE  G.M.T.        HEIGHTS IN FEET", font=PRINT(19), fill=ink, anchor="mm")
+    d.text((W / 2, 250), "NOVEMBER  1953", font=PRINTB(30), fill=ink, anchor="mm")
+    d.line([60, 280, W - 60, 280], fill=ink, width=2)
+    days = ("SU", "MO", "TU", "WE", "TH", "FR", "SA")    # 1 Nov 1953 was a Sunday
+    rows = tide_rows_1953()
+    col_x = (70, 590)
+    y0 = 300
+    lh = 74
+    for i, (day, tides) in enumerate(rows):
+        c = 0 if i < 15 else 1
+        y = y0 + (i % 15) * lh
+        x = col_x[c]
+        d.text((x, y + 6), "%2d" % day, font=PRINTB(26), fill=ink)
+        d.text((x + 42, y + 12), days[(day - 1) % 7], font=PRINT(16), fill=ink)
+        for k, (tm, ht) in enumerate(tides):
+            yy = y + (k // 2) * 34
+            xx = x + 90 + (k % 2) * 210
+            d.text((xx, yy), tm, font=PRINT(24), fill=ink)
+            d.text((xx + 80, yy), ht, font=PRINT(24), fill=ink)
+        d.line([x, y + lh - 6, x + 440, y + lh - 6], fill=(40, 38, 44, 60), width=1)
+    d.line([W / 2, 290, W / 2, y0 + 15 * lh], fill=(40, 38, 44, 120), width=1)
+    d.text((W / 2, H - 34), "— 112 —", font=PRINT(20), fill=ink, anchor="mm")
+    rnd = random.Random(1953)
+    for _ in range(90):                                  # foxing
+        x, y, r = rnd.uniform(0, W), rnd.uniform(0, H), rnd.uniform(1.5, 5)
+        d.ellipse([x - r, y - r, x + r, y + r], fill=(150, 110, 60, rnd.randint(25, 70)))
+    for y in range(H - 40, H):                           # the damp tide-mark the cover shows, through to the page
+        d.line([0, y, W, y], fill=(120, 110, 90, 22))
+    return img
+
+
+def tide_text_1953():
+    lines = ["ADMIRALTY TIDE TABLES 1953. STORNOWAY. Times and heights of high and low waters, November 1953 (G.M.T., feet)."]
+    for day, tides in tide_rows_1953():
+        if day in (14, 15):
+            lines.append("%d Nov: " % day + ",  ".join("%s  %s ft" % t for t in tides))
+    return "\n".join(lines)
 
 
 def tide_cover(w, h):
@@ -952,6 +1026,8 @@ def extra_docs():
         "MAIN ENGINES (engine room): DISCONNECTED.\nInitialled C.M. 4.6.62")
     sw, sh = PA_SIZE("sked")
     add("radio_card", "Card in the radio's bezel", sked_card(sw * 3, sh * 3, 3), "\n".join(t for t, _s in SKED))
+    # audit D6: the 1953 volume, open at Stornoway, November (invented figures; see tide_rows_1953)
+    add("tide_tables", "Admiralty Tide Tables, 1953", tide_page_1953(), tide_text_1953())
 
 
 def PA_SIZE(name):
@@ -973,11 +1049,23 @@ def main():
         props_atlas()
         print("DOCS_RESULT props_only")
         return
-    if "--extra" in sys.argv:            # audit D7: only the notice documents, merged into the existing docs.json
-        DOCS.update(json.loads((OUT / "docs.json").read_text()))
+    extra = [a for a in sys.argv if a == "--extra" or a.startswith("--extra=")]
+    if extra:                            # audit D7: only the notice documents, merged into the existing docs.json
+        only = extra[0].split("=", 1)[1].split(",") if "=" in extra[0] else None   # --extra=tide_tables: just that one
+        old = json.loads((OUT / "docs.json").read_text())
+        DOCS.update(old)
+        new = {}
+        global add
+        keep_add = add
+        def add(doc_id, title, img, text):   # noqa: E306 (collect, then write only the ids asked for)
+            new[doc_id] = (title, img, text)
         extra_docs()
+        add = keep_add
+        for doc_id, (title, img, text) in new.items():
+            if only is None or doc_id in only:
+                add(doc_id, title, img, text)
         (OUT / "docs.json").write_text(json.dumps(DOCS, indent=1))
-        print("DOCS_RESULT extra", json.dumps(["orders", "diagram", "radio_card"]))
+        print("DOCS_RESULT extra", json.dumps([k for k in new if only is None or k in only]))
         return
     C = CALLUM
     rows71 = [

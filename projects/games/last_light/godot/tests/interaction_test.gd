@@ -14,7 +14,7 @@ extends SceneTree
 const F := 20.0
 const WORKSTATIONS := {
 	"radio": ["radio"],
-	"generator": ["fuel_valve", "start", "gen_panel"],
+	"generator": ["fuel_valve", "start", "gen_panel", "sediment_bowl"],     # A5: the bowl that ends the lock
 	"power": ["brk_main", "brk_lights", "brk_radar", "charge", "battery", "power_panel"],
 	"console": ["console", "mode", "intensity", "handwheel"],
 	"door": ["door"],
@@ -290,6 +290,12 @@ func _operate(ws: String, dev: String) -> void:
 			_use(dev, "press")
 			state_ok = g.sim.start_held and g.sim.gen == KeeperSim.Gen.CRANKING
 			state_note = "start_held=%s gen=%s" % [g.sim.start_held, g.sim.gen]
+		"drain":                                  # A5: locked + the story's step open -> drained, unlocked
+			g._route(g.sim.trigger_fault("gen_out"))
+			g._route(g.sim.trigger_fault("bowl_open"))
+			var ev_d := _use(dev)
+			state_ok = ev_d.any(func(e): return e["type"] == "bowl_drained") and not g.sim.gen_locked
+			state_note = "drained=%s locked=%s" % [g.sim.bowl_drained, g.sim.gen_locked]
 		"info":
 			var ev := _use(dev)
 			state_ok = ev.any(func(e): return e["type"] == "inspect")

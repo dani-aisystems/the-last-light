@@ -16,7 +16,7 @@ var autosaves: Array = []               # snapshots taken at every autosave of t
 ## Set but deliberately not read by a condition (STAGE3_NARRATIVE_MASTER §16.1 "engine / history only").
 const HISTORY_ONLY := ["letter", "log_1953", "ending", "archive_flip", "kept_letter_unused"]
 ## 3B beat layout (§7): ch1 merged to 11 beats; ch6 gains jam, free, standby and ending.
-const BEATS := {1: 11, 2: 8, 3: 7, 4: 5, 5: 5, 6: 7}
+const BEATS := {1: 11, 2: 8, 3: 7, 4: 5, 5: 6, 6: 7}   # audit A5: ch5 gains "bowl"
 ## Ending scenarios: reply preferences (conversation -> text fragment) and when the station goes idle.
 const SCENARIOS := [
 	{"name": "E2 truth + aground", "prefs": {}, "idle_at": "iona", "expect": "heard_together"},
@@ -72,6 +72,7 @@ func _run() -> void:
 		_opening_duties()
 		_orders_teach_valve()
 		_duty_escalation()
+	_generator_lock()
 	_ending_sequence()
 	_station_log_canon()
 	await _save_roundtrip()
@@ -205,6 +206,88 @@ func _dfs(db: DialogueDB, id: String, st: StoryState, picks: Array, depth: int) 
 
 ## G4a: reading the KEEPER'S ORDERS board (line 5, "FUEL VALVE OPEN BEFORE START") makes the fuel valve
 ## known, like a failed crank or the generator gauges (the G2b plan's third route).
+## Audit A5 (DECISIONS Q17): the generator lock in the sim, on its own.
+func _generator_lock() -> void:
+	var cfg := KeeperConfig.new()
+	var k := KeeperSim.new()
+	k.setup(cfg, LayoutData.load_file(), {"ships": [], "faults": []}, 5)
+	k.story_mode = true
+	k.battery = 80.0
+	k.fuel_valve = true
+	k.gen = KeeperSim.Gen.RUNNING
+	var ev := k.trigger_fault("gen_out")
+	var types: Array = ev.map(func(e): return e["type"])
+	var stop_ok := "gen_locked" in types and k.gen == KeeperSim.Gen.STOPPING
+	for i in int((cfg.stop_delay + 0.5) * 30):
+		k.step(1.0 / 30.0)
+	stop_ok = stop_ok and k.gen == KeeperSim.Gen.OFF
+	if not stop_ok:
+		fails.append("A5: a running engine runs down when the lock begins (gen %d, events %s)" % [k.gen, types])
+	# START held for 6 s: turns over, dies with "fouled", never runs
+	var fouled := false
+	k.set_start(true)
+	for i in 180:
+		for e in k.step(1.0 / 30.0):
+			if e["type"] == "gen_crank_fail" and e.get("why", "") == "fouled":
+				fouled = true
+		if k.gen == KeeperSim.Gen.RUNNING:
+			break
+		if k.gen == KeeperSim.Gen.OFF and k.start_held:
+			k.set_start(false)
+			k.set_start(true)
+	k.set_start(false)
+	if k.gen == KeeperSim.Gen.RUNNING or not fouled:
+		fails.append("A5: START while locked must turn over and die (gen %d, fouled %s)" % [k.gen, fouled])
+	# 900 s at lamp HIGH with everything on: never below the floor
+	k.battery = 31.0
+	k.set_intensity(2)
+	k.main_breaker = true
+	var low := 100.0
+	for i in 900 * 10:
+		k.step(0.1)
+		low = minf(low, k.battery)
+	if low < KeeperSim.LOCK_FLOOR - 0.001:
+		fails.append("A5: the cells fell to %.2f %% while locked (floor %.0f)" % [low, KeeperSim.LOCK_FLOOR])
+	# save / load keeps the lock and the floor
+	var k2 := KeeperSim.new()
+	k2.setup(cfg, LayoutData.load_file(), {"ships": [], "faults": []}, 5)
+	k2.from_dict(JSON.parse_string(JSON.stringify(k.to_dict())))
+	if not (k2.gen_locked and is_equal_approx(k2.batt_floor, KeeperSim.LOCK_FLOOR) and not k2.bowl_open):
+		fails.append("A5: a save keeps the lock and its floor (locked %s, floor %.0f)" % [k2.gen_locked, k2.batt_floor])
+	# the drain is refused until the story opens it, then clears the lock; the floor holds until she runs
+	var ST = load("res://scripts/fp/station.gd")
+	var refused: Node3D = ST.new()
+	refused.sim = k2
+	var av: Dictionary = refused.availability("sediment_bowl")
+	if av["ok"] or String(av["reason"]) != ST.BOWL_WAIT_LINE:
+		fails.append("A5: the bowl must wait for the story (%s)" % av)
+	k2.trigger_fault("bowl_open")
+	av = refused.availability("sediment_bowl")
+	var dev: Array = refused.use("sediment_bowl", "press")
+	var dtypes: Array = dev.map(func(e): return e["type"])
+	if not av["ok"] or not ("bowl_drained" in dtypes) or k2.gen_locked or k2.batt_floor <= 0.0:
+		fails.append("A5: draining the bowl clears the lock, the floor stays till she runs (%s, %s, locked %s, floor %.0f)" % [av, dtypes, k2.gen_locked, k2.batt_floor])
+	if refused.availability("sediment_bowl")["reason"] != ST.BOWL_CLEAR_LINE:
+		fails.append("A5: a drained bowl says there is nothing to drain")
+	k2.fuel_valve = true
+	k2.set_start(true)
+	for i in 90:
+		k2.step(1.0 / 30.0)
+	k2.set_start(false)
+	k2.step(1.0 / 30.0)
+	if k2.gen != KeeperSim.Gen.RUNNING or k2.batt_floor > 0.0:
+		fails.append("A5: after the drain the engine catches and the floor lifts (gen %d, floor %.0f)" % [k2.gen, k2.batt_floor])
+	# the scripted overheat only touches a running engine
+	var k3 := KeeperSim.new()
+	k3.setup(cfg, LayoutData.load_file(), {"ships": [], "faults": []}, 5)
+	var t0 := k3.gen_temp
+	k3.trigger_fault("overheat")
+	if k3.gen_temp != t0:
+		fails.append("A5: the overheat fault heated an engine that was not running")
+	refused.free()
+	print("A5 generator lock: run-down, fouled crank, floor %.1f %% over 900 s, save, drain, restart checked" % low)
+
+
 func _orders_teach_valve() -> void:
 	var o := _duty_rig(600.0)
 	var dir: StoryDirector = o[1]
@@ -511,7 +594,10 @@ func _duty_rig(line_s: float) -> Array:
 ## The generator part of KeeperBot2 only: start it when the battery is low, charge, stop when full.
 func _keep_power(k: KeeperSim) -> Array:
 	var ev: Array = []
-	if k.gen == KeeperSim.Gen.OFF and k.battery < 55.0 and k.fuel > 0.0 and not (k.gen_overheated and k.gen_temp > k.cfg.temp_restart):
+	if k.gen_locked and k.bowl_open and not k.bowl_drained:
+		ev += k.drain_bowl()                  # A5: as KeeperBot2
+	if k.gen == KeeperSim.Gen.OFF and k.battery < 55.0 and k.fuel > 0.0 and not (k.gen_overheated and k.gen_temp > k.cfg.temp_restart) \
+			and not k.gen_locked:
 		if not k.fuel_valve:
 			ev += k.set_fuel_valve(true)
 		ev += k.set_start(true)
@@ -631,8 +717,17 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 	var dt := 1.0 / 30.0
 	var chapter_t := {}
 	var guard := 0.0
+	var lock := {"seen_at": "", "ran_locked": 0, "cleared_at": "", "min_batt": 100.0}   # A5
 	while not ended[0] and guard < 6000.0:
 		guard += dt
+		if k.gen_locked:
+			if lock["seen_at"] == "":
+				lock["seen_at"] = "ch%d:%s" % [dir.state.chapter, dir.beat_id()]
+			if k.gen == KeeperSim.Gen.RUNNING:
+				lock["ran_locked"] += 1
+			lock["min_batt"] = minf(lock["min_batt"], k.battery)
+		elif lock["seen_at"] != "" and lock["cleared_at"] == "":
+			lock["cleared_at"] = "ch%d:%s" % [dir.state.chapter, dir.beat_id()]
 		# the bot "player": satisfies interaction objectives after a short delay
 		for f in ["moved", "looked", "used_battery", "read_log_1971", "read_log_1953", "read_letter", "at_door"]:
 			if dir.state.has_objective() and guard > 2.0:
@@ -660,6 +755,18 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 		if int(guard / dt) % 30 == 0:
 			await process_frame
 	var label: String = sc.get("name", "policy %d" % policy)
+	# A5 (DECISIONS Q17): the generator lock engages at the stair, never lets the engine run, never lets the
+	# cells below the floor, and is cleared by the sediment bowl in chapter 5 before Morag's call
+	if not String(lock["seen_at"]).begins_with("ch4:steps"):
+		fails.append("campaign %s: the generator lock began at '%s', expected ch4:steps" % [label, lock["seen_at"]])
+	if int(lock["ran_locked"]) > 0:
+		fails.append("campaign %s: the engine ran for %d steps while locked" % [label, lock["ran_locked"]])
+	if float(lock["min_batt"]) < KeeperSim.LOCK_FLOOR - 0.01 and lock["seen_at"] != "":
+		fails.append("campaign %s: the cells fell to %.1f %% while locked (floor %.0f)" % [label, lock["min_batt"], KeeperSim.LOCK_FLOOR])
+	if not (String(lock["cleared_at"]) in ["ch5:drawer", "ch5:bowl"]):      # drained as the drawer beat hands over
+		fails.append("campaign %s: the lock was cleared at '%s', expected ch5 after the letter" % [label, lock["cleared_at"]])
+	print("  LOCK %s from %s to %s, ran while locked %d, lowest cells %.1f %%" % [label, lock["seen_at"], lock["cleared_at"],
+		lock["ran_locked"], lock["min_batt"]])
 	if not ended[0]:
 		fails.append("campaign %s stuck in chapter %d beat %d (objective: %s)" % [label, dir.state.chapter, dir.state.beat, dir.state.objective])
 	else:
@@ -671,6 +778,8 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 		if dir.ending_lines.size() < 3 or String(ended[1].get("title", "")) == "":
 			fails.append("campaign %s: ending card '%s' has no title or too few lines %s" % [label, eid, dir.ending_lines])
 		_check_ending_panels(dir, label)
+		if sc.get("door_shut", false) and (dir.ending_panels().is_empty() or dir.ending_panels()[0] != "p1_alone"):
+			fails.append("campaign %s: Ross never came in, but P1 is %s (audit E1: p1_alone)" % [label, dir.ending_panels()])
 		if sc.has("expect") and eid != sc["expect"]:
 			fails.append("campaign %s reached '%s', expected '%s'" % [label, eid, sc["expect"]])
 		if eid == "nothing_to_report" and dir.state.has_flag("reunion"):
@@ -697,7 +806,7 @@ func _campaign(policy: int, sc: Dictionary = {}) -> void:
 ## epilogue line exactly once: the ending's own lines beside P4, then the two closing lines on the card.
 func _check_ending_panels(dir: StoryDirector, label: String) -> void:
 	var st: StoryState = dir.state
-	var want := ["p1_wheel", "p2_gut" if st.saved("Iona Star") else "p2_ledge",
+	var want := ["p1_wheel" if st.has_flag("ross_wheel") else "p1_alone", "p2_gut" if st.saved("Iona Star") else "p2_ledge",
 		("p3_correction_ross" if st.has_flag("confessed_to_ross") else "p3_correction") if st.has_flag("told_truth") else "p3_exhibited",
 		{"correction": "p4_correction", "heard_together": "p4_heard_together",
 		"nothing_to_report": "p4_nothing_pier" if st.has_flag("reunion") else "p4_nothing_tide",
@@ -727,12 +836,16 @@ func _ending_sequence() -> void:
 	if not dir.ending_panels().is_empty():
 		fails.append("G6a: ending panels before the ending card: %s" % [dir.ending_panels()])
 	var cases := [
-		[{"told_truth": 1, "confessed_to_ross": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction_ross", "p4_correction"]],
-		[{"told_truth": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction", "p4_correction"]],
-		[{"told_truth": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_correction", "p4_heard_together"]],
-		[{"kept_lie": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_tide"]],
-		[{"kept_lie": 1, "reunion": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_pier"]],
-		[{"kept_lie": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_exhibited", "p4_light_exhibited"]],
+		[{"told_truth": 1, "confessed_to_ross": 1, "ross_wheel": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction_ross", "p4_correction"]],
+		[{"told_truth": 1, "ross_wheel": 1}, "saved", ["p1_wheel", "p2_gut", "p3_correction", "p4_correction"]],
+		[{"told_truth": 1, "ross_wheel": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_correction", "p4_heard_together"]],
+		[{"kept_lie": 1, "ross_wheel": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_tide"]],
+		[{"kept_lie": 1, "reunion": 1, "ross_wheel": 1}, "saved", ["p1_wheel", "p2_gut", "p3_exhibited", "p4_nothing_pier"]],
+		[{"kept_lie": 1, "ross_wheel": 1}, "lost", ["p1_wheel", "p2_ledge", "p3_exhibited", "p4_light_exhibited"]],
+		# audit E1: Ross never on the wheel (door kept shut, or "stay where you are"): Callum alone on P1
+		[{"told_truth": 1}, "saved", ["p1_alone", "p2_gut", "p3_correction", "p4_correction"]],
+		[{"kept_lie": 1}, "lost", ["p1_alone", "p2_ledge", "p3_exhibited", "p4_light_exhibited"]],
+		[{"told_truth": 1, "ross_wheel": 0}, "lost", ["p1_alone", "p2_ledge", "p3_correction", "p4_heard_together"]],
 	]
 	for c in cases:
 		st.flags = c[0].duplicate()

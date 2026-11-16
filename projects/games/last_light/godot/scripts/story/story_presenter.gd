@@ -728,14 +728,11 @@ func _zoom_at(factor: float, at: Vector2) -> void:
 ## GUI control that swallowed mouse buttons before _unhandled_input, so right click never closed it, R8).
 func _input(event: InputEvent) -> void:
 	if _ending_open:
-		# G6a: Space (dialogue_next: Space, pad RT) or a click moves the ending on, never E (item 7)
-		var press: bool = event.is_action_pressed("dialogue_next") or (event is InputEventKey and event.pressed and not event.echo \
-			and event.keycode == KEY_SPACE) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if press:
-			if ending_seq.playing:
-				ending_seq.press()
-			elif Engine.get_process_frames() - _end_guard > 20 and _end_total - _end_wait >= _end_dwell:
-				_end_skip = true
+		# Audit D1 / 21.8 (2026-11-16): the ending is never moved on or skipped. Its panels, lines and card
+		# advance by themselves (scaled by Options > Reading time); keys and clicks are swallowed so nothing
+		# under it reacts. Pause still works (it is handled before this layer).
+		if (event is InputEventKey or event is InputEventMouseButton or event is InputEventJoypadButton) and event.is_pressed() \
+				and not event.is_action_pressed("pause"):
 			get_viewport().set_input_as_handled()
 		return
 	if not doc_root.visible:

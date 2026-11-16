@@ -53,6 +53,8 @@ var DEVICES := {
 	"fuel_valve": {"kind": "toggle", "on": "Close the fuel valve", "off": "Open the fuel valve",
 		"get": func(k): return k.fuel_valve, "set": func(k, v): return k.set_fuel_valve(v)},
 	"start": {"kind": "hold", "prompt": "Hold to crank the generator", "prompt_toggle": "Crank the generator"},
+	# A5 (DECISIONS Q17): the glass sediment bowl under the fuel filter; draining it clears the generator lock
+	"sediment_bowl": {"kind": "drain", "prompt": "Drain the sediment bowl"},
 	"charge": {"kind": "toggle", "on": "Switch charging off", "off": "Switch charging on",
 		"get": func(k): return k.charge_on, "set": func(k, v): return k.set_charge(v)},
 	"brk_main": {"kind": "toggle", "on": "Switch the MAIN breaker off", "off": "Reset the MAIN breaker",
@@ -85,7 +87,7 @@ var DEVICES := {
 	"door": {"kind": "door", "prompt": "The stair door"},
 	# Stage 3B examinations (STAGE3_NARRATIVE_MASTER §11.2): thoughts and documents, story mode only
 	"phone": {"kind": "doc", "prompt": "Try the telephone"},
-	"tide_tables": {"kind": "doc", "prompt": "Look at the Admiralty Tide Tables"},
+	"tide_tables": {"kind": "doc", "prompt": "Read the Admiralty Tide Tables"},
 	"vapour": {"kind": "doc", "prompt": "Look at the old vapour burner"},
 	"photo53": {"kind": "doc", "prompt": "Pick up the photograph"},
 	"photo53desk": {"kind": "doc", "prompt": "Look at the photograph he left"},
@@ -101,6 +103,8 @@ var DEVICES := {
 ## pressing it does anything follow the chapter and the door state.
 var docs_enabled := true
 var door_usable := true
+const BOWL_CLEAR_LINE := "Clean diesel in the bowl. Nothing to drain."
+const BOWL_WAIT_LINE := "Not now. The bowl can wait; this can't."
 ## The storage-shelf torch (cabin pass): PROP_torch* meshes and its IA body, hidden once the keeper takes it.
 var torch_taken := false
 var items_taken := {}                    # G3a: "compass" / "binoculars" -> true once in the keeper's pocket
@@ -660,6 +664,11 @@ func availability(id: String) -> Dictionary:
 					return {"ok": false, "reason": "The day-tank is empty."}
 				# G2b (Daniel 2026-11-06): a shut fuel valve no longer refuses START. The engine turns over,
 				# coughs and dies (keeper_sim gen_crank_fail), and Callum says why: the keeper learns by trying.
+		"drain":                          # A5: only once the story has room for it (after the letter)
+			if not sim.gen_locked or sim.bowl_drained:
+				return {"ok": false, "reason": BOWL_CLEAR_LINE}
+			if not sim.bowl_open:
+				return {"ok": false, "reason": BOWL_WAIT_LINE}
 		"doc":
 			if not docs_enabled:
 				return {"ok": false, "reason": ""}
@@ -731,6 +740,9 @@ func use(id: String, action: String) -> Array:
 		"info":
 			if action == "press":
 				ev = [{"type": "inspect", "device": id}]
+		"drain":
+			if action == "press":
+				ev = sim.drain_bowl()
 		"hold":
 			if not Settings.v["hold_to_crank"]:
 				# toggle mode: press once to crank until the engine catches (or press again to stop)

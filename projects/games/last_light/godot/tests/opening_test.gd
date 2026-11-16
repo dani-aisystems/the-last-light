@@ -11,7 +11,7 @@ extends SceneTree
 ##   O3  CHARGE switched off again (the hot-engine notice asks for it) and the engine overheating: no stall
 ##   O4  CHARGE before START, valve last: no stall
 ##   O5  save at the light beat, load it into a fresh game: the beat resumes and reaches radio_check
-##   O6  radio lines still wait for Space (they never auto-advance) and show the cue; thoughts clear
+##   O6  audit D1 (2026-11-16): radio lines also advance by themselves; a real Space key does nothing
 ##   godot --headless --path godot -s res://tests/opening_test.gd
 
 var fails: Array[String] = []
@@ -141,16 +141,13 @@ func _o1_usual_order() -> void:
 	await _o6_radio_waits()
 
 
-## O6: the radio check is a radio conversation; its lines need Space / RT and show the cue.
+## O6 (audit D1): the radio check's lines leave by themselves after their reading time; a real Space key
+## press does nothing to them, and no "Space" cue is shown.
 func _o6_radio_waits() -> void:
 	var d: Control = g.presenter.dialogue
 	_check(await _until(func(): return d.is_active() and d.line_look == "radio"), "the radio check's first line shows")
 	var txt := String(d._full)
-	await _secs(20.0)
-	_check(d.is_active() and String(d._full) == txt, "a radio line does not advance by itself (20 s)")
-	_check(d.r_hint.text.contains("Space") and d.r_hint.modulate.a > 0.3, "the radio line shows the Space cue ('%s')" % d.r_hint.text)
-	_check(not d.sub_box.visible, "no thought subtitle is left on screen under the radio panel")
-	# Space through the real input path advances it (keyboard event -> dialogue_next -> advance_requested)
+	await _secs(0.3)
 	var e := InputEventKey.new()
 	e.keycode = KEY_SPACE
 	e.physical_keycode = KEY_SPACE
@@ -159,8 +156,12 @@ func _o6_radio_waits() -> void:
 	var u := e.duplicate()
 	u.pressed = false
 	Input.parse_input_event(u)
-	_check(await _until(func(): return String(d._full) != txt or not d.is_active() or not d._choices.is_empty(), 5.0),
-		"Space (a real key event) moves the radio conversation on")
+	await _secs(0.5)
+	_check(String(d._full) == txt and d._shown < d._full.length(), "Space (a real key event) neither finishes nor advances the radio line")
+	_check(not d.r_hint.text.contains("Space"), "no Space cue under the radio line ('%s')" % d.r_hint.text)
+	_check(not d.sub_box.visible, "no thought subtitle is left on screen under the radio panel")
+	_check(await _until(func(): return String(d._full) != txt or not d.is_active() or not d._choices.is_empty(), 20.0),
+		"the radio line moves on by itself within its reading time")
 
 
 func _o2_all_during_dusk() -> void:

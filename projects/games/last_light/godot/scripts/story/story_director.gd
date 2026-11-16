@@ -60,6 +60,13 @@ var runner: DialogueRunner
 var chapters: Array = []
 var after_read: Dictionary = {}        # doc id -> [[first chapter, last chapter, conv], ...] (3B, E7)
 var station_log: Array = []            # G2b: tonight's canon log rows {id, date, time, wind, weather, text}
+## Save v2 (audit Stage A): saves name their beat by id. chapters.json "beat_aliases" maps a renamed or
+## merged beat's old id to its new one ("<chapter>:<old id>" -> "<new id>"); "backfill" lists flags a story
+## change added that older saves never set: {"chapter", "from_beat": id, "set": {flag: value}}.
+var beat_aliases: Dictionary = {}
+var backfill: Array = []
+var _aside_queue: Array = []           # D2: {id, once, chapter} asked for while the story was busy
+const ASIDE_QUEUE_MAX := 3
 var bot := false                   # auto-advance dialogue + auto-choose (tests/captures)
 var bot_choice := 0
 var bot_pick_fn: Callable              # tests: (conversation id, choices) -> index; overrides bot_choice
@@ -111,6 +118,8 @@ func setup(k: KeeperSim, headless_bot := false) -> void:
 	chapters = data["chapters"]
 	after_read = data.get("after_read", {})
 	station_log = data.get("station_log", {}).get("1971-11-14", [])
+	beat_aliases = data.get("beat_aliases", {})
+	backfill = data.get("backfill", [])
 
 
 func chapter_data(n: int) -> Dictionary:
@@ -560,6 +569,11 @@ func _process(delta: float) -> void:
 	if _talking:
 		_dialogue_tick(delta)
 		return
+	if not _aside_queue.is_empty() and _hold == 0:
+		var q: Dictionary = _aside_queue.pop_front()        # D2: what the keeper looked at during a talk
+		if q["chapter"] == state.chapter and not (q["once"] and state.done(q["id"])):
+			start_conversation(q["id"])
+			return
 	if _radio_wait != "":
 		if sim.radio_on():
 			var id := _radio_wait
@@ -787,7 +801,9 @@ func ending_panels() -> Array:
 		"light_exhibited": "p4_light_exhibited"}.get(eid, "")
 	if p4 == "":
 		return []
-	return ["p1_wheel", "p2_gut" if state.saved("Iona Star") else "p2_ledge", p3, p4]
+	# audit E1 (2026-11-16): "two men to one wheel" only if Ross really took it; otherwise Callum alone
+	var p1 := "p1_wheel" if state.has_flag("ross_wheel") else "p1_alone"
+	return [p1, "p2_gut" if state.saved("Iona Star") else "p2_ledge", p3, p4]
 
 
 func _route_sim(events: Array) -> void:
@@ -816,6 +832,10 @@ func on_sim_events(events: Array) -> void:
 				state.flags["gen_started"] = 1
 			"gen_crank_fail":                       # G2b: a failed crank teaches the fuel valve
 				state.flags["crank_failed"] = 1
+				if e.get("why", "") == "fouled":
+					state.flags["crank_fouled"] = 1     # A5: tried START while the bowl was full of water
+			"bowl_drained":                         # A5: the sediment bowl drained: the lock's step is done
+				state.flags["bowl_drained"] = 1
 			"refused":                              # G2b: a refused control is a discovery too
 				state.flags["refused_" + String(e.get("device", ""))] = 1
 			"charge_switch":
@@ -959,13 +979,28 @@ func is_talking() -> bool:
 
 ## A short conversation outside the beat list: an after-read room line, the bolt, the phone (3B, E7).
 ## It plays only when the story is quiet, and the beat queue waits for it like for an optional call.
+## Audit D2 (2026-11-16): an aside asked for while a conversation or a transition holds the story used to
+## be dropped (E on the Tide Tables during a radio line did nothing). It is now queued and plays as soon
+## as the story is free; true means "will be said". A queued aside is dropped if the chapter changes.
 func play_aside(conv_id: String, once := true) -> bool:
-	if _talking or _hold != 0 or finished or not db.convs.has(conv_id):
+	if finished or not db.convs.has(conv_id):
 		return false
 	if once and state.done(conv_id):
 		return false
+	if _talking or _hold != 0:
+		for q in _aside_queue:
+			if q["id"] == conv_id:
+				return true
+		if _aside_queue.size() >= ASIDE_QUEUE_MAX:
+			return false
+		_aside_queue.append({"id": conv_id, "once": once, "chapter": state.chapter})
+		return true
 	start_conversation(conv_id)
 	return true
+
+
+func aside_queued(conv_id: String) -> bool:
+	return _aside_queue.any(func(q): return q["id"] == conv_id)
 
 
 ## Manual saves only between beats and outside transitions; an autosave may also be taken by the
@@ -1093,8 +1128,46 @@ func _finish_campaign() -> void:
 
 
 func save_data() -> Dictionary:
-	return state.to_dict()
+	var d := state.to_dict()
+	d["beat_id"] = beat_id()                 # save v2: the beat by name, so a layout change can't misplace it
+	return d
 
 
 func load_data(d: Dictionary) -> void:
-	state.from_dict(d)
+	state.from_dict(d)                       # the index, remapped by layout (v1 saves and the fallback)
+	var id := String(d.get("beat_id", ""))
+	if id != "":
+		var at := resolve_beat(state.chapter, id)
+		if at >= 0:
+			state.beat = at
+		else:
+			push_warning("save: beat '%s' of chapter %d is gone and has no alias; kept beat %d" % [id, state.chapter, state.beat])
+	_apply_backfill()
+
+
+## Save v2: the index of beat `id` in chapter `ch` today, following beat_aliases; -1 if it is gone.
+func resolve_beat(ch: int, id: String) -> int:
+	var beats: Array = chapter_data(ch).get("beats", [])
+	var seen := {}
+	while id != "" and not seen.has(id):
+		seen[id] = true
+		var i := _beat_index(beats, id)
+		if i >= 0:
+			return i
+		id = String(beat_aliases.get("%d:%s" % [ch, id], ""))
+	return -1
+
+
+## Save v2: flags a later story version sets on the way to a beat, given to saves already past that beat.
+func _apply_backfill() -> void:
+	for b in backfill:
+		if int(b.get("chapter", 0)) > state.chapter:
+			continue
+		if int(b.get("chapter", 0)) == state.chapter:
+			var at := resolve_beat(state.chapter, String(b.get("from_beat", "")))
+			if at < 0 or state.beat < at:
+				continue
+		var sets: Dictionary = b.get("set", {})
+		for f in sets:
+			if not state.flags.has(f):
+				state.flags[f] = sets[f]

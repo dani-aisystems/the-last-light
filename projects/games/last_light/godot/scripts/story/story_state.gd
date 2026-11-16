@@ -34,9 +34,12 @@ var resume: Array = []
 ## Beat layout of chapters.json. Saves are by beat INDEX, so older layouts are remapped on load.
 ## 2 = Stage 3B (ch1 15 -> 11 beats, ch6 3 -> 7 beats).
 ## 3 = brief 2026-11-06 item 8 (ch1: the dark arrival; engine and charge come before the console).
-const LAYOUT := 3
+## 4 = audit A5 (2026-11-16): ch5 gains "bowl" after "drawer" (story, drawer, bowl, morag, mayday, power).
+##     v2 saves are placed by beat id; this table is for v1 saves (tests/fixtures/saves_v1 prove it).
+const LAYOUT := 4
 const REMAP := {          # chapter -> {from layout: old index -> index in the next layout}
 	1: {1: [0, 1, 1, 1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10], 2: [0, 1, 1, 2, 4]},
+	5: {3: [0, 1, 3, 4, 5]},
 	6: {1: [0, 4, 5]},
 }
 

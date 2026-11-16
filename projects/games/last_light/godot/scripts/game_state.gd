@@ -16,11 +16,20 @@ func prof_add(name_: String, usec: int) -> void:
 
 func _ready() -> void:
 	InputSetup.ensure()
+	if not dev_flags_allowed():
+		return                                # audit D9: a release build ignores every -- flag
 	for a in OS.get_cmdline_user_args():
 		var kv := a.trim_prefix("--").split("=", true, 1)
 		user_args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	if user_args.has("seed"):
 		seed_override = int(user_args["seed"])
+
+
+## Audit D9 (2026-11-16): the developer flags (--capture, --autotest, --bot, --bench, --load, --seed, ...)
+## work only in the editor and debug exports. A release export (template_release) is not a debug build,
+## so a player's command line can't start the test bot, jump to a save slot or turn on captures.
+static func dev_flags_allowed() -> bool:
+	return OS.is_debug_build()
 
 
 func reset_session() -> void:

@@ -23,7 +23,6 @@ const BINDINGS := {          # keyboard (physical keycodes)
 	"duty": [KEY_J],           # G2b: show the current duty (hold: the latest hint)
 	"compass": [KEY_G],        # G3a: take out / put away the hand compass
 	"binoculars": [KEY_B],     # G3a: raise / lower the binoculars
-	"dialogue_next": [KEY_SPACE],   # brief item 7: finish / advance a dialogue line (E is interaction only)
 	"back": [],               # keyboard "back" is Esc / right click (handled with pause / mouse)
 	"turn_prev": [],          # keyboard: right click / wheel
 	"turn_next": [],
@@ -43,7 +42,6 @@ const PAD_FP := {
 	"pause": ["button", JOY_BUTTON_START],
 	"history": ["button", JOY_BUTTON_BACK],            # Stage 3A: View / Share opens the dialogue history
 	"duty": ["button", JOY_BUTTON_RIGHT_STICK],        # G2b: R3 shows the current duty
-	"dialogue_next": ["axis", JOY_AXIS_TRIGGER_RIGHT, 1.0],   # item 7: RT advances lines (A stays interaction)
 	"move_left": ["axis", JOY_AXIS_LEFT_X, -1.0],
 	"move_right": ["axis", JOY_AXIS_LEFT_X, 1.0],
 	"move_forward": ["axis", JOY_AXIS_LEFT_Y, -1.0],
@@ -166,8 +164,6 @@ static func glyph(what: String) -> String:
 				return "Share" if ps else "View"
 			"duty":
 				return "R3"
-			"dialogue_next":
-				return "R2" if ps else "RT"
 			"wheel", "handwheel":
 				return "Left stick"
 			"move":
@@ -200,8 +196,6 @@ static func glyph(what: String) -> String:
 			return "H"
 		"duty":
 			return "J"
-		"dialogue_next":
-			return "Space"
 		"compass":
 			return "G"
 		"binoculars":

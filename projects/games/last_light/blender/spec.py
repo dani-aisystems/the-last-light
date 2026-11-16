@@ -128,7 +128,7 @@ SPEC = {
             "note_fold": [1850, 1712, 2040, 1900],   # the stores note folded in the oilskin pocket
             "tin_band": [1850, 1910, 2040, 2040],    # shortbread tin tartan band (repeats 3x round)
             # R5 (2026-11-15, Daniel's playtest prop list): the free block under the swatches (1824-2048 x 200-800)
-            "tide_spines": [1824, 200, 1992, 500],   # three Admiralty Tide Tables spines, 56 px each (1969-71)
+            "tide_spines": [1824, 200, 2048, 500],   # four Admiralty Tide Tables spines, 56 px each (1969-71, + 1953: audit 7.5)
             "bulb_carton": [1824, 506, 2048, 660],   # printed face of the spare-lamp carton (0.16 x 0.11 m)
             "tide_cover": [1824, 664, 1934, 800],    # the outer book's front board (0.2 x 0.25 m)
             "compass_card": [1938, 664, 2048, 774],  # the hand compass's card: cream, black and red printing

@@ -38,6 +38,16 @@ var start_held := false
 var _crank_t := 0.0
 var _stop_t := 0.0
 var _temp_warned := false
+## Audit A5 (2026-11-16, DECISIONS Q17): the generator lock of chapters 4 and 5. Water in the sediment bowl:
+## the engine runs down and will not catch (it turns over and dies) until the bowl is drained. While it is
+## locked the cells cannot fall below batt_floor, so the lamp, radio and radar keep going and the night can't
+## soft-lock; the floor holds until the engine has run once after the lock is cleared.
+var gen_locked := false
+var batt_floor := 0.0
+var _floor_until_run := false
+var bowl_drained := false
+var bowl_open := false                   # the story has made room for the drain step (after the letter)
+const LOCK_FLOOR := 30.0
 
 # ---- light ----
 var mode := Mode.AUTO
@@ -365,12 +375,45 @@ func trigger_fault(kind: String, opts: Array = []) -> Array:
 				return _story_jam()
 			faults.append({"t": t, "type": "jam", "done": false})
 		"overheat":
-			gen_temp = maxf(gen_temp, cfg.temp_trip - 4.0)
+			if gen == Gen.RUNNING:                   # A5: only a running engine can be driven hot
+				gen_temp = maxf(gen_temp, cfg.temp_trip - 4.0)
 		"trip":
 			if main_breaker:
 				main_breaker = false
 				return [{"type": "breaker_trip", "cause": "story"}]
+		"gen_out":                                   # A5: fouled fuel; the engine hunts and runs down
+			gen_locked = true
+			bowl_drained = false
+			batt_floor = LOCK_FLOOR
+			_floor_until_run = false
+			var ev: Array = [{"type": "gen_locked"}]
+			if gen == Gen.RUNNING:
+				gen = Gen.STOPPING
+				_stop_t = 0.0
+				ev.append({"type": "gen_stopping", "why": "fouled"})
+			elif gen == Gen.CRANKING:
+				gen = Gen.OFF
+				ev.append({"type": "gen_crank_fail", "why": "fouled"})
+			return ev
+		"bowl_open":                                 # A5: the drain step is now the keeper's to do
+			bowl_open = true
+			return [{"type": "bowl_open"}]
+		"gen_restore":                               # A5: the bowl is clear; she'll take again
+			gen_locked = false
+			_floor_until_run = batt_floor > 0.0
+			return [{"type": "gen_unlocked"}]
 	return []
+
+
+## A5: the keeper drains the sediment bowl (the device on the fuel line). Clears the lock.
+func drain_bowl() -> Array:
+	if bowl_drained:
+		return []
+	bowl_drained = true
+	var ev: Array = [{"type": "bowl_drained"}]
+	if gen_locked:
+		ev += trigger_fault("gen_restore")
+	return ev
 
 
 ## The story jam binds at once on the tooth: the bearing repeater stops at 046 whatever the mode.
@@ -394,7 +437,9 @@ func to_dict() -> Dictionary:
 		"jammed": jammed, "faults": faults, "ships": sh, "next_id": _next_id, "saved": saved, "lost": lost,
 		"dark_seconds": dark_seconds, "score": score, "story_mode": story_mode, "storm_override": storm_override,
 		"clock_min": clock_min, "clock_rate": clock_rate, "seed": seed_used,
-		"story_jam": story_jam, "jam_back": _jam_back, "assist": assist, "jam_reengage": jam_reengage}
+		"story_jam": story_jam, "jam_back": _jam_back, "assist": assist, "jam_reengage": jam_reengage,
+		"gen_locked": gen_locked, "batt_floor": batt_floor, "floor_until_run": _floor_until_run, "bowl_drained": bowl_drained,
+		"bowl_open": bowl_open}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -417,6 +462,11 @@ func from_dict(d: Dictionary) -> void:
 	_jam_back = float(d.get("jam_back", 0.0))
 	assist = bool(d.get("assist", false))
 	jam_reengage = int(d.get("jam_reengage", Mode.AUTO))
+	gen_locked = bool(d.get("gen_locked", false))          # A5 (older saves: unlocked, no floor)
+	batt_floor = float(d.get("batt_floor", 0.0))
+	_floor_until_run = bool(d.get("floor_until_run", false))
+	bowl_drained = bool(d.get("bowl_drained", false))
+	bowl_open = bool(d.get("bowl_open", false))
 	ships.clear()
 	for sd in d.get("ships", []):
 		ships.append(FleetShip.from_dict(sd))
@@ -467,7 +517,11 @@ func _generator_step(dt: float, ev: Array) -> void:
 	match gen:
 		Gen.CRANKING:
 			_crank_t += dt
-			if fuel_valve and fuel > 0.0 and _crank_t >= cfg.crank_time:
+			if gen_locked:                           # A5: turns over on fouled fuel, never catches
+				if _crank_t >= cfg.crank_fail_time:
+					gen = Gen.OFF
+					ev.append({"type": "gen_crank_fail", "why": "fouled"})
+			elif fuel_valve and fuel > 0.0 and _crank_t >= cfg.crank_time:
 				gen = Gen.RUNNING
 				gen_overheated = false
 				ev.append({"type": "gen_start"})
@@ -521,7 +575,14 @@ func _power_step(dt: float, ev: Array) -> void:
 	charge_flow = cfg.charge_rate if gen == Gen.RUNNING and charge_on else 0.0
 	_charge_t = _charge_t + dt if charge_flow > 0.0 else 0.0
 	var was_powered := powered()
+	var before := battery
 	battery = clampf(battery + (charge_flow - demand) * dt, 0.0, 100.0)
+	if batt_floor > 0.0:                             # A5: the lock's floor (never lifts cells that were already lower)
+		if gen == Gen.RUNNING and _floor_until_run:
+			batt_floor = 0.0
+			_floor_until_run = false
+		else:
+			battery = maxf(battery, minf(batt_floor, before))
 	if was_powered and battery <= 0.0:
 		ev.append({"type": "battery_dead"})
 	# G2b: warn only while the cells are being drained, never while they charge up from flat (ch1 opens at 0 %)

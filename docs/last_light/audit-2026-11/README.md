@@ -6,6 +6,7 @@ The approved plan of 2026-11-15, split into the documents Daniel's brief and Add
 |---|---|
 | [00_stage0_evidence.md](00_stage0_evidence.md) | Stage 0: baseline captures, suites and bench |
 | [10_stageB_evidence.md](10_stageB_evidence.md) | Stage B: cabin and interface changes, with their evidence |
+| [11_stageA_evidence.md](11_stageA_evidence.md) | Stage A: saves, dialogue, documents, release gating; decisions waiting |
 | [01_executive_summary.md](01_executive_summary.md) | Document 1: executive audit summary |
 | [02_architecture.md](02_architecture.md) | Document 2: technical architecture audit |
 | [03_issue_register.md](03_issue_register.md) | Document 3: full issue register |

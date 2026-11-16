@@ -50,5 +50,9 @@
  "radio_card": {
   "title": "Card in the radio's bezel",
   "text": "STORNOWAY C.G.\nCh 16  /  2182 kc/s\nRadio check 2100\n& as required."
+ },
+ "tide_tables": {
+  "title": "Admiralty Tide Tables, 1953",
+  "text": "ADMIRALTY TIDE TABLES 1953. STORNOWAY. Times and heights of high and low waters, November 1953 (G.M.T., feet).\n14 Nov: 0237  11.4 ft,  0850  2.6 ft,  1502  11.5 ft,  2114  2.5 ft\n15 Nov: 0327  11.7 ft,  0940  2.4 ft,  1552  11.9 ft,  2204  2.3 ft"
  }
 }
