@@ -1033,15 +1033,11 @@ Part 2 was built on a local branch (`stage-c-data`, in a git worktree) so that t
 | pytest | PASS (the ending P3 panels re-rendered for the 21.00 row) |
 | Pipeline (v078) | validation FAIL = 0 for watch_room, lighthouse and stairwell; reimport ok; synced |
 | New props, by eye in Blender | PASS: the barometer needle at about 981 mb; the kettle on the Primus beside the mug and tin; the teleprinter between the desk and the optic drive, clear of both, with the compass sill free above it; the crank handle on the drive pedestal (renders `renders/last_light/c2_v076/`, `c2_v077/`; gitignored, reproducible with `review_views.py --views cu_primus,cu_teleprinter,cu_baro,cu_crank`) |
-| In the game | NOT TESTED (window batch needs Daniel's OK) |
+| In the game (window batch, Daniel: "You determine"; merged main) | PASS by eye for the room: the barometer, Primus and crank show their prompts, the needle sits at the 16:20 reading (988 mb), the kettle on the Primus reads on the sill, the teleprinter stands between the desk and the optic drive, the 22:00 sheet opens (`renders/last_light/c2_room_*.png`). The new radio cards were not captured in a window: `qa_sweep_test` covers their layout headless |
+| Merged `main` (Stage P + Stage C, `5584000`) | All suites rerun: story_test 0 failed; save_compat 305; opening 31 / 31; run_tests 95; sim_v2 no gate failures; qa_sweep 7,703; regress 449 / 449; interaction 164, 0 failed; g5 50; pytest PASS |
 
 ### 15.4 Not done, and why
-- **In-game captures of the new props and lines: NOT TESTED.** They need a window batch with Daniel's OK (`tools/godot_bg`). Suggested shots:
-  - `cu_desk_r` with the teleprinter;
-  - the barometer at 20:00 and at 02:00;
-  - the Primus on the sill;
-  - the radio panel with Visser's and MacAskill's cards and Elspeth's hidden card, at text x1.0 and x1.5;
-  - the dogged-door prompt.
+- **The new radio cards in a window:** not captured (only their headless layout check). Worth a look in Stage G or Daniel's playthrough.
 - **Sounds:** `teleprinter`, the Primus roar, the kettle and the hummed bar are not made (Stage D). The lines' captions carry them meanwhile.
 - **The fuel run:** Stage F (above).
 - **Character profiles** for the four new voices in `character-refs/`, with CANON_INDEX rows: not written yet.

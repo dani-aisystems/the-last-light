@@ -1,5 +1,31 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-17, latest): audit Stage C (narrative) done, merged locally; next is Stage R (Ross)
+- **Record:** `projects/games/last_light/SCRIPT_REVISION_2026-11.md`. It is the approved script; section 15 records how it was built and verified. Decisions are DECISIONS Q20.
+- **Done:**
+  - Part 1, the script document (approved);
+  - part 2, the script in the game: branch `stage-c-data` (`0178dcf`), built in a git worktree while Stage P ran, merged as `5584000` onto Stage P (`c0574da`).
+  - The data: four new radio voices; the ch1 working evening; Sgeir Mhòr and the *Hendrika* in ch3; the steel-door lines; ch5 in three movements with the cup; the dawn voices; save layout 5.
+  - The room (`last_light_v078`): a barometer whose needle follows the story clock, a reachable clockwork crank, a Primus under the existing kettle, and a teleprinter on a stand.
+  - Suites on the merged main: all green (regress 449 / 449; qa_sweep 7,703). Window captures `renders/last_light/c2_room_*.png` were looked at.
+- **Open for Daniel:**
+  - Primus or the old electric ring under the kettle (the script wrongly said the room had no kettle);
+  - optionally, the new radio cards in a window;
+  - listen to `door_dogs` and `door_heavy`;
+  - Stage M approval.
+- **Next:** Stage R. Its first checkpoint is three lit Blender stills of Ross at positions A, B and C. The cue points are in SCRIPT_REVISION section 8. The fuel-run beat waits for Stage F (the lines are in `ch3.dlg`).
+- **Gotchas:**
+  - A `!` action line in `.dlg` is split on spaces, so it cannot carry JSON: spawn ships from beats.
+  - Tests that hard-code beat indexes break when beats are inserted: use `director.resolve_beat(ch, id)`.
+  - When `station_log` changes, also run `log_strips.py` and `ending_pages.py` (pytest compares the P3 panels), and `documents.py --extra=log_1971`.
+  - New PNGs need a Godot `--import` before headless tests see them.
+  - Worktree recipe:
+    - copy `godot/.godot` and the ignored textures;
+    - symlink `assets/*`;
+    - copy the latest `.blend` so the versions continue;
+    - copy the new `.blend` back afterwards.
+  - The worktree `scratchpad/wt` can be removed; branch `stage-c-data` is merged.
+
 ## LATEST (2026-11-17, later): audit Stage P (player body) approved by Daniel and committed locally
 - **Record:** `docs/last_light/audit-2026-11/15_stageP_evidence.md`; DECISIONS Q19 (one navy, the chair's #363F58; room untouched). Plan: `~/.claude/plans/pasted-content-id-c83a-continue-the-gentle-lollipop.md`.
 - **C11 fixed:** the body is placed and posed from the camera's blend (`player.sit_amount()`, `body.py` action `sitdown`). Regress R27 checks it and fails on the old code, as it should. Sheets: `renders/last_light/stageP_cmp3_sitseq.png`, `stageP_cmp4_standseq.png`.
