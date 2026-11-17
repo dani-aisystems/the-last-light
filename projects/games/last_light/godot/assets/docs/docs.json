@@ -1,7 +1,7 @@
 {
  "log_1971": {
   "title": "Station log, Sunday 14 November 1971",
-  "text": "14.11.71 Sun. 16.22 SW 6, overcast, rain. Batteries flat. Engine started, on charge. / 16.40 Light exhibited. Lamp normal. / 18.30 Radio check Stornoway CG. Gale warning, severe gale 9. / 18.50 Kittiwake (SY 37) brought in by North Sound on radio bearings. / 23.25 Stornoway CG on Ch. 16. All well.  (Hand: C. Mackay)"
+  "text": "14.11.71 Sun. 16.22 SW 6, overcast, rain. Batteries flat. Engine started, on charge. / 16.40 Light exhibited. Lamp normal. / 18.30 Radio check Stornoway CG. Gale warning, severe gale 9. / 18.50 Kittiwake (SY 37) brought in by North Sound on radio bearings. / 21.00 Radio check Stornoway CG. Barometer 981 mb, falling. / 23.25 Stornoway CG on Ch. 16. All well.  (Hand: C. Mackay)"
  },
  "log_1953": {
   "title": "Station log, 14-15 November 1953",
@@ -54,5 +54,9 @@
  "tide_tables": {
   "title": "Admiralty Tide Tables, 1953",
   "text": "ADMIRALTY TIDE TABLES 1953. STORNOWAY. Times and heights of high and low waters, November 1953 (G.M.T., feet).\n14 Nov: 0237  11.4 ft,  0850  2.6 ft,  1502  11.5 ft,  2114  2.5 ft\n15 Nov: 0327  11.7 ft,  0940  2.4 ft,  1552  11.9 ft,  2204  2.3 ft"
+ },
+ "forecast_2200": {
+  "title": "Teleprinter, 2200 GMT",
+  "text": "GALE WARNING ISSUED 2200 GMT 14 NOV 1971. HEBRIDES MINCHES SOUTHWESTERLY SEVERE GALE 9 NOW IN FORCE. INCREASING STORM 10 IMMINENT."
  }
 }

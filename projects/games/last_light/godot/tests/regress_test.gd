@@ -178,11 +178,11 @@ func _r5_interaction_state() -> void:
 	g.director.state.beat = 2                      # 3B: from `hail` the keeper may bolt it
 	g._update_door_prompt()
 	p = st.prompt_info("door", false)
-	_check(p["key"] == "[E]" and "bolt" in p["text"], "door in ch4 once she's alongside: '[E]  Draw the bolt' (%s)" % p)
+	_check(p["key"] == "[E]" and "Dog the stair door" in p["text"], "door in ch4 once she's alongside: '[E]  Dog the stair door hard' (%s)" % p)
 	g.director.state.flags["bolted"] = 1
 	g._update_door_prompt()
 	p = st.prompt_info("door", false)
-	_check(p["key"] == "" and "bolted" in p["text"], "bolted door: no key (%s)" % p)
+	_check(p["key"] == "" and "dogged hard" in p["text"], "dogged door: no key (%s)" % p)
 	g.director.state.flags.erase("bolted")
 	g.director.state.beat = 0
 	st.door_open = true
@@ -1389,13 +1389,13 @@ func _r10_narrative_mechanics() -> void:
 	root.add_child(d2)
 	d2.setup(k2, true)
 	d2.state.chapter = 2
-	d2.state.beat = 4                                  # second_call: wait 8, then the Mary Ellen talks
+	d2.state.beat = d2.resolve_beat(2, "second_call")   # wait 8, then the Mary Ellen talks (by id: Stage C layout 5)
 	d2._enter_beat()
 	var ids: Array = d2.available_calls().map(func(c): return String(c["id"]))
 	_check(ids.has("opt_ch2_rory") and ids.has("opt_ch2_morag"), "ch2 after Gannet: Rory and Morag can be called (%s)" % [ids])
-	d2.state.beat = 6
+	d2.state.beat = d2.resolve_beat(2, "archive") + 1
 	_check(d2.available_calls().is_empty(), "the calls close once the archive beat has run")
-	d2.state.beat = 4
+	d2.state.beat = d2.resolve_beat(2, "second_call")
 	_check(d2.request_call("opt_ch2_morag") and d2.optional_running() == "opt_ch2_morag", "a call starts from the panel")
 	var convs := {}
 	for i in 900:                                     # 15 s: the Mary Ellen would have spoken by now
@@ -1413,7 +1413,7 @@ func _r10_narrative_mechanics() -> void:
 	_check(not d2.available_calls().any(func(c): return c["id"] == "opt_ch2_morag"), "a call is offered once")
 	d2.queue_free()
 	g.director.state.chapter = 2
-	g.director.state.beat = 4
+	g.director.state.beat = g.director.resolve_beat(2, "second_call")    # by id: Stage C layout 5
 	g.ui._refresh_calls()
 	_check(g.ui.calls_box.visible and g.ui.calls_list.get_child_count() == 2, "the radio panel lists both calls")
 	g.director.state.chapter = 1

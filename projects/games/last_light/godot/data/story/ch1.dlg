@@ -42,7 +42,8 @@ MORAG: I'm always early. You're always surprised. Anything to report, keeper? Ov
 MORAG: North Point, Stornoway. Loud and clear also. Anything to report? Over.
 = report
 CALLUM: Light exhibited at sixteen-forty. Engine running, batteries on charge. Nothing on the radar. Over.
-MORAG: Roger. Gale warning for Hebrides and Minches. South-westerly seven, rising severe gale nine before dawn. Visibility poor in rain. Over.
+MORAG: Roger. Gale warning for Hebrides and Minches.
+MORAG: South-westerly seven, rising severe gale nine before dawn. Visibility poor in rain. Over.
 CALLUM: Received. Gale nine before dawn. Over.
 MORAG: And Callum. It's the fourteenth.
 * I know what night it is, Morag. -> knows
@@ -63,7 +64,9 @@ MORAG: ...Right you are. Stornoway, out.
 ! static
 RORY: North Point Light, North Point Light, this is the Kittiwake, Kittiwake, eh, Sierra Yankee three-seven. Over.
 CALLUM: Kittiwake, North Point. Go ahead, over.
-RORY(scared): Callum, is that you? Thank God. Sorry, eh, North Point. I'm coming in from the Flannans, and the rain's that thick I can't see my own bow. I was meant to pick up the Sound an hour ago. Over.
+RORY(scared): Callum, is that you? Thank God. Sorry, eh, North Point.
+RORY: I'm coming in from the Flannans, and the rain's that thick I can't see my own bow.
+RORY: I was meant to pick up the Sound an hour ago. Over.
 RORY: And, eh. Don't be telling my mother I was out on the Sabbath. Over.
 RORY: I've stopped her. I'm just sitting here like a gull on a fence post. Can you put me in? Over.
 * Stay where you are, Rory. I'll find you. Over. -> calm
@@ -80,15 +83,18 @@ RORY: Holding. Holding. Right. I'm holding. Over.
 == ch1_rory_in mode=radio
 ! static
 RORY: North Point, Kittiwake! I've got the green on the Sound. I've got it! Over.
-CALLUM: Keep it fine on your starboard bow and come in slow. North Point. Over.
-RORY: Aye. Aye, I see it. Here, Callum, you'll laugh, but my grandfather used to say there's a boat out in the East Gut on nights like this. No lights. Just waiting. Over.
+CALLUM: Keep that green light just to the right of your bow, and come in slow. North Point. Over.
+RORY: Aye. Aye, I see it.
+RORY: Here, Callum, you'll laugh, but my grandfather used to say there's a boat out in the East Gut on nights like this.
+RORY: No lights. Just waiting. Over.
 * Your grandfather said a lot of things, Rory. -> joke
 * Which boat? -> which
 = joke
 RORY: He did. He did. Half of them were true, mind. Over.
 -> out
 = which
-RORY: The Mary Ellen. Ross's boat. My grandfather was on her the night she went down. Below, in the engine. Only one of them that came home.
+RORY: The Mary Ellen. Ross's boat.
+RORY: My grandfather was on her the night she went down. Below, in the engine. Only one of them that came home.
 RORY: He always said Ross was a better seaman sober than most men are... eh. Sorry. You'd know all that. He died at Easter, God rest him. Over.
 ! clue rory_grandfather
 = out
@@ -134,7 +140,8 @@ MORAG: ...Aye. Right.
 MORAG: Stornoway listening on sixteen. Out.
 
 == ch1_log_after mode=thought
-~ Eighteen-thirty, radio check, gale warning. Ten to seven, Kittiwake in by the North Sound. Twenty-three-twenty-five, Stornoway on sixteen. All well.
+~ Eighteen-thirty, radio check, gale warning. Ten to seven, Kittiwake in by the North Sound.
+~ Twenty-one hundred, radio check, the glass at nine-eight-one. Twenty-three-twenty-five, Stornoway on sixteen. All well.
 ~ The same small square letters I learned at the school in Tarbert. Father always said I wrote like a clerk.
 
 == ch1_mary_ellen mode=radio
@@ -171,3 +178,94 @@ MORAG: Mary Ellen. Somebody's idea of a joke. On this night. I'll find out who. 
 ! set lied_heard=1
 ! add rel.morag -1
 MORAG: Don't. I know your voice when you've heard something. I'll find out who it was. Stornoway out.
+
+# ---- SCRIPT_REVISION_2026-11 (approved 2026-11-17): the working evening, 18:50 to 23:25
+
+== ch1_sula_prompt mode=thought
+~ Kittiwake's in, and the set's quiet.
+~ The Sula's lying at Stornoway for the weather. I'll ask Gillies about Thursday while I can.
+
+== ch1_sula mode=radio
+! set called_sula=1
+CALLUM: Sula, Sula, this is North Point. Over.
+! static
+GILLIES: North Point, Sula. Good evening, Principal Keeper. Go ahead. Over.
+CALLUM: Evening, Mr Gillies. Is Thursday's relief still on? Over.
+GILLIES: Thursday, weather allowing. Your relief keeper, stores, and the linesman for your telephone. Over.
+GILLIES: Anything else for the Board while I have you? Over.
+* The tooth at oh-four-six is sticking again. Over. -> tooth
+* A pane for the west window. Over. -> glass
+* Nothing more. Thank you, Sula. North Point out. -> end
+= tooth
+! clue board_noted
+GILLIES: The Board will note it, Mr Mackay. It's down for the next refit.
+GILLIES: Your father reported that tooth when I was a mate on the old tender. A good keeper, God rest him. Sula out.
+-> END
+= glass
+GILLIES: A pane, west, cracked. Noted. It'll come Thursday if the glazier's sober. Sula out.
+-> END
+= end
+GILLIES: Sula out.
+
+== ch1_round mode=thought
+~ Twenty hundred. The evening round: the glass, the clockwork, the kettle.
+
+== look_barometer_ch1 mode=thought
+! set read_glass=1
+~ Nine-eight-one. Twenty-three down since yesterday afternoon.
+
+== look_clockwork mode=thought
+! set sang=1
+~ The standby clockwork, for the day the motor fails. Twenty turns of the crank, every watch, needed or not.
+> [Callum hums under his breath as he winds: a few bars of an old tune]
+~ Twenty turns. Some tune always comes with them.
+
+== look_kettle_a mode=thought
+! set kettle_ch1=1
+~ The Primus. Pump her up, a match to the spirit cup, and wait for the roar.
+~ Two mugs on the hook. I've only ever used the one.
+
+== ch1_sked mode=radio
+! static
+MACASKILL: North Point, North Point, this is Sgeir Mhor. Evening schedule. Over.
+* Sgeir Mhor, North Point. Go ahead, Murdo. Over. -> wx
+= wx
+MACASKILL: Glass nine-eight-four here, and dropping like a stone. South-west six. Sea rough. What have you? Over.
+* Nine-eight-one and falling. South-west seven. Heavy rain. Over. -> same
+* Nine-eight-one. It's coming for both of us, Murdo. Over. -> same
+= same
+MACASKILL: Aye. It'll be a long one.
+MACASKILL: Your father used to say you could smell a November gale in the paint. Over.
+* He'd a saying for every weather. Over. -> short
+* He was usually right about weather. Over. -> warm
+= short
+MACASKILL: He had. Same time at midnight, Callum. Sgeir Mhor out.
+-> END
+= warm
+MACASKILL: About weather, aye. Same time at midnight. Sgeir Mhor out.
+
+== ch1_check_2100 mode=radio
+! static
+MORAG: North Point, Stornoway. Twenty-one hundred radio check. Over.
+* Stornoway, North Point. Loud and clear. Nothing to report. Over. -> plain
+* You're on time, Morag. -> ontime
+= ontime
+MORAG: Don't get used to it. Stornoway out.
+-> END
+= plain
+MORAG: Loud and clear. Stornoway out.
+
+== ch1_hector_heard mode=radio
+! static
+HECTOR: Stornoway Coastguard, Stornoway Coastguard, this is the schooner Gannet. Over.
+MORAG: Gannet, Stornoway. Go ahead, Hector. Over.
+HECTOR: Late away, with two passengers aboard and the glass falling. I'll be off North Point some time after midnight. Over.
+MORAG: Gannet, Stornoway. Roger. Call North Point when you raise the light. Stornoway out.
+~ Hector Macleod. He's run that schooner round Harris since before I could tie my boots.
+
+== ch1_teleprinter mode=thought
+> [The teleprinter by the radar starts up, chatters, and stops]
+~ The twenty-two hundred. Let her finish before I tear it off.
+
+== after_forecast_2200 mode=thought
+~ Storm ten, still imminent. Imminent's had six hours of it already.

@@ -4,9 +4,10 @@
   {"id": "log_1640", "date": "", "time": "16.40", "wind": "SW 6", "weather": "Rain", "text": "Light exhibited. Lamp normal."},
   {"id": "log_1830", "date": "", "time": "18.30", "wind": "SW 7", "weather": "Heavy rain", "text": "Radio check Stornoway CG. Gale warning, severe gale 9."},
   {"id": "log_1850", "date": "", "time": "18.50", "wind": "SW 7", "weather": "Heavy rain", "text": "Kittiwake (SY 37) brought in by North Sound on radio bearings."},
+  {"id": "log_2100", "date": "", "time": "21.00", "wind": "SW 7", "weather": "Heavy rain", "text": "Radio check Stornoway CG. Barometer 981 mb, falling."},
   {"id": "log_2325", "date": "", "time": "23.25", "wind": "SW 7", "weather": "Heavy rain", "text": "Stornoway CG on Ch. 16. All well."}
  ]},
- "_doc": "THE LAST LIGHT campaign (layout 3: Stage 3B plus the brief of 2026-11-06, ch1 dark arrival; STAGE3_NARRATIVE_MASTER.md §7, §20b). Beats run in order; 'when' is a StoryState expression (flag(), has_flag(), clue(), saved(), lost(), piloting(), lit_by_hand(), relation(), sim.*). 'hint' is [seconds, text(, unless <expr>)] or a list of them (item 36: a hint whose 'unless' is already true is skipped). 'objective' is a string or {title, steps: [{text, done <expr>, live}]} (item 9). Director actions: talk, wait, until <expr>, release <ship> (a holding story ship makes way), objective, set/unset/add/clue, ship, storm, clock, fault (jam [story] | trip | overheat), battery, mode, intensity, autosave, timeskip, ending_card, end_campaign; presentation events for game_fp: hint, sky, phantom_echo, footsteps, knock, door_open, visitor_enter, sfx, static, music, caption. story_test rejects unknown names. 'optional_calls' are radio calls offered in the panel after beat open_after has run and until beat close_at has run; 'needs_power' (brief item 32) marks a beat that can only move on with power (radio or light): while it waits unpowered the director shows what to fix. 'story_voice' lists ships whose 'we have the channel lights' report a story conversation speaks itself (item 26). 'after_read' maps a document to [first chapter, last chapter, conversation] room lines played once each.",
+ "_doc": "THE LAST LIGHT campaign (layout 5: audit Stage C, SCRIPT_REVISION_2026-11.md, on layout 3: Stage 3B plus the brief of 2026-11-06, ch1 dark arrival; STAGE3_NARRATIVE_MASTER.md §7, §20b). Beats run in order; 'when' is a StoryState expression (flag(), has_flag(), clue(), saved(), lost(), piloting(), lit_by_hand(), relation(), sim.*). 'hint' is [seconds, text(, unless <expr>)] or a list of them (item 36: a hint whose 'unless' is already true is skipped). 'objective' is a string or {title, steps: [{text, done <expr>, live}]} (item 9). Director actions: talk, wait, until <expr>, release <ship> (a holding story ship makes way), objective, set/unset/add/clue, ship, storm, clock, fault (jam [story] | trip | overheat), battery, mode, intensity, autosave, timeskip, ending_card, end_campaign; presentation events for game_fp: hint, sky, phantom_echo, footsteps, knock, door_open, visitor_enter, sfx, static, music, caption. story_test rejects unknown names. 'optional_calls' are radio calls offered in the panel after beat open_after has run and until beat close_at has run; 'needs_power' (brief item 32) marks a beat that can only move on with power (radio or light): while it waits unpowered the director shows what to fix. 'story_voice' lists ships whose 'we have the channel lights' report a story conversation speaks itself (item 26). 'after_read' maps a document to [first chapter, last chapter, conversation] room lines played once each.",
  "chapters": [
   {"n": 1, "title": "The Watch", "subtitle": "North Point Light · Sunday 14 November 1971 · 16:20", "story_voice": ["Kittiwake"],
    "start": {"clock": 980, "clock_rate": 0.0, "storm": 0.12, "battery": 0, "fuel": 46},
@@ -16,7 +17,12 @@
      {"id": "kittiwake", "caption": "Kittiwake", "line": "Fix Kittiwake's position on the radio.", "done": "has_flag(\"position_Kittiwake\")", "sub": [{"id": "confirm", "line": "CONFIRM POSITION to Kittiwake", "done": "flag(\"tx_confirm\") >= 1", "nudge": "The radio. The boy'll want his position checked.", "hint": "Sit at the radio on the desk (look at it, press {interact}), select Kittiwake and choose Confirm position."}, {"id": "report", "line": "Her position report", "done": "has_flag(\"position_Kittiwake\")", "nudge": "Give the boy a moment to answer.", "hint": "Wait at the radio for Kittiwake to report her position on Channel 16.", "discover": ["flag(\"tx_confirm\") >= 1"]}]},
      {"id": "kittiwake_in", "caption": "Kittiwake", "line": "Bring her in on the 000° line.", "done": "piloting(\"Kittiwake\") or saved(\"Kittiwake\")", "sub": [{"id": "compass", "line": "The hand compass, on the east window sill", "done": "has_flag(\"took_compass\")", "optional": true, "nudge_first": true, "nudge": "The hand compass is on the sill. North at a glance.", "hint": "The brass hand compass sits on the sill of the east window, just right of the desk: take it with {interact}."}, {"id": "line", "line": "TURN PORT onto 000°, then MAINTAIN", "done": "piloting(\"Kittiwake\") or saved(\"Kittiwake\")", "nudge": "She's east of the line. Bring her round to port.", "hint": "On the radar she sits to the right of the dashed 000° line. Order TURN PORT (her left) once or twice, then MAINTAIN when she points down the line. The chart's transcription ({transcript}) explains the terms."}]},
      {"id": "kittiwake_home", "caption": "Kittiwake", "line": "Watch her into the Sound.", "done": "saved(\"Kittiwake\")", "sub": [{"id": "binoculars", "line": "The binoculars, by the radar", "done": "has_flag(\"took_binoculars\")", "optional": true, "nudge_first": true, "nudge": "The glasses are on the desk. I'd see her better.", "hint": "The binoculars lie on the desk beside the radar: take them with {interact}."}], "nudge": "Steady. She's on the line.", "hint": "Kittiwake follows the North Sound line in by herself now. Watch her on the radar."},
-     {"id": "write_up", "caption": "The log", "line": "Write up the evening at the desk.", "done": "has_flag(\"read_log_1971\")", "sub": [{"id": "log", "line": "The station log, open on the desk", "done": "has_flag(\"read_log_1971\")", "nudge": "The log's waiting on the desk.", "hint": "The logbook lies open on the desk, left of the chart: look at it and press {interact}."}]}
+     {"id": "write_up", "caption": "The log", "line": "Write up the evening at the desk.", "done": "has_flag(\"read_log_1971\")", "sub": [{"id": "log", "line": "The station log, open on the desk", "done": "has_flag(\"read_log_1971\")", "nudge": "The log's waiting on the desk.", "hint": "The logbook lies open on the desk, left of the chart: look at it and press {interact}."}]},
+     {"id": "sula", "caption": "The Sula", "line": "Call the Sula about Thursday.", "done": "has_flag(\"called_sula\")", "nudge": "The Sula's at Stornoway. The radio.", "hint": "Sit at the radio, choose Call a station, then Sula."},
+     {"id": "round", "caption": "The evening round", "line": "Read the glass.", "done": "has_flag(\"read_glass\")", "sub": [{"id": "glass", "line": "The barometer, on the wall", "done": "has_flag(\"read_glass\")", "nudge": "The glass. Murdo will want it at the schedule.", "hint": "The barometer hangs on the wall: look at it and press {interact}."}, {"id": "crank", "line": "Wind the standby clockwork", "done": "has_flag(\"sang\")", "optional": true, "nudge": "The clockwork wants its twenty turns, needed or not.", "hint": "The standby clockwork's winding crank: look at it and press {interact}."}, {"id": "kettle", "line": "Put the kettle on", "done": "has_flag(\"kettle_ch1\")", "optional": true, "nudge": "Tea. It'll be a long watch.", "hint": "The Primus and the kettle are on the west window sill: look at them and press {interact}."}]}
+   ],
+   "optional_calls": [
+     {"id": "ch1_sula", "station": "Sula", "label": "Call the Sula (NLB tender, at Stornoway)", "conv": "ch1_sula", "open_after": "kittiwake_home", "close_at": "sula"}
    ],
    "beats": [
     {"id": "dusk", "duty": ["power"], "do": [["sky", "dusk"], ["mode", 0], ["intensity", 0], ["sfx", "door_heavy"], ["wait", 2], ["talk", "ch1_dusk"]]},
@@ -27,9 +33,15 @@
     {"id": "kittiwake", "needs_power": true, "when": "true", "do": [["wait", 4], ["ship", {"name": "Kittiwake", "kind": "fishing", "bearing": 14, "aim": 24, "speed_mul": 0.85, "hold": true, "protected": true}], ["talk", "ch1_rory_call"], ["duty", "kittiwake"], ["until", "flag(\"tx_confirm\") >= 1"], ["until", "has_flag(\"position_Kittiwake\") or not sim.radio_on()"], ["wait", 3], ["talk", "ch1_bearings"]]},
     {"id": "vector", "needs_power": true, "when": "piloting(\"Kittiwake\")", "do": [["wait", 4], ["talk", "ch1_rory_in"]], "duty": ["kittiwake_in"]},
     {"id": "kittiwake_home", "when": "saved(\"Kittiwake\")", "do": [["log", "log_1850"], ["autosave"]], "duty": ["kittiwake_home"]},
+    {"id": "sula", "when": "true", "bot_player": {"calls": ["ch1_sula"]}, "do": [["wait", 6], ["talk", "ch1_sula_prompt"], ["until", "has_flag(\"called_sula\")"]], "duty": ["sula"]},
+    {"id": "round", "when": "true", "do": [["timeskip", 1200, "20:00"], ["clock", 1200, 0.12], ["wait", 2], ["talk", "ch1_round"]], "duty": ["round"]},
+    {"id": "sked", "needs_power": true, "when": "has_flag(\"read_glass\")", "bot_player": {"set": ["read_glass"]}, "do": [["wait", 3], ["sfx", "static_burst"], ["talk", "ch1_sked"]], "duty": []},
+    {"id": "check", "needs_power": true, "when": "true", "do": [["timeskip", 1260, "21:00"], ["clock", 1260, 0.4], ["wait", 2], ["talk", "ch1_check_2100"], ["log", "log_2100"]], "duty": []},
+    {"id": "hector_heard", "needs_power": true, "when": "sim.clock_min >= 1300", "do": [["talk", "ch1_hector_heard"]], "duty": []},
+    {"id": "teleprinter", "when": "sim.clock_min >= 1320", "do": [["set", "teleprinter_2200"], ["talk", "ch1_teleprinter"], ["autosave"]], "duty": []},
     {"id": "late", "when": "true", "do": [["timeskip", 1405, "23:25"], ["clock", 1405, 0.15], ["storm", 0.25], ["wait", 2], ["talk", "ch1_morag_late"], ["log", "log_2325"]], "duty": []},
     {"id": "log", "when": "has_flag(\"read_log_1971\")", "do": [["wait", 2], ["talk", "ch1_log_after"]], "duty": ["write_up"]},
-    {"id": "mary_ellen", "when": "true", "do": [["clock", 1437, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]], "duty": []}
+    {"id": "mary_ellen", "when": "true", "do": [["clock", 1438, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]], "duty": []}
    ]},
   {"n": 2, "title": "Strange Signals", "subtitle": "Monday 15 November · 00:02",
    "start": {"fuel": 44, "clock": 1442, "clock_rate": 0.12, "storm": 0.3},
@@ -46,28 +58,36 @@
    "beats": [
     {"id": "trace", "do": [["wait", 2], ["talk", "ch2_trace"]], "duty": []},
     {"id": "radar", "when": "true", "do": [["phantom_echo", 46, 95, 40], ["wait", 18], ["talk", "ch2_phantom"]], "duty": ["radar_watch"]},
+    {"id": "iona_heard", "needs_power": true, "when": "true", "do": [["wait", 6], ["sfx", "static_burst"], ["talk", "ch2_iona_heard"]], "duty": []},
     {"id": "gannet", "when": "true", "do": [["wait", 4], ["ship", {"name": "Gannet", "kind": "schooner", "bearing": -40, "aim": "reef", "speed_mul": 0.85}], ["talk", "ch2_gannet"]], "duty": []},
     {"id": "gannet_in", "needs_power": true, "when": "saved(\"Gannet\") or lost(\"Gannet\")", "do": [["talk", "ch2_gannet_after"], ["autosave"]], "duty": ["gannet"]},
+    {"id": "sked", "needs_power": true, "when": "true", "do": [["wait", 10], ["sfx", "static_burst"], ["talk", "ch2_sked"]], "duty": []},
+    {"id": "marsh", "needs_power": true, "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_marsh"]], "duty": []},
     {"id": "second_call", "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_mary_ellen"]], "duty": []},
     {"id": "archive", "when": "has_flag(\"read_log_1953\")", "do": [["wait", 1], ["talk", "ch2_same_hand"], ["clue", "same_hand"]], "duty": ["archive"]},
     {"id": "jam", "when": "true", "do": [["wait", 6], ["fault", "jam", "story"], ["talk", "ch2_jam"]], "duty": []},
     {"id": "clear", "when": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "do": [["talk", "ch2_046"], ["autosave"]], "duty": ["jam_ch2"]}
    ]},
   {"n": 3, "title": "The Storm", "subtitle": "Monday 15 November · 01:05",
-   "start": {"fuel": 46, "clock": 1505, "clock_rate": 0.1, "storm": 0.55},
+   "start": {"fuel": 46, "clock": 1505, "clock_rate": 0.06, "storm": 0.55},
    "duties": [
      {"id": "two_boats", "caption": "Two boats", "line": "Bring both boats in. Mind the battery.", "done": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))", "sub": [{"id": "corrie", "line": "Corrie May into the East Gut, 046°", "done": "saved(\"Corrie May\") or lost(\"Corrie May\")", "nudge": "Corrie May's for the East Gut.", "hint": "Corrie May belongs in the East Gut (046°): confirm her position, then turn her onto the line."}, {"id": "lowestoft", "line": "Lowestoft Star into the North Sound, 000°", "done": "saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\")", "nudge": "The Lowestoft Star, North Sound. Due north.", "hint": "Lowestoft Star belongs in the North Sound (000°): confirm her position, then turn her onto the line."}]},
-     {"id": "restore_ch3", "caption": "Power", "line": "Reset the MAIN breaker.", "done": "sim.main_breaker", "sub": [{"id": "main", "line": "MAIN lever up, tall cabinet, west wall", "done": "sim.main_breaker", "nudge": "The red lamp on the cabinet. MAIN.", "hint": "In the dark: the red MAIN lamp on the tall cabinet. Push the MAIN lever up ({interact})."}]}
+     {"id": "restore_ch3", "caption": "Power", "line": "Reset the MAIN breaker.", "done": "sim.main_breaker", "sub": [{"id": "main", "line": "MAIN lever up, tall cabinet, west wall", "done": "sim.main_breaker", "nudge": "The red lamp on the cabinet. MAIN.", "hint": "In the dark: the red MAIN lamp on the tall cabinet. Push the MAIN lever up ({interact})."}]},
+     {"id": "hendrika", "caption": "Hendrika", "line": "Bring Hendrika in by the West Gut.", "done": "saved(\"Hendrika\") or lost(\"Hendrika\")", "sub": [{"id": "line", "line": "Onto the West Gut line, 314°", "done": "piloting(\"Hendrika\") or saved(\"Hendrika\") or lost(\"Hendrika\")", "nudge": "Hendrika's for the West Gut. Three-one-four.", "hint": "Confirm Hendrika's position, then turn her until she points down the West Gut line on the radar."}, {"id": "shelter", "line": "See her into shelter", "done": "saved(\"Hendrika\") or lost(\"Hendrika\")", "nudge": "Watch her in.", "hint": "Keep her on the 314° line until she reaches shelter.", "discover": ["piloting(\"Hendrika\") or saved(\"Hendrika\") or lost(\"Hendrika\")"]}]}
    ],
    "optional_calls": [
      {"id": "opt_ch3_hector", "station": "Gannet", "label": "Call Gannet (Hector, in the West Gut lee)", "conv": "opt_ch3_hector", "open_after": "both", "close_at": "notes", "if": "saved(\"Gannet\")"}
    ],
    "beats": [
     {"id": "forecast", "do": [["wait", 2], ["talk", "ch3_forecast"], ["storm", 0.7]], "duty": []},
-    {"id": "two_ships", "when": "true", "do": [["ship", {"name": "Corrie May", "kind": "fishing", "bearing": 62, "aim": "reef", "speed_mul": 0.8}], ["talk", "ch3_corrie"], ["wait", 10], ["ship", {"name": "Lowestoft Star", "kind": "schooner", "bearing": -22, "aim": -10, "speed_mul": 0.8}], ["talk", "ch3_lowestoft"]]},
+    {"id": "two_ships", "when": "true", "do": [["ship", {"name": "Corrie May", "kind": "fishing", "bearing": 62, "aim": "reef", "speed_mul": 0.8}], ["talk", "ch3_corrie"], ["wait", 16], ["ship", {"name": "Lowestoft Star", "kind": "schooner", "bearing": -22, "aim": -10, "speed_mul": 0.8}], ["talk", "ch3_lowestoft"]]},
     {"id": "both", "needs_power": true, "when": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))", "do": [["talk", "ch3_after_two"], ["autosave"]], "duty": ["two_boats"]},
-    {"id": "elspeth", "when": "true", "do": [["wait", 6], ["talk", "ch3_elspeth"]], "duty": []},
-    {"id": "notes", "when": "true", "do": [["wait", 8], ["talk", "ch3_notes_a"], ["fault", "trip"], ["set", "blackout=1"], ["talk", "ch3_dark"]]},
+    {"id": "sked3", "needs_power": true, "when": "true", "do": [["wait", 10], ["clock", 1560, 0.04], ["talk", "ch3_sked_missed"]], "duty": []},
+    {"id": "hendrika", "needs_power": true, "when": "true", "do": [["wait", 12], ["sfx", "static_burst"], ["talk", "ch3_hendrika"]], "duty": []},
+    {"id": "hendrika_go", "if": "has_flag(\"helped_hendrika\")", "when": "true", "do": [["ship", {"name": "Hendrika", "kind": "steamer", "bearing": -38, "aim": "reef", "speed_mul": 0.7}], ["duty", "hendrika"]]},
+    {"id": "hendrika_in", "if": "has_flag(\"helped_hendrika\")", "needs_power": true, "when": "saved(\"Hendrika\") or lost(\"Hendrika\")", "do": [["wait", 3], ["talk", "ch3_hendrika_in"], ["autosave"]], "duty": []},
+    {"id": "elspeth", "when": "true", "do": [["wait", 12], ["talk", "ch3_elspeth"]], "duty": []},
+    {"id": "notes", "when": "true", "do": [["wait", 14], ["talk", "ch3_notes_a"], ["fault", "trip"], ["set", "blackout=1"], ["talk", "ch3_dark"]]},
     {"id": "restore", "when": "sim.main_breaker", "do": [["unset", "blackout"], ["wait", 2], ["talk", "ch3_notes_b"]], "duty": ["restore_ch3"]},
     {"id": "dark_boat", "when": "true", "do": [["wait", 6], ["talk", "ch3_rory_dark"], ["autosave"]], "duty": []}
    ]},
@@ -91,12 +111,16 @@
   {"n": 5, "title": "The Truth", "subtitle": "Monday 15 November · 03:04",
    "start": {"fuel": 46, "clock": 1624, "clock_rate": 0.08, "storm": 0.8},
    "duties": [
+     {"id": "kettle_ch5", "caption": "The kettle", "line": "Make tea.", "done": "has_flag(\"kettle_ch5\")", "nudge": "The Primus, on the west sill.", "hint": "The Primus stands on the west window sill: look at it and press {interact}."},
      {"id": "drawer", "caption": "The desk", "line": "Search the desk drawers.", "done": "has_flag(\"read_letter\")", "nudge": "The desk. Every drawer.", "hint": "The bottom-left drawer of the desk."},
      {"id": "bowl", "caption": "The engine", "line": "Drain the sediment bowl.", "done": "not sim.gen_locked", "nudge": "The bowl under the fuel filter.", "hint": "The glass bowl under the fuel filter. Open the drain cock until it runs clear."},
      {"id": "power_ch5", "caption": "Power", "line": "Get the light back.", "done": "sim.main_breaker and sim.gen == 2", "sub": [{"id": "main", "line": "Reset the MAIN breaker", "done": "sim.main_breaker", "nudge": "MAIN first.", "hint": "MAIN breaker on the west wall: push the lever up ({interact})."}, {"id": "engine", "line": "Engine running again (let her cool if she cut out hot)", "done": "sim.gen == 2", "nudge": "The engine. Let her cool if she's hot.", "hint": "Start the engine. The cells won't carry the lamp and the radio for long. (Hold {interact} on START; let her cool first if she cut out hot.)"}]}
    ],
    "beats": [
     {"id": "story", "do": [["talk", "ch5_ross"]], "duty": []},
+    {"id": "cup", "when": "true", "bot_player": {"set": ["primus_ch5"]}, "do": [["wait", 3], ["talk", "ch5_kettle"], ["duty", "kettle_ch5"], ["until", "has_flag(\"primus_ch5\")"], ["talk", "ch5_cup"]], "duty": []},
+    {"id": "story2", "when": "true", "do": [["wait", 3], ["talk", "ch5_ross_2"]], "duty": []},
+    {"id": "story3", "when": "true", "do": [["wait", 6], ["talk", "ch5_ross_3"]], "duty": []},
     {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"], ["fault", "bowl_open"]], "duty": ["drawer"]},
     {"id": "bowl", "when": "not sim.gen_locked", "do": [["wait", 1], ["talk", "ch5_bowl"]], "duty": ["bowl"]},
     {"id": "morag", "when": "true", "do": [["wait", 4], ["talk", "ch5_morag"]], "duty": []},
@@ -115,7 +139,7 @@
     {"id": "free", "when": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "do": [["talk", "ch6_freed"]], "duty": ["jam_ch6"]},
     {"id": "standby", "when": "true", "do": [["wait", 6], ["talk", "ch6_rory"], ["release", "Iona Star"]]},
     {"id": "rescue", "needs_power": true, "when": "saved(\"Iona Star\") or lost(\"Iona Star\")", "do": [["wait", 3], ["talk", "ch6_outcome"]], "duty": ["iona"]},
-    {"id": "dawn", "when": "true", "do": [["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_morag_dawn"], ["talk", "ch6_final_log"]], "duty": []},
+    {"id": "dawn", "when": "true", "do": [["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_hendrika_dawn"], ["talk", "ch6_morag_dawn"], ["talk", "ch6_sked_dawn"], ["talk", "ch6_final_log"]], "duty": []},
     {"id": "ending", "when": "true", "do": [["wait", 2], ["ending_card", "ch6_epilogue"], ["end_campaign"]]}
    ]}
  ],
@@ -124,6 +148,10 @@
   "note_046": [[1, 2, "after_note_046_a"], [5, 6, "after_note_046_c"]],
   "coat_note": [[1, 2, "after_coat_note_a"], [5, 6, "after_coat_note_c"]],
   "forecast": [[3, 4, "after_forecast_b"]],
-  "photo_1953": [[4, 6, "look_photo53"]]
- }
+  "photo_1953": [[4, 6, "look_photo53"]],
+  "forecast_2200": [[1, 1, "after_forecast_2200"]]
+ },
+ "backfill": [
+  {"chapter": 3, "from_beat": "notes", "set": {"elspeth_named": 1}}
+ ]
 }

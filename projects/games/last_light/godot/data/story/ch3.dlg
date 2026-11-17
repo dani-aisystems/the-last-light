@@ -3,7 +3,9 @@
 
 == ch3_forecast mode=radio
 ! static
-MORAG: All stations, all stations, this is Stornoway Coastguard. Gale warning. Hebrides, Minches: south-westerly severe gale nine, increasing storm ten, imminent. Visibility very poor. Stornoway out.
+MORAG: All stations, all stations. This is Stornoway Coastguard. Gale warning.
+MORAG: Hebrides, Minches. South-westerly severe gale nine, increasing storm ten, imminent.
+MORAG: Visibility very poor. Stornoway out.
 ~ Ten. The windows are already shivering in their frames.
 
 == ch3_corrie mode=radio
@@ -13,7 +15,8 @@ CALLUM: Corrie May, North Point. I'll put you in the East Gut. Confirm your posi
 
 == ch3_lowestoft mode=radio
 ! static
-LOWESTOFT: North Point Light, Lowestoft Star, Lowestoft Star. Running before it from the north. Can't hold her head up. Advise, over.
+LOWESTOFT: North Point Light, Lowestoft Star, Lowestoft Star. Coming down from the north with it on the bow.
+LOWESTOFT: She won't hold her head up to it. Tell me where to steer, North Point. Over.
 CALLUM: Lowestoft Star, North Point. Stand by. I've another boat on the East Gut. You're next. Over.
 LOWESTOFT: Don't be long, North Point.
 
@@ -26,7 +29,8 @@ LOWESTOFT: Don't be long, North Point.
 ! static
 ELSPETH: North Point Light, this is motor vessel Iona Star, Iona Star. Passage report, over.
 CALLUM: Iona Star, North Point. Go ahead, over.
-ELSPETH: Glasgow for Stornoway, twelve souls aboard. We expect to pass abeam of your light at oh-five-hundred. Request local conditions, over.
+ELSPETH: Glasgow for Stornoway, twelve souls aboard.
+ELSPETH: We expect to pass abeam of your light at oh-five-hundred. Request local conditions, over.
 CALLUM: Severe gale nine, storm ten imminent. Seas very high off the Gut. Keep well out to the east until you're past. Over.
 ELSPETH: Understood. Keep well east. Who am I speaking to, North Point? Over.
 * Callum Mackay, principal keeper. Over. -> name
@@ -35,6 +39,7 @@ ELSPETH: Understood. Keep well east. Who am I speaking to, North Point? Over.
 ELSPETH(cold): Mackay.
 ! wait 1.2
 ELSPETH(cold): My father's boat was lost under your light, Mr Mackay. Eighteen years ago tonight.
+! set elspeth_named=1
 ELSPETH: This is Elspeth Ross. First mate. I wanted you to know who was out here.
 ELSPETH: Someone sent me a letter last month. No name on it. "The light was out. Your father was not to blame."
 ! set elspeth_letter_told=1
@@ -63,7 +68,8 @@ ELSPETH: Thank you, North Point. That is all I need. Iona Star out.
 ! static
 MORAG: North Point, Stornoway. Callum, are you there? Over.
 CALLUM(guarded): I'm here.
-MORAG: I've something I should have said a long time ago. I've got it in front of me. My notebook from that night. Pencil. I kept it in my handbag for eighteen years like a fool.
+MORAG: I've something I should have said a long time ago.
+MORAG: I've got it in front of me. My notebook from that night. Pencil. I kept it in my handbag for eighteen years like a fool.
 MORAG: Mayday from Mary Ellen received at oh-one-fifty-two. And what he said was:
 MORAG: "No light at North Point. Repeat. No light"
 
@@ -77,7 +83,8 @@ MORAG: "No light at North Point. Repeat. No light"
 ! static
 MORAG(worried): ...North Point! Callum! Answer me!
 CALLUM: Lost the main breaker. I'm back. Light's back. Over.
-MORAG(worried): Thank God. Callum, did you hear what I said? Oh-one-fifty-two. No light. Your father's log says the light failed at oh-two-ten. After she struck.
+MORAG(worried): Thank God. Callum, did you hear what I said?
+MORAG: Oh-one-fifty-two. No light. Your father's log says the light failed at oh-two-ten. After she struck.
 MORAG: Eighteen minutes, Callum. They hanged Alasdair Ross's name on eighteen minutes.
 [if has_flag("admitted_once")] MORAG: And you told me tonight you'd missed lighting-up once. I've been sitting here working out which night.
 [if has_flag("admitted_there")] MORAG: You told me you were there. So tell me.
@@ -106,7 +113,8 @@ MORAG: Not on the air. Not now. When this blows through, you and I are going to 
 ! static
 RORY: North Point, Kittiwake. Callum, you'll think I'm daft. Over.
 CALLUM: Go ahead, Rory.
-RORY: I'm tied up in the Sound, and I've been watching. There's a boat came out from the lee of Pabbay. Old wooden boat, a wee motor-fisher. No lights. Not a single light, Callum.
+RORY: I'm tied up in the Sound, and I've been watching.
+RORY: There's a boat came out from the lee of Pabbay. Old wooden boat, a wee motor-fisher. No lights. Not a single light, Callum.
 RORY(scared): She's heading your way. Not for the Sound. For your landing, under the light. Over.
 ~ On the radar a small hard echo is moving in from the north, steady as a clock.
 
@@ -115,8 +123,10 @@ RORY(scared): She's heading your way. Not for the Sound. For your landing, under
 == opt_ch3_hector mode=radio
 CALLUM: Gannet, North Point. Are you snug, Hector? Over.
 ! static
-HECTOR: Snug as a dog in a basket, North Point. Lying to two anchors in the West Gut lee, and the passengers asleep at last. Over.
-HECTOR: I was thinking of your father. On a night like this he'd have had the kettle on and the tide tables open, and Sandy Ross up from the boat telling lies about herring.
+HECTOR: Snug as a dog in a basket, North Point. Two anchors down in the shelter of the West Gut.
+HECTOR: And the passengers asleep at last. Over.
+HECTOR: I was thinking of your father.
+HECTOR: On a night like this he'd have had the kettle on and the tide tables open, and Sandy Ross up from the boat telling lies about herring.
 * Sandy Ross? -> sandy
 * He never spoke of it. -> never
 = sandy
@@ -127,3 +137,60 @@ HECTOR(sorry): Och. I'm sorry, Callum. I'm an old fool tonight. Gannet out.
 = never
 HECTOR(sorry): No. He wouldn't, after. Nobody on Harris said the name for a long while. Gannet out.
 ! clue sandy
+
+# ---- SCRIPT_REVISION_2026-11 (approved 2026-11-17): chapter 3 additions. The Hendrika spawns from the
+# chapters.json beat hendrika_go (a ! ship line cannot carry JSON). ch3_fuel* are written for the Stage F
+# fuel run and are not played until that beat exists.
+
+== ch3_fuel mode=thought
+~ Five past one. The day-tank glass is down on the red line.
+~ She's run since four this afternoon. Down to the drums, then, and pump her up by hand.
+~ The torch, and the stair door. Mind the ladder: it'll be wet in this.
+
+== ch3_pump mode=thought
+> [The hand pump: a dry rasp, then the suck and knock of diesel coming up]
+~ Forty strokes and she's drawing. Twenty more.
+~ That's near the bottom of the drum. I'll have stirred up every drop of water in it.
+
+== ch3_fuel_done mode=thought
+~ Day tank full. The door shut and dogged behind me.
+~ A hundred and nine steps down to the base door, and nobody on them but me.
+
+== ch3_sked_missed mode=radio
+CALLUM: Sgeir Mhor, Sgeir Mhor, this is North Point. Two o'clock schedule. Over.
+! wait 4
+CALLUM: Sgeir Mhor, North Point. Murdo, do you hear me? Over.
+! static
+> [A carrier. No voice. Then nothing.]
+~ Sgeir Mhor's off the air. Murdo will be at his batteries with a torch in his teeth.
+~ If it can do that to Sgeir Mhor, it can do it here.
+
+== ch3_hendrika mode=radio
+! static
+VISSER: North Point Light, North Point Light, this is Hendrika, Hendrika, Papa Echo Juliett X-ray. Over.
+* Hendrika, North Point. Go ahead. Over. -> go
+* Hendrika, North Point. Say your position. Over. -> pos
+= go
+VISSER: Good morning, North Point Light. I did not expect a voice at this hour. On my chart you are a light and nothing more. Over.
+-> ask
+= pos
+VISSER: Five miles west of you, North Point Light, and not liking it. Over.
+= ask
+VISSER: I am timber for Stornoway, and late. My chart is the old edition.
+VISSER: I would like the West Gut, please, if you will tell me it is still where my chart says. Over.
+* She's where your chart says. Steer for the light, and I'll put you on the line. Over. -> help
+* Stay outside, Hendrika. Heave to till morning. Over. -> outside
+= help
+! set helped_hendrika=1
+VISSER: Thank you, North Point Light. My wife says you have a kind voice for such a bad night. Over.
+-> END
+= outside
+VISSER: Understood. We will heave to and drink coffee. Hendrika out.
+
+== ch3_hendrika_in mode=radio
+[if saved("Hendrika")] VISSER: North Point Light, Hendrika. Anchored in the West Gut lee. Thank you. Over.
+[if saved("Hendrika") and saved("Gannet")] VISSER: There is a schooner here also. Her master is waving a lamp at us. Over.
+[if saved("Hendrika")] VISSER: My wife says to tell you, North Point. A good keeper. Hendrika out.
+[if saved("Hendrika")] ~ A good keeper. He's no way of knowing any different.
+[if lost("Hendrika")] ~ The Hendrika's echo goes into the broken water at the edge of the Gut, and doesn't come out.
+[if lost("Hendrika")] ~ Morag's voice, calling the lifeboat. Then the lifeboat's, answering.

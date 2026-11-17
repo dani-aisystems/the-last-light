@@ -1012,6 +1012,51 @@ def props_atlas():
     rough.save(TEX / "T_LL_Props_rough.png", optimize=True)
 
 
+def rows_1971():
+    """Tonight's log rows (chapters.json station_log is the same canon, verbatim)."""
+    C = CALLUM
+    return [
+        # brief 2026-11-06 (D8-a, Daniel): the evening starts with flat cells; the light comes after the engine
+        (C, "14.11", "16.22", "SW 6", "Overcast, rain", "Batteries flat. Engine started, on charge."),
+        (C, "", "16.40", "SW 6", "Rain", "Light exhibited. Lamp normal."),
+        (C, "", "18.30", "SW 7", "Heavy rain", "Radio check Stornoway CG. Gale warning, severe gale 9."),
+        (C, "", "18.50", "SW 7", "Heavy rain", "Kittiwake (SY 37) brought in by North Sound on radio bearings."),
+        # audit Stage C (SCRIPT_REVISION_2026-11.md 2.4): the 21.00 check the radio card promises
+        (C, "", "21.00", "SW 7", "Heavy rain", "Radio check Stornoway CG. Barometer 981 mb, falling."),
+        (C, "", "23.25", "SW 7", "Heavy rain", "Stornoway CG on Ch. 16. All well."),
+    ]
+
+
+def log_1971_doc(rows71):
+    """Stage 3B (C10): the entries follow tonight's order (radio check 18.30, Kittiwake 18.50, 21.00, Morag 23.25)."""
+    return ("Station log, Sunday 14 November 1971", log_page(1971, rows71, 71, "NOVEMBER", 26),
+            "14.11.71 Sun. 16.22 SW 6, overcast, rain. Batteries flat. Engine started, on charge. / 16.40 Light exhibited. Lamp normal. / "
+            "18.30 Radio check Stornoway CG. Gale warning, severe gale 9. / 18.50 Kittiwake (SY 37) brought in by North Sound "
+            "on radio bearings. / 21.00 Radio check Stornoway CG. Barometer 981 mb, falling. / 23.25 Stornoway CG on Ch. 16. "
+            "All well.  (Hand: C. Mackay)")
+
+
+FORECAST_2200 = ["GALE WARNING  ISSUED 2200 GMT 14 NOV 1971", "",
+                 "HEBRIDES MINCHES  SOUTHWESTERLY SEVERE GALE 9",
+                 "NOW IN FORCE  INCREASING STORM 10 IMMINENT", "",
+                 "MALIN  SOUTHWESTERLY SEVERE GALE 9", "",
+                 "SEA AREA FORECASTS  RAIN  VISIBILITY POOR", "",
+                 "STORNOWAY COASTGUARD  CH 16  CH 67", "",
+                 "-- TELEPRINTER NORTH POINT LT --"]
+
+
+def forecast_2200():
+    """Audit Stage C (SCRIPT_REVISION_2026-11.md 2.2): the 22:00 sheet, in the 1600 sheet's layout."""
+    W, H = 1000, 900
+    img = paper(W, H, 10, (240, 238, 228), 0)
+    d = ImageDraw.Draw(img)
+    y = 80
+    for l in FORECAST_2200:
+        d.text((60, y), l, font=TYPE(28), fill=(40, 40, 70))
+        y += 50
+    return img
+
+
 def extra_docs():
     """Audit D7 (2026-11-16): the room's notices as readable documents, drawn by the same code that paints
     them into the atlases (one source): KEEPER'S ORDERS (textures.notice at 2x), the supply diagram and the
@@ -1028,6 +1073,9 @@ def extra_docs():
     add("radio_card", "Card in the radio's bezel", sked_card(sw * 3, sh * 3, 3), "\n".join(t for t, _s in SKED))
     # audit D6: the 1953 volume, open at Stornoway, November (invented figures; see tide_rows_1953)
     add("tide_tables", "Admiralty Tide Tables, 1953", tide_page_1953(), tide_text_1953())
+    add("forecast_2200", "Teleprinter, 2200 GMT", forecast_2200(),
+        "GALE WARNING ISSUED 2200 GMT 14 NOV 1971. HEBRIDES MINCHES SOUTHWESTERLY SEVERE GALE 9 NOW IN FORCE. INCREASING STORM 10 IMMINENT.")
+    add("log_1971", *log_1971_doc(rows_1971()))
 
 
 def PA_SIZE(name):
@@ -1068,19 +1116,8 @@ def main():
         print("DOCS_RESULT extra", json.dumps([k for k in new if only is None or k in only]))
         return
     C = CALLUM
-    rows71 = [
-        # brief 2026-11-06 (D8-a, Daniel): the evening starts with flat cells; the light comes after the engine
-        (C, "14.11", "16.22", "SW 6", "Overcast, rain", "Batteries flat. Engine started, on charge."),
-        (C, "", "16.40", "SW 6", "Rain", "Light exhibited. Lamp normal."),
-        (C, "", "18.30", "SW 7", "Heavy rain", "Radio check Stornoway CG. Gale warning, severe gale 9."),
-        (C, "", "18.50", "SW 7", "Heavy rain", "Kittiwake (SY 37) brought in by North Sound on radio bearings."),
-        (C, "", "23.25", "SW 7", "Heavy rain", "Stornoway CG on Ch. 16. All well."),
-    ]
-    # Stage 3B (C10): the entries follow tonight's order (radio check 18.30, Kittiwake 18.50, Morag 23.25)
-    add("log_1971", "Station log, Sunday 14 November 1971", log_page(1971, rows71, 71, "NOVEMBER", 26),
-        "14.11.71 Sun. 16.22 SW 6, overcast, rain. Batteries flat. Engine started, on charge. / 16.40 Light exhibited. Lamp normal. / "
-        "18.30 Radio check Stornoway CG. Gale warning, severe gale 9. / 18.50 Kittiwake (SY 37) brought in by North Sound "
-        "on radio bearings. / 23.25 Stornoway CG on Ch. 16. All well.  (Hand: C. Mackay)")
+    rows71 = rows_1971()
+    add("log_1971", *log_1971_doc(rows71))
     rows53 = [
         (C, "14.11", "23.30", "SW 8", "Heavy rain", "I. Mackay on watch. Light good."),
         (C, "15.11", "01.30", "SW 9", "Rain, poor vis.", "Trawler observed standing in too close to East Gut. No response to light."),

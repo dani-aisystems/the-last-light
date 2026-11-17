@@ -932,6 +932,19 @@ def build_desk(B):
                 box(B.bm("M_LL_Bakelite", "SM_Props"), dp(b, px, zc_ - pitch * 0.2 - 0.002, front - 0.0182), (0.003, 0.0006, 0.009), bs, bevel=0.0)
     B.collider("desk", dp(b, 0, 0.42, c), (w + 0.04, d + 0.04, 0.84), bs)
     B.empty("IA_drawer", dp(b, -(w / 2 - 0.27), 0.2, c - d / 2 - 0.02), (0.24, 0.06, 0.11), bs)
+    # Stage C (SCRIPT_REVISION_2026-11.md 2.2): the teleprinter the sheets come off, on its own steel stand under
+    # the east bay's sill (top 0.86 m, the sill is 0.95), clear of the desk's right end and the optic drive
+    tpb = 30.0
+    tr2, to2, tu2 = wall_frame(tpb)
+    t3 = basis(tr2, to2, tu2)
+    tpd = back_dist(0.5) - 0.24
+    box(B.bm("M_LL_SteelPaint", "SM_Props"), dp(tpb, 0, 0.3, tpd), (0.48, 0.4, 0.6), t3, bevel=0.01)          # stand
+    box(B.bm("M_LL_Bakelite", "SM_Props"), dp(tpb, 0, 0.62, tpd + 0.02), (0.44, 0.34, 0.04), t3, bevel=0.008)  # base
+    box(B.bm("M_LL_SteelPaint", "SM_Props"), dp(tpb, 0, 0.73, tpd + 0.06), (0.42, 0.26, 0.18), t3, bevel=0.03)  # hood
+    box(B.bm("M_LL_Bakelite", "SM_Props"), dp(tpb, 0, 0.655, tpd - 0.12), (0.36, 0.08, 0.03), t3, bevel=0.005)   # keyboard
+    cyl(B.bm("M_LL_Paper", "SM_Props"), dp(tpb, 0, 0.84, tpd + 0.1), 0.045, 0.045, 0.22, 20, basis_z(tr2))      # paper roll
+    box(B.bm("M_LL_Paper", "SM_Props"), dp(tpb, 0, 0.87, tpd + 0.02), (0.21, 0.002, 0.1), t3, bevel=0.0)        # the sheet coming off
+    B.collider("teleprinter", dp(tpb, 0, 0.44, tpd), (0.5, 0.42, 0.88), t3)
     # teleprinter forecast sheet beside the radar
     fs = basis_z(u, r * math.cos(-0.25) + o * math.sin(-0.25))
     B.empty("IA_forecast", dp(b, 0.82, top + 0.03, c - 0.25), (0.12, 0.15, 0.04), fs)
@@ -2077,6 +2090,7 @@ def build_optic_drive(B):
     cyl(B.bm("M_LL_Iron", "SM_OpticDrive"), ck, 0.02, 0.02, 0.08, 10, basis_z(-o))
     box(B.bm("M_LL_Iron", "SM_OpticDrive"), ck - o * 0.04 + u * 0.06, (0.02, 0.02, 0.14))
     cyl(B.bm("M_LL_WoodDark", "SM_OpticDrive"), ck - o * 0.07 + u * 0.12, 0.016, 0.016, 0.07, 10, basis_z(-o))
+    B.empty("IA_clockwork", ck - o * 0.04 + u * 0.06, (0.07, 0.07, 0.12), basis(r_, o, u))   # Stage C: the evening round
     wt = c + r_ * 0.5 + o * 0.12
     seg_cyl(B.bm("M_LL_Iron", "SM_OpticDrive"), wt + u * (F - 0.3), wt + u * (F + 0.55), 0.06, 16)
     cyl(brass, wt + u * (F + 0.01), 0.085, 0.085, 0.02, 20)
@@ -2303,9 +2317,13 @@ def build_props(B):
     bb3 = basis(br, bu, -bo)
     cyl(B.bm("M_LL_Brass", "SM_Props"), bc + bo * 0.006, 0.125, 0.12, 0.03, 40, bb3)
     disc_uv(pm, B.uv(pm), bc - bo * 0.0095, bb3, 0.105, 48, 4, cell_px=1024, atlas_px=2048)        # cell 4 = (0, 1024)
-    na = math.radians(-135 + (975 - 950) / 100 * 270)                                           # 975 mb: storm
-    nd = br * math.sin(na) + bu * math.cos(na)
-    seg_cyl(B.bm("M_LL_Iron", "SM_Props"), bc - bo * 0.013 - nd * 0.02, bc - bo * 0.013 + nd * 0.09, 0.0025, 6)
+    # Stage C (SCRIPT_REVISION_2026-11.md 2.2): the needle is its own part, baked at 981 mb (the 20:00 reading);
+    # station.gd (NDL_barometer) turns it about its local Z with the story clock (falling into the storm, rising at dawn)
+    def needle(bm, uvl, a=math.radians((981 - 1000) / 100 * 270)):
+        dn = Vector((math.sin(a), math.cos(a), 0.0))
+        seg_cyl(bm, -dn * 0.02, dn * 0.09, 0.0025, 6)
+    B.part("NDL_barometer", "M_LL_Iron", bc - bo * 0.013, bb3, needle)
+    B.empty("IA_barometer", bc - bo * 0.03, (0.14, 0.14, 0.04), bb3)
     cyl(B.bm("M_LL_Brass", "SM_Props"), bc - bo * 0.014, 0.01, 0.01, 0.006, 12, bb3)
     torus(B.bm("M_LL_Brass", "SM_Props"), bc + bu * 0.14 + bo * 0.004, 0.016, 0.0025, 16, 6, basis_z(br))   # hanging ring
     cyl(B.bm("M_LL_Iron", "SM_Props"), bc + bu * 0.152 - bo * 0.002, 0.004, 0.004, 0.012, 8, basis_z(-bo))  # its screw
@@ -2358,15 +2376,30 @@ def build_props(B):
     # R5 (Daniel: "the box beside the Old Station Logs"): a blank paper block became a printed lamp carton
     quad_uv(tpm, tuv, bbx - to0 * 0.0706, basis(tr0, tu0, -to0), 0.152, 0.104, region_rect("bulb_carton"))
     build_coat_rack(B)                                              # cabin pass (IMG_3137)
-    # (C) kettle on an electric ring and a mug on the west window sill: the keeper's long night
+    # (C) kettle and a mug on the west window sill: the keeper's long night. Audit Stage C (SCRIPT_REVISION
+    # 2026-11.md, open question 4): the kettle stands on a paraffin Primus, not an electric ring, so tea can be
+    # made with the engine dead (the chapter 5 generator lock). Fount, riser, burner, three legs, pot rests, pump.
     kb = -42.0
     kr, ko, ku = wall_frame(kb)
     ks = dp(kb, 0, 0.95, R_IN - 0.06)
-    cyl(B.bm("M_LL_Iron", "SM_Props"), ks + ku * 0.015, 0.1, 0.1, 0.03, 20)
-    lathe(B.bm("M_LL_EngineGreen", "SM_Props"), ks + ku * 0.03, Matrix.Identity(3),
+    pbr, pir = B.bm("M_LL_Brass", "SM_Props"), B.bm("M_LL_Iron", "SM_Props")
+    lathe(pbr, ks, Matrix.Identity(3), [(0.0, 0.0), (0.06, 0.0), (0.066, 0.02), (0.064, 0.05), (0.045, 0.072),
+                                         (0.012, 0.078), (0.0, 0.078)], 24)                       # the fount
+    seg_cyl(pbr, ks + ku * 0.075, ks + ku * 0.112, 0.007, 8)                                    # riser
+    cyl(pir, ks + ku * 0.118, 0.026, 0.034, 0.014, 16)                                          # burner, blackened
+    for k in range(3):
+        a3 = 2 * math.pi * k / 3 + 0.5
+        rd = kr * math.cos(a3) + ko * math.sin(a3)
+        seg_cyl(pir, ks + rd * 0.058 + ku * 0.04, ks + rd * 0.085 + ku * 0.135, 0.004, 6)       # legs
+        seg_cyl(pir, ks + rd * 0.085 + ku * 0.135, ks + rd * 0.03 + ku * 0.135, 0.004, 6)       # pot rests
+    seg_cyl(pbr, ks + kr * 0.06 + ku * 0.03, ks + kr * 0.1 + ku * 0.03, 0.005, 8)               # pump
+    cyl(pbr, ks + kr * 0.103 + ku * 0.03, 0.009, 0.009, 0.007, 10, basis_z(kr))
+    kk = ks + ku * 0.139                                                                        # the kettle on the rests
+    lathe(B.bm("M_LL_EngineGreen", "SM_Props"), kk, Matrix.Identity(3),
           [(0.0, 0.0), (0.09, 0.0), (0.1, 0.05), (0.085, 0.13), (0.03, 0.16), (0.0, 0.16)], 24)
-    seg_cyl(B.bm("M_LL_EngineGreen", "SM_Props"), ks + ku * 0.09 + kr * 0.08, ks + ku * 0.15 + kr * 0.15, 0.012, 8)   # spout
-    torus(B.bm("M_LL_Bakelite", "SM_Props"), ks + ku * 0.2, 0.06, 0.008, 16, 5, basis_z(kr))                       # handle
+    seg_cyl(B.bm("M_LL_EngineGreen", "SM_Props"), kk + ku * 0.06 - kr * 0.08, kk + ku * 0.12 - kr * 0.15, 0.012, 8)   # spout
+    torus(B.bm("M_LL_Bakelite", "SM_Props"), kk + ku * 0.17, 0.06, 0.008, 16, 5, basis_z(kr))                       # handle
+    B.empty("IA_primus", ks + ku * 0.15, (0.12, 0.12, 0.17), basis(kr, ko, ku))
     mug = dp(kb + 4.5, 0, 0.95, R_IN - 0.04)
     enamel_mug(B, mug, basis(kr, ko, ku) @ rot_about((0, 0, 1), -50.0), dregs=True)   # G4c (item 17): was a primitive cylinder
     # cabin pass (IMG_3136): the rubber torch LIES on the top shelf by the stair door; it is a real object the

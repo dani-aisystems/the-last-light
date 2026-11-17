@@ -5,7 +5,7 @@
 
 == ch5_ross mode=person
 [if has_flag("door_open")] ~ He stands just inside the door and lets the water run off him onto Father's floor. He won't take the chair.
-[if has_flag("door_shut")] ~ I sit with my back against the door. I can hear him breathing on the other side of two inches of oak.
+[if has_flag("door_shut")] ~ I sit with my back against the door. I can hear him breathing on the other side of the steel.
 [if not has_flag("knows_name")] ROSS: You'll be wanting a name. Alasdair Ross. Master of the Mary Ellen, SY two-one-four. Presumed drowned.
 [if not has_flag("knows_name")] ! set knows_name=1
 ROSS: We struck at two minutes to two. I know because I was looking at the clock in the wheelhouse when the light didn't come round.
@@ -25,6 +25,8 @@ ROSS: Then your father told the Inquiry the light was burning. The Board's own k
 = stayed
 ROSS: So I let Alasdair Ross stay dead. My wife was told I'd put seven good men on the rocks with drink in me. My girl grew up hearing it in the schoolyard.
 > [He coughs. It goes on too long.]
+
+== ch5_ross_2 mode=person
 ROSS: Two years ago I'm in the Mitchell Library in Glasgow with the Inquiry report, the way some men read their Bible. And I see it. Mayday logged at Stornoway at oh-one-fifty-two. "No light."
 ROSS: And at the back, a photostat of your station log. Light failed at oh-two-ten.
 ROSS: I knew that hand. You wrote out the stores for the relief boat, the summers I ran them out for the Board. Small square letters. A clerk's hand.
@@ -48,6 +50,10 @@ ROSS: You were twenty-three. You did what your father told you. God help me, so 
 ROSS: The truth in the light's own book. In your hand, since it was your hand. And I want to see my girl's ship past the Gut tonight. She's on the Stornoway run. She'll be abeam of your light by five.
 -> calls
 = calls
+-> END
+
+== ch5_ross_3 mode=person
+~ The wind's got into the stair. Neither of us says anything for a while.
 * And the calls on sixteen. That was you. -> calls_ask
 * (Say nothing.) -> calls_quiet
 = calls_ask
@@ -120,10 +126,13 @@ MORAG: ...I'm going to need to sit down.
 ! static heavy
 ELSPETH: Mayday, Mayday, Mayday. This is Iona Star, Iona Star, Iona Star.
 ELSPETH: Master's injured. This is the mate. Steering gear failed. We've rigged hand steering aft, slow to answer.
-ELSPETH: The flood tide's setting us down onto North Point faster than we can steer. Twelve souls aboard. Position one point two miles north-east of North Point Light. Over.
-MORAG: Iona Star, Stornoway. Mayday received. Lifeboat is engaged at the Shiants, two hours. North Point Light is your nearest station. Over.
+ELSPETH: The flood tide's setting us down onto North Point faster than we can steer.
+ELSPETH: Twelve souls aboard. Position one point two miles north-east of North Point Light. Over.
+MORAG: Iona Star, Stornoway. Mayday received. Lifeboat is engaged at the Shiants, two hours.
+MORAG: North Point Light is your nearest station. Over.
 [if has_flag("door_open")] ~ Ross has his hand on the back of the chair. All the colour has gone out of his face.
 [if has_flag("door_shut")] ~ Behind the door, something heavy slides down to the floor.
+! set elspeth_named=1
 ROSS@room: That's Elspeth. That's my girl.
 
 == ch5_dark mode=thought
@@ -131,3 +140,20 @@ ROSS@room: That's Elspeth. That's my girl.
 [if sim.gen == 2] ~ The engine coughs and dies. It ran too hot for too long.
 ~ A second later the main breaker goes with a crack like a pistol, and the room is black.
 ~ And overhead the light goes out.
+
+# ---- SCRIPT_REVISION_2026-11 (approved 2026-11-17): chapter 5, movement 2 opens with the cup
+
+== ch5_kettle mode=thought
+[if has_flag("door_open")] ~ He's shaking. Not with the cold, or not only with it.
+[if has_flag("door_shut")] ~ He's coughing his lungs up on the top step, and I'm sitting here.
+~ The Primus. It's something to do with my hands.
+
+== ch5_cup mode=person
+! set kettle_ch5=1
+> [The Primus roars. The kettle ticks, and then it sings.]
+[if has_flag("door_open")] ! set gave_cup=1
+[if has_flag("door_open")] ~ I take down the other mug, the one I've never used, and fill it, and hold it out.
+[if has_flag("door_open")] ROSS: ...Thank you.
+[if has_flag("door_open")] ~ He holds it in both hands and doesn't drink. Just holds it.
+[if has_flag("door_shut")] ~ I've poured two. I never thought about it. Two mugs, the way Father always did, summers.
+[if has_flag("door_shut")] ~ I set his on the floor by the door, as if he could reach it.

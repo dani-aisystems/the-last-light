@@ -15,7 +15,15 @@ const TABLE := {
 	"HECTOR": {"name": "Hector Macleod", "call": "GANNET  SY 112", "sub": "Schooner · master H. Macleod", "art": "schooner", "where": "radio"},
 	"CORRIE": {"name": "Corrie May", "call": "CORRIE MAY  BRD 9", "sub": "Fishing", "art": "fishing", "where": "radio"},
 	"LOWESTOFT": {"name": "Lowestoft Star", "call": "LOWESTOFT STAR  LT 401", "sub": "Schooner", "art": "schooner", "where": "radio"},
-	"ELSPETH": {"name": "Elspeth Ross", "call": "IONA STAR  ·  GMXQ", "sub": "Coaster · 1st mate E. Ross", "art": "steamer", "where": "radio"},
+	"ELSPETH": {"name": "Elspeth Ross", "call": "IONA STAR  ·  GMXQ", "sub": "Coaster · 1st mate E. Ross", "art": "steamer", "where": "radio",
+		"hidden_as": "IONA", "reveal": "elspeth_named"},
+	# Stage C (SCRIPT_REVISION_2026-11.md 3.2): the Iona Star's mate before she gives her name
+	"IONA": {"name": "Iona Star", "call": "IONA STAR  ·  GMXQ", "sub": "Coaster · the mate", "art": "steamer", "where": "radio"},
+	# Stage C: the four new radio voices (DECISIONS Q15), all known on first contact; line cards, no portraits
+	"GILLIES": {"name": "Neil Gillies", "call": "SULA  ·  NLB TENDER", "sub": "Northern Lighthouse Board · master N. Gillies", "art": "steamer", "where": "radio"},
+	"MACASKILL": {"name": "Murdo MacAskill", "call": "SGEIR MHÒR LIGHT", "sub": "Principal keeper M. MacAskill", "art": "station", "where": "radio"},
+	"MARSH": {"name": "Dr Helen Marsh", "call": "WESTERN VENTURE", "sub": "Survey vessel · Dr H. Marsh, survey party", "art": "steamer", "where": "radio"},
+	"VISSER": {"name": "Jan Visser", "call": "HENDRIKA  ·  PEJX", "sub": "Coaster · master J. Visser", "art": "steamer", "where": "radio"},
 	"MARY ELLEN": {"name": "Mary Ellen", "call": "MARY ELLEN  SY 214", "sub": "Registry: LOST 15.11.1953", "art": "fishing", "where": "radio"},
 	"VISITOR": {"name": "The man at the door", "call": "", "sub": "", "art": "", "where": "room"},
 	"ROSS": {"name": "Alasdair Ross", "call": "MARY ELLEN  SY 214", "sub": "A. Ross, master", "art": "fishing", "where": "room",

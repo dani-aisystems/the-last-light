@@ -122,6 +122,11 @@ var DEVICES := {
 	"diagram": {"kind": "doc", "prompt": "Study the supply diagram"},
 	"radio_card": {"kind": "doc", "prompt": "Read the card in the radio"},
 	"pipe": {"kind": "info", "prompt": "Look at the pipe"},               # G4a: Iain's pipe (Daniel 2026-11-08)
+	# Stage C (SCRIPT_REVISION_2026-11.md): the evening round (ch1) and the cup (ch5). Their IA_ bodies come
+	# with the Phase B build; until then they simply have no target in the room.
+	"barometer": {"kind": "doc", "prompt": "Read the barometer"},
+	"clockwork": {"kind": "doc", "prompt": "Wind the standby clockwork"},
+	"primus": {"kind": "doc", "prompt": "Light the Primus"},
 }
 ## Set by game_fp (Stage 2): documents only open in the story campaign; the door's prompt and whether
 ## pressing it does anything follow the chapter and the door state.
@@ -1042,6 +1047,8 @@ func _process_body(delta: float) -> void:
 	var minutes := k.clock_minutes()
 	_set_angle("NDL_clock_m", -fmod(minutes, 60.0) / 60.0 * TAU, delta, 50.0)
 	_set_angle("NDL_clock_h", -fmod(minutes / 60.0, 12.0) / 12.0 * TAU, delta, 50.0)
+	# Stage C: the barometer follows the story clock (baked at 981 mb; 2.7 degrees of dial per millibar)
+	_set_angle("NDL_barometer", -deg_to_rad((baro_mb(k.clock_min if k.story_mode else 1200.0) - BARO_BAKED_MB) * 2.7), delta, 1.0)
 	var drawn := k.draw_bearing()           # R2: interpolated between physics steps
 	_set_angle("PT_optic_drive", -drawn * 3.0, delta, 60.0)
 	_set_angle("PT_optic_gear", -drawn * 2.0, delta, 60.0)
@@ -1140,6 +1147,24 @@ func _set_gauge(name_: String, v: float, delta: float, speed := 4.0) -> void:
 ## Writes the transform only when the pose really changed (1p performance): any transform write marks the
 ## part dirty, and a dirty shadow caster makes Godot re-render the shadow map of every shadowed light that
 ## reaches it. Settled controls written every frame kept all 8 shadow maps re-rendering (2.3M primitives).
+## Stage C (SCRIPT_REVISION_2026-11.md 2.2): the glass by the story clock (minutes from Sunday midnight: 1200 is
+## 20:00, 1465 is 00:25 on Monday, 1830 is 06:30). Callum reads 981 at 20:00 and Murdo's schedule has 973 near
+## midnight; the storm bottoms out before four and the glass rises at dawn as the wind veers westerly.
+const BARO := [[980.0, 988.0], [1200.0, 981.0], [1465.0, 973.0], [1560.0, 966.0], [1680.0, 960.0], [1770.0, 962.0], [1830.0, 970.0]]
+const BARO_BAKED_MB := 981.0          # the needle's pose in the GLB (build.py)
+
+
+static func baro_mb(clock_min: float) -> float:
+	if clock_min <= BARO[0][0]:
+		return BARO[0][1]
+	for i in range(1, BARO.size()):
+		if clock_min <= BARO[i][0]:
+			var a: Array = BARO[i - 1]
+			var b: Array = BARO[i]
+			return lerpf(a[1], b[1], (clock_min - a[0]) / (b[0] - a[0]))
+	return BARO[-1][1]
+
+
 func _set_angle(name_: String, target: float, delta: float, speed := 8.0) -> void:
 	if not parts.has(name_):
 		return

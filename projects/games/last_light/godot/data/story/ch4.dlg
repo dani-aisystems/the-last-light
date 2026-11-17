@@ -32,7 +32,8 @@
 == ch4_mf_morag mode=radio
 ! set called_morag=1
 ~ Sixteen's blocked solid. The old MF set, then. Two-one-eight-two.
-CALLUM: Stornoway, Stornoway, North Point on two-one-eight-two. There's a boat tied up at my landing. No lights, and somebody's sitting on sixteen. Over.
+CALLUM: Stornoway, Stornoway, North Point on two-one-eight-two.
+CALLUM: There's a boat tied up at my landing. No lights, and somebody's sitting on sixteen. Over.
 ! static
 MORAG: ...North Point, Stornoway. I hear you, Callum. Faint. The lifeboat's out on a shout at the Shiants. Two hours at least. Over.
 MORAG(worried): Whoever it is, you do not open that door. Do you hear me? Over.
@@ -66,6 +67,7 @@ VISITOR: Private, is it. The Board's landing, the Board's light, the Board's boo
 * [if clue("same_hand")] Tell me what happened on the fifteenth of November, 1953. -> fifteenth
 = name
 VISITOR: Your father's boy. You were thin as a boathook, and you used to sing to the clockwork when you wound it. Fear a' bhàta. Your father hated that song.
+[if has_flag("sang")] ~ I was humming it tonight, at the crank. I never even noticed.
 VISITOR: He kept a half-bottle of Grant's behind the Admiralty Tables. Top shelf. Is it still there?
 ! clue grants
 [if has_flag("found_grants")] ~ It is. I had my hand on it this afternoon.
@@ -77,7 +79,8 @@ VISITOR: To come in out of the rain, first. Then to see a page in your book.
 ! set called_morag=1
 ~ I back away from the door to the desk without taking my eyes off it. Sixteen's still dead. The MF set, then.
 CALLUM: Stornoway, North Point on two-one-eight-two. There's a man at my door. Came off that dark boat. Over.
-MORAG(worried): ...North Point, Stornoway. Callum, the lifeboat's out on a shout at the Shiants. Two hours at least. Do not open that door. Do you hear me? Over.
+MORAG(worried): ...North Point, Stornoway. Callum, the lifeboat's out on a shout at the Shiants. Two hours at least.
+MORAG: Do not open that door. Do you hear me? Over.
 CALLUM(guarded): I hear you.
 MORAG: I'm staying on the set. Stornoway listening.
 ~ Back to the door. The knocking hasn't come again. He's waiting.
@@ -91,7 +94,7 @@ VISITOR: At ten to two the light at North Point was dark. I said so on the radio
 VISITOR: The clockwork stuck tonight, didn't it. At forty-six degrees. It always did.
 > [He coughs. It goes on a long time.]
 VISITOR: Open the door, Callum. I'm sixty-four, I'm soaked to the bone, and I've no wish to harm you. I want to talk to you before I die. I'll not be long about either.
-* [if has_flag("bolted")] (Draw the bolt and open the door.) -> open
+* [if has_flag("bolted")] (Turn the wheel and open the door.) -> open
 * [if not has_flag("bolted")] (Open the door.) -> open
 * Say who you are first. Your name. -> name_ask
 * (Keep the door shut.) -> shut
@@ -100,14 +103,14 @@ VISITOR: You know my name. Your father wrote it in his book, under the word "bla
 ! wait 1.5
 VISITOR: Alasdair Ross. Master of the Mary Ellen.
 ! set knows_name=1
-* [if has_flag("bolted")] (Draw the bolt and open the door.) -> open
+* [if has_flag("bolted")] (Turn the wheel and open the door.) -> open
 * [if not has_flag("bolted")] (Open the door.) -> open
 * (Keep the door shut.) -> shut
 = open
 ! set door_open=1
 ! door_open
-[if has_flag("bolted")] ~ The bolt is stiff with salt. The door comes in with the storm behind it.
-[if not has_flag("bolted")] ~ It was never even bolted. The door comes in with the storm behind it.
+[if has_flag("bolted")] ~ The wheel's stiff with salt. The dogs come up one at a time, and the door swings in with the cold of the whole stair behind it.
+[if not has_flag("bolted")] ~ I never dogged it hard. One turn of the wheel, and the door swings in with the cold of the whole stair behind it.
 ~ An old man in an oilskin, one hand on the rail, rain running off the brim of his sou'wester. He doesn't step in until I stand aside.
 ! visitor_enter
 ROSS: Thank you.
@@ -125,8 +128,8 @@ VISITOR: I'll talk through the door, then. I've talked to worse.
 # ---- examinations and asides (§11.2)
 
 == look_bolt mode=thought
-> [The bolt goes home]
-~ Two inches of oak and a bolt my father fitted. It'll have to do.
+> [The wheel goes hard over. The dogs bite home.]
+~ A steel door, and two dogs my father kept greased. It'll have to do.
 
 == look_phone mode=thought
 ~ The GPO line to Leverburgh exchange. Dead since the September gale took the cable on the shore.
