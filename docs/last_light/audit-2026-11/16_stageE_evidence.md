@@ -150,3 +150,38 @@ About the SY 214 row: the figures read clearly as white registration numbers, bu
 - **For Daniel's eye:**
   - the colour schemes: *Kittiwake* navy, *Corrie May* green, black boat tarred, *Gannet* black with a white cove line, drifter black with a buff funnel, *Iona Star* black with red boot-top and a star funnel, *Hendrika* grey;
   - the invented funnel colours of *Iona Star* and *Hendrika*.
+
+---
+
+# Part E2 (branch `stage-e2`, worktree `exports/worktrees/last_light_e2`): the vessels in the game
+
+Daniel, 2026-11-17: "You determine, then E2."
+
+E2 runs on its own branch. Stage M has recorded no milestone yet, so the main tree stays as its baseline expects. The branch merges after Stage M's M4. The ocean-shader items (whitecaps, shore and reef foam, depth tint) wait for Stage M's `ocean.gdshader` work.
+
+## E2a to E2c: what changed
+
+| Item | Change | Where |
+|---|---|---|
+| Models | The seven v003 GLBs are synced as `godot/assets/models/ship_*.glb`, together with the textures Godot extracts from them (`ship_*_T_Vessel_*`, committed with the GLBs, since the import needs them). | `assets/models/` |
+| Lookup | `model_for()` tries `ship_<name>.glb` first (e.g. `ship_corrie_may`), then `ship_<kind>.glb`. If neither exists, the stand-in and DIMS are used. | `ship_view2.gd` |
+| Lights | Placed at the model's `NAV_*` / `DECK_*` empties, with each lamp's colour, energy and range as before. The glow sphere on a model is the size of the lens (0.09 m instead of 0.22); a deck lamp on a model gets no sphere. An unlit ship gets no lights, as before. | `ship_view2.gd` `LAMPS`, `_nav` |
+| Size | Length and beam come from the model's bounds. They drive the motion, the wake and the spray. | `ship_view2.gd` |
+| Motion | Heave, pitch and roll come from five points on the sea at 80 % of length and beam. The sea is the one the GPU draws: the horizontal Gerstner displacement is inverted (two fixed-point steps) before the height is read. Damping uses τ = 0.32·√L (1.0 s at 10 m, 1.75 s at 30 m). Bank into turns is capped at 0.18 rad × min(1, 15/L). | `surface_y`, `motion_targets`, `tick` |
+| Stand-in (M1) | The fallback hull is wound outward, so it is no longer culled from outside. | `_hull_mesh` |
+| Wake | A ribbon of the stern's track, one sample per 0.25 s, kept 16 s. It is in world space, widens with age, and fades with age and speed. A new `wake.gdshader` displaces it with the ocean's own Gerstner set, so it lies on the drawn sea. It is lit, not unshaded, so it doesn't glow at night. | `ship_view2.gd` `_wake_*`; `shaders/wake.gdshader` |
+| Bow spray | 48 GPU particles at the stem. They are driven by how fast the bow drops into a sea, times the storm and the speed; there is none on the spawn frame and none from a sinking ship. | `ship_view2.gd` `_make_spray`, `_spray_tick` |
+| Test | New file (`regress_test.gd` is Stage M's). | `tests/ship_view_test.gd` |
+
+## Verification (headless, `taskpolicy -b`, in the worktree)
+
+| Check | Result |
+|---|---|
+| `ship_view_test` | **PASS**, 75 checks:<br>• every name and kind loads the right file;<br>• one vessel mesh, its material kept;<br>• 5 lights (6 on the coasters), 0 on the Visitor;<br>• red to port, green to starboard, the port light at its empty;<br>• within DIMS;<br>• `surface_y` within **1.4 cm** of the GPU surface (reading the height at the rest point was up to 42 cm off);<br>• motion SD in a full storm, pitch / roll: launch 3.35° / 3.30°, coaster 1.67° / 2.15°;<br>• stand-in normals out 309 / 309;<br>• the wake's newest sample 0.5 m from the stern, 37 samples;<br>• spray only under way, never on spawn or when sinking. |
+| `regress_test` | **PASS** 449 / 449 (4 headless skips), the same as Stage P |
+| `story`, `opening`, `run_tests`, `interaction`, `qa_sweep`, `g5`, `save_compat` | **PASS**: 0 failed; 31 / 95 / 164 / 7,703 / 50 / 305 checks |
+| `sim_v2`, seeds 1 to 5 | **PASS**, no gate failures |
+| In-game look (binoculars at 120 / 230 / 400 m, through the glass and outside) | **NOT TESTED**: windowed captures need Daniel's OK. The existing `ship_<kind>_<range>` shots cover the four kind files. Wake and spray need a moving-ship shot in `capture_fp.gd` (Stage M's file) after the merge. |
+| Bench | **NOT TESTED**: it needs a free Mac and Daniel's OK |
+
+**Found on the way (not E2's):** Stage P's extracted body and hands textures (`assets/models/body_T_LL_*`, `hands_T_LL_*`, 24 files with their `.import`) were never committed. A clean checkout cannot load `body.glb` or `hands.glb`, and regress fails 8 checks there. They were copied into the worktree only; committing them in main is Daniel's call.
