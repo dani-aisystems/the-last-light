@@ -10,6 +10,7 @@ The approved plan of 2026-11-15, split into the documents Daniel's brief and Add
 | [12_perf_bisect.md](12_perf_bisect.md) | The performance bisect: what the frame time goes on, proposals waiting for Daniel |
 | [13_stageS_evidence.md](13_stageS_evidence.md) | Stage S: stairwell and door, with their evidence |
 | [15_stageP_evidence.md](15_stageP_evidence.md) | Stage P: the player body (the sitting glimpse, clothing, sleeves and grips), with its evidence |
+| [16_stageE_evidence.md](16_stageE_evidence.md) | Stage E, part E1: the vessel models in Blender (validation, kind mapping, review renders), awaiting approval |
 | [14_stageM_ocean_boundary_fog.md](14_stageM_ocean_boundary_fog.md) | Stage M: ocean boundary concealment and atmospheric fog (research and plan, awaiting approval) |
 | [SCRIPT_REVISION_2026-11.md](../../../projects/games/last_light/SCRIPT_REVISION_2026-11.md) | Stage C: the approved script revision, and (section 15) how it was built and verified |
 | [01_executive_summary.md](01_executive_summary.md) | Document 1: executive audit summary |

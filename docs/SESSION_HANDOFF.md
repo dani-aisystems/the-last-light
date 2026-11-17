@@ -26,6 +26,30 @@
     - copy the new `.blend` back afterwards.
   - The worktree `scratchpad/wt` can be removed; branch `stage-c-data` is merged.
 
+## NEW (2026-11-17): audit Stage E, part E1 (the vessel models in Blender) done, Daniel delegated the calls (Q21) and said go for E2; committed locally
+- **Record:** `docs/last_light/audit-2026-11/16_stageE_evidence.md`; DECISIONS Q21 (Daniel: build to today's DIMS). Plan: `~/.claude/plans/pasted-content-id-0830-start-the-agile-raven.md`.
+- **Built:** new `blender/vessels.py`:
+  - five designs as seven GLBs: ring-netter (*Kittiwake* → `ship_fishing`, *Corrie May*), the black boat (SY 214 → `ship_launch`), schooner (*Gannet* → `ship_schooner`), drifter (*Lowestoft Star*), coaster (*Iona Star* → `ship_steamer`, *Hendrika* with timber);
+  - each 4.2k to 5.4k triangles, one material `M_Vessel_<Id>`, one 1k set with baked AO, and `NAV_*` / `DECK_*` empties at the real fittings.
+  - `.blend` v003; exports `exports/last_light/gltf/ship_*_v003.glb`.
+- **Checks:** generator, Blender mesh, `validate_asset` (1 explained WARN each: the origin sits 0.4 m below the waterline per the contract), reimport, and `vessels.py --check-glb`: all PASS. New `tests/test_last_light_vessels.py` (29 tests); full pytest green.
+- **Renders:** new `blender/vessel_review.py`, which re-imports the GLBs. Sheets are at `renders/last_light/stageE/sheet_<vessel>.png`: three-quarter and side views at dusk and at night; 7x views at 120, 230 and 400 m, with fogged copies; the beam on the black boat. Every render was viewed.
+- **Open:** SY 214 at 230 m in the beam is PARTIAL (about 8 px at 720p; clean at 120 m).
+- **For Daniel:** the kind mapping and the E2 wiring proposal: model by ship name first, lights from the empties.
+- **Not done, on purpose:** no sync into `godot/` and no Godot work (E2 waits for Stage M's M4 and Daniel's go); no commit.
+- **Chain** (no sync):
+  1. `tools/py blender/vessels.py --paint`
+  2. `tools/bl -P blender/vessels.py -- --new --build --bake --check --save`
+  3. `validate_asset.py` per `ASSET_ship_*`
+  4. `tools/bl <blend> -P blender/vessels.py -- --export all`
+  5. `reimport_check.py`
+  6. `vessels.py --check-glb`
+  7. `tools/bl -P blender/vessel_review.py`
+- **Gotchas:**
+  - Empties need unique names in one `.blend`, so they are `NAV_x.<vid>` there; `--export` strips the suffix.
+  - Cycles AO bake works headless only with real UVs; a `smart_project` cube gave all-black AO.
+  - `LLMaterials.get_mat` returns null for unknown names, which keeps `_swap()` off the vessel materials.
+
 ## LATEST (2026-11-17, later): audit Stage P (player body) approved by Daniel and committed locally
 - **Record:** `docs/last_light/audit-2026-11/15_stageP_evidence.md`; DECISIONS Q19 (one navy, the chair's #363F58; room untouched). Plan: `~/.claude/plans/pasted-content-id-c83a-continue-the-gentle-lollipop.md`.
 - **C11 fixed:** the body is placed and posed from the camera's blend (`player.sit_amount()`, `body.py` action `sitdown`). Regress R27 checks it and fails on the old code, as it should. Sheets: `renders/last_light/stageP_cmp3_sitseq.png`, `stageP_cmp4_standseq.png`.
