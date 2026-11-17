@@ -16,7 +16,7 @@ var autosaves: Array = []               # snapshots taken at every autosave of t
 ## Set but deliberately not read by a condition (STAGE3_NARRATIVE_MASTER §16.1 "engine / history only").
 const HISTORY_ONLY := ["letter", "log_1953", "ending", "archive_flip", "kept_letter_unused"]
 ## 3B beat layout (§7): ch1 merged to 11 beats; ch6 gains jam, free, standby and ending.
-const BEATS := {1: 11, 2: 8, 3: 7, 4: 5, 5: 6, 6: 7}   # audit A5: ch5 gains "bowl"
+const BEATS := {1: 17, 2: 11, 3: 11, 4: 5, 5: 9, 6: 7}   # audit A5: ch5 gains "bowl"; Stage C: layout 5 (SCRIPT_REVISION_2026-11)
 ## Ending scenarios: reply preferences (conversation -> text fragment) and when the station goes idle.
 const SCENARIOS := [
 	{"name": "E2 truth + aground", "prefs": {}, "idle_at": "iona", "expect": "heard_together"},
@@ -927,7 +927,7 @@ func _audit_flags(db: DialogueDB) -> void:
 					if not nm.begins_with("rel."):
 						sets[nm] = id
 	var txt := FileAccess.get_file_as_string("res://data/story/chapters.json")
-	reads += " " + txt
+	reads += " " + txt.replace("\\\"", "\"")     # Stage C: a read inside a JSON string is escaped (\"flag\")
 	var data = JSON.parse_string(txt)
 	for c in data["chapters"]:
 		for b in c["beats"]:
@@ -963,12 +963,12 @@ func _gd_files(dir_path: String) -> Array:
 ## Saves are by beat index: an old (layout 1) ch1 / ch6 save lands on the same story moment.
 func _check_remap() -> void:
 	# layout-1 saves chain through layout 2 to 3 (brief item 8: ch1 dusk, engine, charge, light, radio_check ...)
-	var cases := [[1, 0, 0], [1, 3, 1], [1, 5, 1], [1, 6, 2], [1, 9, 5], [1, 13, 9], [1, 14, 10], [6, 1, 4], [6, 2, 5], [2, 5, 5]]
+	var cases := [[1, 0, 0], [1, 3, 1], [1, 5, 1], [1, 6, 2], [1, 9, 5], [1, 13, 15], [1, 14, 16], [6, 1, 4], [6, 2, 5], [2, 5, 8]]   # Stage C: on to layout 5
 	for c in cases:
 		var got := StoryState.remap_beat(c[0], c[1], 1)
 		if got != c[2]:
 			fails.append("remap ch%d beat %d -> %d, expected %d" % [c[0], c[1], got, c[2]])
-	for c in [[1, 0, 0], [1, 1, 1], [1, 2, 1], [1, 3, 2], [1, 4, 4], [1, 7, 7], [2, 3, 3]]:     # layout 2 -> 3
+	for c in [[1, 0, 0], [1, 1, 1], [1, 2, 1], [1, 3, 2], [1, 4, 4], [1, 7, 7], [2, 3, 4]]:     # layout 2 -> 3 -> 5
 		var got2 := StoryState.remap_beat(c[0], c[1], 2)
 		if got2 != c[2]:
 			fails.append("remap (layout 2) ch%d beat %d -> %d, expected %d" % [c[0], c[1], got2, c[2]])
@@ -978,6 +978,11 @@ func _check_remap() -> void:
 		fails.append("pre-3B ch1 save at beat 8 loaded at %d, expected 5 (kittiwake)" % st.beat)
 	if StoryState.remap_beat(1, 8, StoryState.LAYOUT) != 8:
 		fails.append("a current-layout save must not be remapped")
+	# Stage C, layout 4 -> 5: v1 saves land on the same beat id after the new beats are inserted
+	for c in [[1, 7, 7], [1, 8, 14], [1, 10, 16], [2, 2, 3], [2, 3, 4], [2, 4, 7], [2, 7, 10], [3, 2, 2], [3, 3, 7], [3, 6, 10], [5, 0, 0], [5, 1, 4], [5, 5, 8]]:
+		var got4 := StoryState.remap_beat(c[0], c[1], 4)
+		if got4 != c[2]:
+			fails.append("remap (layout 4) ch%d beat %d -> %d, expected %d" % [c[0], c[1], got4, c[2]])
 
 
 ## 3B: each autosave of the policy-0 campaign is loaded into a fresh sim + director; the next conversation

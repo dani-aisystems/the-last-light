@@ -4,9 +4,11 @@
 
 == ch6_iona mode=radio
 ! static
-ELSPETH: North Point, Iona Star. I see your light. I see it. Callum Mackay, I need you to put me through the East Gut. I can't make the open sea against this. Over.
+ELSPETH: North Point, Iona Star. I see your light. I see it.
+[if has_flag("elspeth_letter_told")] ELSPETH: Callum Mackay, I need you to put me through the East Gut. I can't make the open sea against this. Over.
+[if not has_flag("elspeth_letter_told")] ELSPETH: North Point, I need you to put me through the East Gut. I can't make the open sea against this. Over.
 [if has_flag("told_elspeth_there")] ELSPETH: You said you were there, that night. Then you know this water better than anyone alive. Over.
-[if not has_flag("elspeth_letter_told")] ELSPETH: And Mr Mackay. A month ago someone wrote to tell me your light was out the night my father drowned. No name on it.
+[if not has_flag("elspeth_letter_told")] ELSPETH: And North Point. A month ago someone wrote to tell me your light was out the night my father drowned. No name on it.
 [if not has_flag("elspeth_letter_told")] ! set elspeth_letter_told=1
 [if has_flag("elspeth_letter_told") and not has_flag("told_elspeth_there")] ELSPETH: If it goes out tonight, I'll know they were right. Over.
 * I'll put you through, Elspeth. Confirm your position when I call. Over. -> yes
@@ -51,7 +53,8 @@ ROSS@room: Two men to one wheel, then. Same as it should have been.
 
 == ch6_rory mode=radio
 ! static
-RORY: North Point, Kittiwake. I heard the Mayday. I'm at the mouth of the Sound with every light I own switched on. If she wants a mark on the far side of the Gut, she's got one. Over.
+RORY: North Point, Kittiwake. I heard the Mayday.
+RORY: I'm at the mouth of the Sound with every light I own switched on. If she wants a mark on the far side of the Gut, she's got one. Over.
 * Good lad. Stay there. Over. -> ok
 * [if clue("rory_grandfather") and has_flag("knows_name")] Rory. Your grandfather was right about the boat in the Gut. -> right
 = right
@@ -65,7 +68,8 @@ RORY: Standing by. Kittiwake.
 [if saved("Iona Star")] ELSPETH: North Point, Iona Star. We're through. We're through the Gut, we've the island's lee. Nobody hurt. Over.
 [if saved("Iona Star")] -> saved
 [if lost("Iona Star")] ~ She takes the ground on the outer edge of the Gut with a sound I can feel through the floor. The beam is on her the whole time.
-[if lost("Iona Star")] ELSPETH: ...Iona Star aground, North Point. We're holed forward. She's sitting upright. All twelve on the bridge. We'll hold till the lifeboat. Over.
+[if lost("Iona Star")] ELSPETH: ...Iona Star aground, North Point. We're holed forward.
+[if lost("Iona Star")] ELSPETH: She's sitting upright. All twelve on the bridge. We'll hold till the lifeboat. Over.
 [if lost("Iona Star")] -> lost
 = saved
 * [if has_flag("ross_wheel") or has_flag("door_open")] (Hand Ross the handset.) -> father
@@ -96,7 +100,8 @@ MORAG: I've a log to close for tonight. And an old one I never closed. Is there 
 * Nothing to report, Stornoway. North Point out. -> silence
 = truth
 ! set told_truth=1
-CALLUM: The light at North Point stopped turning at approximately oh-one-forty, and was extinguished from approximately oh-one-fifty until oh-two-oh-one.
+CALLUM: The light at North Point stopped turning at approximately oh-one-forty.
+CALLUM: It was extinguished from approximately oh-one-fifty until oh-two-oh-one.
 CALLUM: The log entry for oh-two-ten was false. It was written by me, on the principal keeper's instruction.
 [if has_flag("kept_letter")] CALLUM: I hold a letter from the principal keeper, Iain Mackay, admitting it.
 [if has_flag("gave_letter")] CALLUM: Mr Alasdair Ross holds a letter from the principal keeper, Iain Mackay, admitting it.
@@ -117,7 +122,8 @@ MORAG: ...North Point, Stornoway. Received and logged. Every word.
 [if has_flag("admitted_to_morag")] MORAG: I'll not put that in my log, Callum. You'll have to.
 MORAG: ...Roger, North Point. Nothing to report.
 MORAG: Stornoway out.
-[if has_flag("door_open")] ~ Behind me Ross sets down the cup I gave him, very carefully, as if it might break.
+[if has_flag("door_open") and has_flag("gave_cup")] ~ Behind me Ross sets down the cup I gave him, very carefully, as if it might break.
+[if has_flag("door_open") and not has_flag("gave_cup")] ~ Behind me Ross lets go of the back of the chair, slowly, one finger at a time.
 [if has_flag("door_open")] ROSS@room: Aye. Well.
 [if has_flag("door_shut")] > [Footsteps going down the stair, one at a time]
 
@@ -179,3 +185,21 @@ MORAG: Stornoway out.
 [if has_flag("door_open")] ~ He left it on the desk, face up, and said nothing about it.
 [if not has_flag("door_open")] ~ He slid it under the door and said nothing about it.
 ~ Eight men on a deck at Leverburgh. Four months later, Kenny Bain was the only one of them anyone saw again.
+
+# ---- SCRIPT_REVISION_2026-11 (approved 2026-11-17): chapter 6, voices at dawn
+
+== ch6_hendrika_dawn mode=radio
+[if saved("Hendrika")] ! static
+[if saved("Hendrika")] VISSER: Stornoway Coastguard, Hendrika. We weigh at seven for Stornoway. All well aboard. Over.
+[if saved("Hendrika")] MORAG: Hendrika, Stornoway. Roger. Stornoway out.
+[if saved("Hendrika")] VISSER: And Stornoway. Please thank North Point Light for us. Hendrika out.
+
+== ch6_sked_dawn mode=radio
+[if has_flag("told_truth")] ! static
+[if has_flag("told_truth")] MACASKILL: North Point, Sgeir Mhor. Back on the air. The aerial came down at two, and I've been up the mast with a torch since. Over.
+[if has_flag("told_truth")] MACASKILL: I heard some of what you sent Stornoway. That took doing, Callum. Over.
+* [if has_flag("told_truth")] It was in the book long enough, Murdo. Over. -> done
+* [if has_flag("told_truth")] Good to hear you, Murdo. Over. -> done
+-> END
+= done
+MACASKILL: Aye. Morning schedule at eight. Sgeir Mhor out.

@@ -36,10 +36,15 @@ var resume: Array = []
 ## 3 = brief 2026-11-06 item 8 (ch1: the dark arrival; engine and charge come before the console).
 ## 4 = audit A5 (2026-11-16): ch5 gains "bowl" after "drawer" (story, drawer, bowl, morag, mayday, power).
 ##     v2 saves are placed by beat id; this table is for v1 saves (tests/fixtures/saves_v1 prove it).
-const LAYOUT := 4
+## 5 = audit Stage C (SCRIPT_REVISION_2026-11.md): ch1 gains the working evening (sula, round, sked, check,
+##     hector_heard, teleprinter) after kittiwake_home; ch2 gains iona_heard, sked, marsh; ch3 gains sked3 and
+##     the Hendrika (hendrika, hendrika_go, hendrika_in) after both; ch5 gains cup, story2, story3 after story.
+const LAYOUT := 5
 const REMAP := {          # chapter -> {from layout: old index -> index in the next layout}
-	1: {1: [0, 1, 1, 1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10], 2: [0, 1, 1, 2, 4]},
-	5: {3: [0, 1, 3, 4, 5]},
+	1: {1: [0, 1, 1, 1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10], 2: [0, 1, 1, 2, 4], 4: [0, 1, 2, 3, 4, 5, 6, 7, 14, 15, 16]},
+	2: {4: [0, 1, 3, 4, 7, 8, 9, 10]},
+	3: {4: [0, 1, 2, 7, 8, 9, 10]},
+	5: {3: [0, 1, 3, 4, 5], 4: [0, 4, 5, 6, 7, 8]},
 	6: {1: [0, 4, 5]},
 }
 

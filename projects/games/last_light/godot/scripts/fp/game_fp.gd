@@ -267,7 +267,9 @@ func _on_doc(id: String) -> void:
 		"note":
 			doc = "note_046"
 		"forecast":
-			doc = "forecast"
+			# Stage C: from 22:00 in chapter 1 the newest sheet is the 2200 warning (once rendered, Phase B)
+			var newest: bool = director.state.has_flag("teleprinter_2200") and not presenter.doc_info("forecast_2200").is_empty()
+			doc = "forecast_2200" if newest else "forecast"
 		"chart":
 			doc = "chart"                      # cabin pass: full-screen chart inspection
 		"coat_note":
@@ -301,6 +303,24 @@ func _on_doc(id: String) -> void:
 				presenter.show_hint("The old vapour burner and its mantle, from before the electric.")
 		"photo53", "photo53desk":
 			doc = "photo_1953"
+		# Stage C (SCRIPT_REVISION_2026-11.md 2.2, 6.2): the evening round and the cup
+		"barometer":
+			if director.state.chapter == 1 and not director.state.done("look_barometer_ch1"):
+				director.play_aside("look_barometer_ch1")
+			else:
+				presenter.show_hint("The glass. Still falling.")
+		"clockwork":
+			if director.state.chapter <= 3 and not director.state.done("look_clockwork"):
+				director.play_aside("look_clockwork")
+			else:
+				presenter.show_hint("The standby clockwork. Wound this watch.")
+		"primus":
+			if director.state.chapter == 5 and director.beat_id() == "cup" and not director.state.has_flag("primus_ch5"):
+				director.on_player_event("primus_ch5")      # the cup beat plays ch5_cup
+			elif director.state.chapter == 1 and not director.state.done("look_kettle_a"):
+				director.play_aside("look_kettle_a")
+			else:
+				presenter.show_hint("The Primus and the kettle.")
 		"orders":                              # audit D7: the board as a document; reading it still teaches the valve
 			doc = "orders"
 			director.on_player_event("used_orders")
@@ -693,10 +713,10 @@ func _update_door_prompt() -> void:
 		station.door_prompt = "The stair door stands open"
 		station.door_usable = false
 	elif director and _bolt_available():
-		station.door_prompt = "Draw the bolt on the stair door"
+		station.door_prompt = "Dog the stair door hard"      # Stage C: steel door, wheel and dogs
 		station.door_usable = true
 	elif director and director.state.has_flag("bolted") and director.state.chapter == 4:
-		station.door_prompt = "The stair door  ·  bolted"
+		station.door_prompt = "The stair door  ·  dogged hard"
 		station.door_usable = false
 	elif director and director.state.chapter >= 4:
 		station.door_prompt = "The stair door"

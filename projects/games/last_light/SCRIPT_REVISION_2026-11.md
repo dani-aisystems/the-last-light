@@ -1,6 +1,6 @@
 # THE LAST LIGHT: script revision, November 2026 (audit Stage C, part 1)
 
-> **Status (2026-11-17): APPROVED by Daniel ("Approved").** All six chapters, the Ross cue points, the canon check, reading time, page risks and open questions are written. Daniel approved the voice sample (chapters 1 and 2) without changes, then the whole document. **Section 14's open questions are decided as recommended** (Daniel, 2026-11-17: "I will go with recommendations on open questions"). Next: Stage C part 2, the data (section 13), when Daniel chooses.
+> **Status (2026-11-17): APPROVED by Daniel ("Approved").** All six chapters, the Ross cue points, the canon check, reading time, page risks and open questions are written. Daniel approved the voice sample (chapters 1 and 2) without changes, then the whole document. **Section 14's open questions are decided as recommended** (Daniel, 2026-11-17: "I will go with recommendations on open questions"). **Stage C part 2 (the data) is built and verified headless: section 15.** In-game captures wait for Daniel's OK.
 > - This is the single document Daniel approves before any change to `.dlg` or `chapters.json`. **Nothing in the game has been changed:** no `.dlg`, `chapters.json`, `speakers.gd`, test, Blender or Godot file.
 > - The Stage P session, running in parallel, owns `docs/SESSION_HANDOFF.md`, the audit README and `DECISIONS.md`. This status block stands in for them until this document is approved.
 > - Sources: the approved plan, sections 7.1 to 7.6, 10.4, 14 and 17.1 to 17.7 (`docs/last_light/audit-2026-11/04_narrative.md`); the drafts in `PROPOSAL_35_RADIO_CAST.md`; DECISIONS Q15 to Q18; the Stage S canon note; the story as shipped (`godot/data/story/`).
@@ -21,6 +21,7 @@
 12. Three-line page risks
 13. Notes for Stage C part 2 (data)
 14. Open questions for Daniel
+15. As built: Stage C part 2
 
 ---
 
@@ -970,3 +971,78 @@ The questions as put, with their reasoning, follow.
    - If no: drop the two `elspeth_named` lines, and the chapter 2 thought "Whoever she is" should go.
 6. **Checking the period claims (section 10).** **Recommended:** allow a short web check in a later session, before part 2 ships. It means public sources only, nothing about you or the project sent, and each result recorded as verified or as invention. Today they are all marked.
 7. **The Mayday wording (`ch5:123`).** **Recommended: keep Elspeth's own terms** ("setting us down", "souls", "Position") and only split the message. If you prefer the plan's plainer draft, it is a direct swap.
+
+---
+
+## 15. As built: Stage C part 2 (2026-11-17)
+Part 2 was built on a local branch (`stage-c-data`, in a git worktree) so that the Stage P session's test runs never saw half-finished story files. It was then merged into `main` locally. Nothing was pushed.
+
+### 15.1 What is in the game
+- **Dialogue:** every line in sections 2 to 7, transcribed from this document into `ch1.dlg` to `ch6.dlg`. A script compared all 25 printed conversations with the files: 0 differences.
+- **Beats** (`chapters.json`, layout 5):
+  - ch1 17 beats (`sula`, `round`, `sked`, `check`, `hector_heard`, `teleprinter` after `kittiwake_home`), with the *Sula* as an optional call in the radio panel during `sula`; `mary_ellen` at clock 1438;
+  - ch2 11 (`iona_heard`, `sked`, `marsh`);
+  - ch3 11 (`sked3`, `hendrika`, `hendrika_go`, `hendrika_in`), the slower clock and the longer waits;
+  - ch5 9 (`cup`, `story2`, `story3`);
+  - ch6's dawn plays `ch6_hendrika_dawn` and `ch6_sked_dawn`.
+  - New duties: `sula`, `round` (glass, plus the optional crank and kettle), `hendrika`, `kettle_ch5`.
+  - New log row: `log_2100`.
+  - Backfill: `elspeth_named` for saves at or past ch3 `notes`.
+- **Saves:** `StoryState.LAYOUT` 4 → 5, with remap rows for chapters 1, 2, 3 and 5. Version-2 saves resolve by beat id as before.
+- **Speakers:** `GILLIES`, `MACASKILL`, `MARSH`, `VISSER` (line cards, no portraits). `ELSPETH` shows as `IONA` ("Iona Star · the mate") until `elspeth_named`; her photograph appears on her card at the moment she names herself.
+- **Room** (`build.py`, `last_light_v078.blend`, `watch_room.glb`):
+  - `IA_barometer`, and the needle as its own part `NDL_barometer`, turned by `station.gd` from the story clock (988 mb at 16:20, 981 at 20:00, 973 at 00:25, 960 before four, 970 at dawn);
+  - `IA_clockwork` on the standby crank;
+  - a Primus under the kettle, with `IA_primus`;
+  - a teleprinter on its own stand under the east bay's sill;
+  - room triangles 128,090 → 128,802, materials still 33.
+- **Code:**
+  - `station.gd` has the three new devices and the barometer table;
+  - in `game_fp.gd`:
+    - the barometer, crank and Primus lines;
+    - the 22:00 sheet opened from the forecast sheet once `teleprinter_2200` is set;
+    - the door prompts "Dog the stair door hard" and "The stair door · dogged hard".
+- **Documents:**
+  - `forecast_2200` (new) and `log_1971` (the 21.00 row) via `documents.py --extra=forecast_2200,log_1971` (refactored: the rows live in `rows_1971()`);
+  - `log_strips.py` (new log row and duty strips);
+  - `ending_pages.py` (the three P3 log panels now carry the 21.00 row).
+
+### 15.2 Where the build differs from the approved text, and why
+| Item | Approved text | As built | Why |
+|---|---|---|---|
+| The fuel run (4.1) | Chapter 3 opens with `fuel`; the forecast waits for `fuel_done` | `ch3_fuel`, `ch3_pump`, `ch3_fuel_done` are in `ch3.dlg` but no beat plays them yet; the forecast still opens the chapter | The lower level has no colliders and the ladder can't be climbed (Stage S, section 4 of its record). The roadmap puts the fuel run in Stage F, which wires this beat |
+| The *Hendrika*'s spawn (4.2) | `! ship {...}` inside `ch3_hendrika` | The beat `hendrika_go` (skipped unless `helped_hendrika`) spawns her and gives the duty | A `!` line is split on spaces, so it cannot carry JSON. The dialogue is unchanged |
+| The kettle (2.2, 6.2, question 4) | "The room has no kettle yet" | **Wrong:** the room already had a green enamel kettle on an electric ring at bearing −42 on the west sill (cabin pass). As built, that kettle now stands on a Primus, in place of the ring | It keeps the decided Primus and the room's own kettle; no second kettle. **If Daniel prefers the electric ring back, say so:** the Primus lines (`look_kettle_a`, `ch5_kettle`, `ch5_cup`, two hints) would then need rewording, and the cup would fail during the generator lock |
+| The teleprinter (2.2) | "The room has the 1600 sheet but no teleprinter machine" | A teleprinter on a steel stand at bearing 30, under the east bay's sill (top 0.86 m), between the desk's right end and the optic drive | Placed by a top-down and an eye-level check in Blender. Not yet seen in the game (section 15.4) |
+| The crank (2.2) | "If the player cannot reach it, the sub is dropped" | Reachable: "outside the glazing" means the optic drive's glazed case, and the crank is 0.42 m above the watch-room floor on its pedestal | — |
+| Bots and tests | — | A beat may name, for bot mode only, the player steps it waits on (`"bot_player": {"set": [...], "calls": [...]}`): `sula` places the *Sula* call, `sked` reads the glass, `cup` lights the Primus. Real play never reads it | One mechanism instead of teaching six test drivers the same three steps |
+| `story_test` flag audit | — | Searches `chapters.json` with its escaped quotes undone | A flag read only in `chapters.json` (`has_flag(\"x\")`) was invisible to it |
+
+### 15.3 Verification (worktree, final state, headless under taskpolicy -b)
+| Check | Result |
+|---|---|
+| story_test | PASS (0 failed): all four endings, the reunion and the door-shut campaign; the *Hendrika* brought in on policy 0 and the scenarios, declined on policies 1 and 2; generator lock unchanged; 15 autosaves resume on a new conversation; flag audit 45 set, 0 unread |
+| save_compat_test | PASS (305): every v1 fixture lands on its beat id under layout 5 |
+| opening_test | PASS (31 / 31) |
+| regress_test | PASS (417 / 417). Three checks that hard-coded chapter 2 beat indexes now look the beat up by id; the two door-prompt checks expect the steel-door wording |
+| qa_sweep_test | PASS (7,703): every page of every line, new voices included, three lines or fewer at x0.8 / x1.0 / x1.5; the panel rect is unchanged |
+| interaction_test | PASS (164 checks, 11 warnings: the standing "no sound when a document opens", Stage D) |
+| run_tests | PASS (95) |
+| sim_v2, seeds 1 to 5 | PASS, no gate failures |
+| g5_weather_audio_test | PASS (50) |
+| pytest | PASS (the ending P3 panels re-rendered for the 21.00 row) |
+| Pipeline (v078) | validation FAIL = 0 for watch_room, lighthouse and stairwell; reimport ok; synced |
+| New props, by eye in Blender | PASS: the barometer needle at about 981 mb; the kettle on the Primus beside the mug and tin; the teleprinter between the desk and the optic drive, clear of both, with the compass sill free above it; the crank handle on the drive pedestal (renders `renders/last_light/c2_v076/`, `c2_v077/`; gitignored, reproducible with `review_views.py --views cu_primus,cu_teleprinter,cu_baro,cu_crank`) |
+| In the game | NOT TESTED (window batch needs Daniel's OK) |
+
+### 15.4 Not done, and why
+- **In-game captures of the new props and lines: NOT TESTED.** They need a window batch with Daniel's OK (`tools/godot_bg`). Suggested shots:
+  - `cu_desk_r` with the teleprinter;
+  - the barometer at 20:00 and at 02:00;
+  - the Primus on the sill;
+  - the radio panel with Visser's and MacAskill's cards and Elspeth's hidden card, at text x1.0 and x1.5;
+  - the dogged-door prompt.
+- **Sounds:** `teleprinter`, the Primus roar, the kettle and the hummed bar are not made (Stage D). The lines' captions carry them meanwhile.
+- **The fuel run:** Stage F (above).
+- **Character profiles** for the four new voices in `character-refs/`, with CANON_INDEX rows: not written yet.
+- **The three period claims still open** (section 10): the keepers' schedules, Neist Point, the teleprinter.

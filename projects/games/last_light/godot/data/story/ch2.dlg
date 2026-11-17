@@ -99,8 +99,9 @@ MARY ELLEN: ...then ask his son...
 > [A clunk you feel in your teeth]
 ~ Free again.
 ~ The bearing repeater says oh-four-six. The East Gut.
-~ Father's note on the console, and my lines under his. "Free by hand." Forty-nine. December fifty-three. Sixty-one.
+~ Father's note on the console, and my lines under his. "Free by hand." Forty-nine. December fifty-three. Sixty-three.
 ~ December fifty-three. Three weeks after. As if writing it down would count for something.
+[if clue("board_noted")] ~ "The Board will note it." They've been noting it since forty-nine.
 ~ It always sticks at forty-six.
 
 # ---- optional radio calls (§11.1): offered in the radio panel between the beats in chapters.json
@@ -110,7 +111,8 @@ CALLUM: Kittiwake, North Point. You're tied up snug? Over.
 ! static
 RORY: Eh, North Point! Snug as anything. I'm sat here watching your light go round. Over.
 RORY: Here, Callum. That call on sixteen. The Mary Ellen. Half the Sound heard it. Over.
-RORY: My grandfather'd have had his coat on and been out the door. He'd never go past the Gut after dark, not once in eighteen years. Said he'd no wish to meet her. Over.
+RORY: My grandfather'd have had his coat on and been out the door.
+RORY: He'd never go past the Gut after dark, not once in eighteen years. Said he'd no wish to meet her. Over.
 * Get some sleep, Rory. -> sleep
 * Did he say why? -> why
 = why
@@ -126,6 +128,56 @@ MORAG: North Point, Stornoway. Go ahead, Callum.
 CALLUM: That register. Anything else under her name? Sisters. Rebuilds. Over.
 MORAG: You're thinking what I'm thinking. Wait one.
 ! wait 2.5
-MORAG: Mary Ellen had a sister off the same yard in Fraserburgh. The Catriona. Sold for breaking in nineteen sixty-nine, to a Mr Morrison. Govan.
-MORAG: Govan's a long road from razor blades to the Minch. Stornoway out.
+MORAG: Mary Ellen had a sister off the same yard in Fraserburgh. The Catriona.
+MORAG: Sold for breaking in nineteen sixty-nine, to a Mr Morrison. Govan.
+MORAG: Sold for breaking, Callum. That doesn't mean she was broken. Stornoway out.
 ! clue sister_boat
+
+# ---- SCRIPT_REVISION_2026-11 (approved 2026-11-17): chapter 2 additions
+
+== ch2_iona_heard mode=radio
+! static
+ELSPETH: Stornoway Coastguard, Stornoway Coastguard, this is Iona Star, Golf Mike X-ray Quebec. Over.
+MORAG: Iona Star, Stornoway. Go ahead. Over.
+ELSPETH: Passage report. Abeam of Neist Point, northbound for Stornoway. Twelve souls aboard. Over.
+MORAG: Iona Star, Stornoway. Received. Gale warning is in force for the Minches. Stornoway out.
+~ A careful voice. Whoever she is, she's done this in worse.
+
+== ch2_sked mode=radio
+! static
+MACASKILL: North Point, Sgeir Mhor. Midnight schedule, and late for it. Over.
+* Sgeir Mhor, North Point. Go ahead, Murdo. Over. -> wx
+= wx
+MACASKILL: Nine-seven-six here and still going. South-west eight. Spray over the gallery rail. What have you? Over.
+* Nine-seven-three. South-west eight, and the rain going sideways. Over. -> books
+* Lower than yours, Murdo. Nine-seven-three. Over. -> books
+= books
+MACASKILL: Neil Gillies was at me last month about my returns. Said I should see how North Point kept its books.
+MACASKILL: Your father's time, he meant. Tidiest books on the coast. You'll have them all yet. Over.
+* Every one. In the box on the shelf. Over. -> box
+* (Say nothing.) -> quiet
+= box
+MACASKILL: Aye. A keeper's books outlast the keeper. Two o'clock, Callum, if my aerial's still standing. Sgeir Mhor out.
+-> END
+= quiet
+MACASKILL: ...Two o'clock, then. If my aerial's still standing. Sgeir Mhor out.
+
+== ch2_marsh mode=radio
+! static
+MARSH: North Point Light, this is Western Venture. Um. Over.
+CALLUM: Western Venture, North Point. Go ahead. Over.
+MARSH: This is Dr Marsh, survey party. Our master's asleep and I've the weather log. Could I have your observation? Over.
+* South-west eight. Glass nine-seven-three, falling. Heavy rain. Over. -> obs
+= obs
+MARSH: Nine-seven-three. Thank you. Can I ask, is it awfully rude? What's it like, being the only one out there? Over.
+* It's a job. Over. -> job
+* Quiet. Mostly. Over. -> quiet
+= job
+MARSH: Of course. Sorry. Over.
+-> auto
+= quiet
+MARSH: I'd go mad. I'd be talking to the lamp. Over.
+= auto
+MARSH: They say the Board will make you all automatic inside ten years. A light that keeps itself. Over.
+CALLUM: Keep it short on sixteen, Western Venture. North Point out.
+~ A light that keeps itself. Then nobody would have had to write anything down.

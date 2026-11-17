@@ -583,6 +583,10 @@ func _process(delta: float) -> void:
 	if _wait > 0.0:
 		_wait -= delta
 		return
+	if bot:
+		_bot_player()
+		if _talking:
+			return
 	if _until != "":
 		if state.eval(_until):
 			_until = ""
@@ -606,6 +610,20 @@ func _process(delta: float) -> void:
 		_run_actions()
 	else:
 		_tick_hints(delta)
+
+
+## Stage C: in bot mode (tests, captures) a beat's "bot_player" does the player's part it waits on:
+## {"set": [flags], "calls": [optional call ids]}. Real play never reads it.
+func _bot_player() -> void:
+	var beats := _beats()
+	if state.beat >= beats.size():
+		return
+	var bp: Dictionary = beats[state.beat].get("bot_player", {})
+	for f in bp.get("set", []):
+		state.flags[String(f)] = 1
+	for c in bp.get("calls", []):
+		if not state.done(String(c)) and request_call(String(c)):
+			return
 
 
 ## A beat's hint is [seconds, text] or a list of them ([[25, "..."], [50, "..."]]). The clock runs while

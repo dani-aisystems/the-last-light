@@ -75,6 +75,11 @@ VIEWS = {
     "cu_coat": (*eye(149, 1.0, 150, 2.75, 1.55, 1.05), lens_for_vfov(55), False),
     "cu_door_top": (*eye(170, 1.75, 170, 2.6, 1.85, 2.0), lens_for_vfov(32), False),
     "cu_wheel": (*eye(176, 1.1, 177, 2.6, 1.15, 1.05), lens_for_vfov(50), False),     # handwheel and both dogs
+    # audit Stage C: the evening round and the cup
+    "cu_primus": (*eye(-38, 1.9, -41, 3.15, 1.45, 1.08), lens_for_vfov(40), False),
+    "cu_teleprinter": (*eye(22, 1.6, 30, 2.95, 1.55, 0.6), lens_for_vfov(58), False),
+    "cu_baro": (*eye(16, 2.3, 18, 3.2, 1.65, 1.62), lens_for_vfov(28), False),
+    "cu_crank": (*eye(38, 1.2, 45, 2.3, 1.35, 0.45), lens_for_vfov(48), False),
     "cu_bowl": (*eye(-140, 0.7, -157, 1.56, 0.95, 0.52), lens_for_vfov(40), False),      # audit A5: fuel filter and sediment bowl
     "cu_phone": (*eye(20, 2.2, 15, 2.95, 1.3, 0.8), lens_for_vfov(40), False),       # mug, ashtray, phone, binoculars
     "ext": ((24, -38, 12), (0, 0, 17), 40, False),
