@@ -7,6 +7,9 @@ The approved plan of 2026-11-15, split into the documents Daniel's brief and Add
 | [00_stage0_evidence.md](00_stage0_evidence.md) | Stage 0: baseline captures, suites and bench |
 | [10_stageB_evidence.md](10_stageB_evidence.md) | Stage B: cabin and interface changes, with their evidence |
 | [11_stageA_evidence.md](11_stageA_evidence.md) | Stage A: saves, dialogue, documents, release gating; decisions waiting |
+| [12_perf_bisect.md](12_perf_bisect.md) | The performance bisect: what the frame time goes on, proposals waiting for Daniel |
+| [13_stageS_evidence.md](13_stageS_evidence.md) | Stage S: stairwell and door, with their evidence |
+| [14_stageM_ocean_boundary_fog.md](14_stageM_ocean_boundary_fog.md) | Stage M: ocean boundary concealment and atmospheric fog (research and plan, awaiting approval) |
 | [01_executive_summary.md](01_executive_summary.md) | Document 1: executive audit summary |
 | [02_architecture.md](02_architecture.md) | Document 2: technical architecture audit |
 | [03_issue_register.md](03_issue_register.md) | Document 3: full issue register |

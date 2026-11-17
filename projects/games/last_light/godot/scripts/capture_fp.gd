@@ -119,6 +119,9 @@ func view(name_: String) -> Array:
 		"cu_window": return eye(0, 1.4, 0, 3.42, 1.65, 1.75) + [55.0, false, 0.03]       # bay 0 glass
 		"cu_door": return eye(170, 0.2, 170, 2.0, 1.65, 1.1) + [55.0, false, 0.03]
 		"cu_door_top": return eye(170, 1.75, 170, 2.6, 1.85, 2.0) + [32.0, false, 0.02]   # R4: the door's upper edges (red lines)
+		# audit Stage S: the stairwell (review_views.py has the same views)
+		"cu_landing": return eye(163, 1.5, 172, 3.05, 1.6, 0.55) + [60.0, false, 0.03]   # into the housing from the room
+		"in_hatch": return eye(160.05, 2.894, 175.97, 2.886, 1.65, -1.5) + [70.0, false, 0.02]   # on the landing, down the hatch
 		"cu_shelf": return eye(128, 1.55, 128, 3.0, 1.6, 1.15) + [55.0, false, 0.03]     # storage shelf, old-log box
 		"cu_orders": return eye(128, 1.9, 128, 3.3, 1.75, 2.05) + [36.0, false, 0.02]    # G4a: KEEPER'S ORDERS, line 5
 		# --- Cabin repair (Iteration A): one matched close-up per defect in Daniel's screenshot brief ---
@@ -211,6 +214,16 @@ func _run() -> void:
 		while g.sim.t < target - 1.0 and g.sim.result == KeeperSim.Result.RUNNING and not (g.story_mode and g.director.finished):
 			await _frames(1)
 		Engine.time_scale = 1.0
+		if vname == "doorseq":                  # audit Stage S: the stair door opening, every 0.2 s for 2.6 s
+			_place(g, "cu_wheel" if "wheel" in states else "cu_door")
+			await _frames(30)
+			g.station.door_open = true
+			for fi in 14:
+				_save("%s_t%03d_doorseq_f%02d" % [name_, int(target), fi])
+				await _frames(12)
+			g.station.door_open = false
+			g.station.snap_door()
+			continue
 		if vname == "sitseq":                   # audit stage 0: sitting down at the radio, frame by frame
 			_place(g, "pp_radio")               # (the player's own camera; every frame for 0.3 s, then every 4th)
 			await _frames(30)
@@ -389,6 +402,7 @@ func _force(g, st: String) -> void:
 		"door_open":                             # audit stage 0: the stair door open, nobody in it (restored)
 			_restore_state["door_only"] = g.station.door_open
 			g.station.door_open = true
+			g.station.snap_door()               # Stage S: posed at once (the sequence itself: doorseq)
 		_ when st.begins_with("ship_"):          # audit stage 0: ship_<kind>_<range m>, held due north (not
 			var sp := st.split("_")              # restored: put such shots last). Pair with binoculars!face_north
 			g._route(g.sim.spawn_story_ship({"name": "Capture " + sp[1], "kind": sp[1], "bearing": 0, "aim": 90,
@@ -467,6 +481,7 @@ func _unforce(g) -> void:
 		g._update_story_props()
 	if _restore_state.has("door_only"):
 		g.station.door_open = _restore_state["door_only"]
+		g.station.snap_door()
 	if _restore_state.has("caption"):
 		g.presenter.caption.modulate.a = 0.0
 	if _restore_state.has("ending"):
@@ -680,7 +695,10 @@ func _place_view(g, v: Array) -> void:
 		g.player.enabled = false            # would describe a different view than this camera shows
 		g.ui.clear_prompt()
 		_player_muted = true
-	if g.player.body and g.player.body.visible:   # audit B: the keeper's body stood (and cast its shadow)
+	# --bench_body (perf bisect): keep the body as in play, where it is always there and animating
+	# (Stage S: not gated on .visible: right after a restore the body has not shown itself yet, and it did a
+	# frame later, standing in front of cu_wheel, fp_stair and doorseq)
+	if g.player.body and not (GameState.user_args.has("bench_body") and GameState.user_args.has("bench")):   # audit B: the keeper's body stood (and cast its shadow)
 		g.player.body.process_mode = Node.PROCESS_MODE_DISABLED   # wherever the bot was; a detached camera
 		g.player.body.visible = false                             # never shows it in play
 	_hud(g, not GameState.user_args.has("nohud"))

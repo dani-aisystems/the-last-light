@@ -223,7 +223,9 @@ func _on_story_event(name_: String, args: Array) -> void:
 			radar.phantom = {"bearing": deg_to_rad(float(args[0])), "range": float(args[1]), "until": radar_time() + float(args[2])}
 		"door_open":
 			station.door_open = true
-			audio.sfx_at("door_heavy", station.door_position())
+			# Stage S: the dogs come off as the wheel turns, then the leaf swings (station.DOOR_LATCH_S later)
+			audio.sfx_at("door_dogs", station.door_position() + Vector3(0, 1.0, 0))
+			audio._later(station.DOOR_LATCH_S, func(): audio.sfx_at("door_heavy", station.door_position()))
 		"visitor_enter":
 			_spawn_visitor()
 		"knock":
@@ -422,6 +424,7 @@ func _apply_save(d: Dictionary) -> void:
 			station.set_item_taken(id, bool(player.equipment.has.get(id, false)))
 	var st: Dictionary = d.get("station", {})
 	station.door_open = bool(st.get("door_open", false))
+	station.snap_door()                              # Stage S: a loaded door is already where it was
 	if bool(st.get("visitor", false)):
 		_spawn_visitor()
 	for s in sim.ships:

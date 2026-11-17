@@ -59,6 +59,7 @@ const PALETTE := {
 	"oak": Color("#7A4E2A"), "oak_dark": Color("#4A2E1A"), "floor": Color("#4A4743"),
 	"brass": Color("#B58A3C"), "skirting": Color("#1F221E"), "plaster_under": Color("#B9B4A8"),
 	"primer": Color("#8A8A82"),
+	"limewash": Color("#B4AE9F"), "drum_red": Color("#6A2C1C"), "chequer": Color("#4F514B"),   # audit Stage S
 }
 const ROOM_SHADER := preload("res://shaders/room_pbr.gdshader")
 ## Mean linear RGB of each 2k scan (measured from assets/textures/*_Diffuse_2k.png, 2026-11-04):
@@ -89,6 +90,14 @@ const ROOM := {
 	# gloss with white grain streaks at grazing angles on the desk top. 20-year-old varnish: satin, soft coat.
 	"M_LL_Wood": ["oak_veneer_01", {"scale": 1.2, "base": "oak", "detail_amt": 1.0, "detail_color": 1.0, "rough_lo": 0.5, "rough_hi": 0.72,
 		"coat": 0.1, "coat_rough": 0.5, "normal_strength": 0.5}],
+	# audit Stage S, the stairwell (stairwell.glb): limewashed stone (rough, no coat, no dado bands), the
+	# lower landing's stone flags, red-oxide fuel drums, and chequer plate (its diamonds: _chequer_normal()).
+	"M_LL_Limewash": ["concrete_floor_worn_001", {"scale": 0.7, "base": "limewash", "detail_amt": 0.55, "rough_lo": 0.78, "rough_hi": 0.95,
+		"normal_strength": 0.9, "chips": 0.12, "under": "plaster_under", "cyl_map": 1.0}],
+	"M_LL_Flags": ["concrete_floor_worn_001", {"scale": 0.5, "base": "floor", "detail_amt": 0.9, "rough_lo": 0.55, "rough_hi": 0.85,
+		"normal_strength": 0.8}],
+	"M_LL_Drum": ["green_metal_rust", {"scale": 1.1, "base": "drum_red", "detail_amt": 0.5, "rough_lo": 0.45, "rough_hi": 0.7, "coat": 0.1,
+		"coat_rough": 0.4}],
 	"M_LL_WoodDark": ["dark_wooden_planks", {"scale": 1.0, "base": "oak_dark", "detail_amt": 1.0, "detail_color": 1.0, "rough_lo": 0.35,
 		"rough_hi": 0.6, "coat": 0.3, "coat_rough": 0.35}],
 }
@@ -104,6 +113,8 @@ static func get_room_mat(name: String) -> Material:
 	var m: Material = null
 	if ROOM.has(name):
 		m = _room(ROOM[name][0], ROOM[name][1])
+	elif name == "M_LL_Chequer":
+		m = _chequer()
 	elif name == "M_LL_Brass":
 		var s := StandardMaterial3D.new()
 		s.albedo_color = PALETTE["brass"]
@@ -116,6 +127,47 @@ static func get_room_mat(name: String) -> Material:
 		m = get_mat(name)
 	_cache[key] = m
 	return m
+
+
+## audit Stage S: chequer (tread) plate for the stair landing. Worn grey-green steel; the raised diamonds are a
+## normal map drawn here (no texture file), mapped world-triplanar at 40 mm pitch, worn brighter on the tops.
+static func _chequer() -> StandardMaterial3D:
+	var s := StandardMaterial3D.new()
+	s.albedo_color = PALETTE["chequer"]
+	s.metallic = 0.55
+	s.roughness = 0.5
+	s.normal_enabled = true
+	s.normal_texture = _chequer_normal()
+	s.normal_scale = 0.9
+	s.uv1_triplanar = true
+	s.uv1_world_triplanar = true
+	s.uv1_scale = Vector3.ONE * (1.0 / 0.16)      # a 128 px tile holds 4 x 4 diamonds: 40 mm pitch
+	return s
+
+
+static func _chequer_normal() -> ImageTexture:
+	const N := 128
+	var h := PackedFloat32Array()
+	h.resize(N * N)
+	for y in N:
+		for x in N:
+			# alternating diamond bars, as on tread plate: each cell's bar runs on one diagonal or the other
+			var cx := (x % 32) - 15.5
+			var cy := (y % 32) - 15.5
+			var alt := ((x >> 5) + (y >> 5)) % 2 == 0
+			var u := (cx + cy) * 0.7071 if alt else (cx - cy) * 0.7071
+			var v := (cx - cy) * 0.7071 if alt else (cx + cy) * 0.7071
+			var d := pow(absf(u) / 13.0, 2.0) + pow(absf(v) / 3.2, 2.0)
+			h[y * N + x] = clampf(1.0 - d, 0.0, 1.0)
+	var img := Image.create(N, N, false, Image.FORMAT_RGB8)
+	for y in N:
+		for x in N:
+			var dx := h[y * N + (x + 1) % N] - h[y * N + (x + N - 1) % N]
+			var dy := h[((y + 1) % N) * N + x] - h[((y + N - 1) % N) * N + x]
+			var n := Vector3(-dx * 2.0, -dy * 2.0, 1.0).normalized()
+			img.set_pixel(x, y, Color(n.x * 0.5 + 0.5, n.y * 0.5 + 0.5, n.z * 0.5 + 0.5))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
 
 
 ## R5 (Daniel: the vapour burner, the door handle): one flat roughness made every brass object a uniform

@@ -1,5 +1,18 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-17): perf bisect done, P1 in; Stage S approved and committed locally
+- **Records:** `docs/last_light/audit-2026-11/12_perf_bisect.md`, `13_stageS_evidence.md`.
+- **Bisect:** Stage 0's 27 to 30 ms was machine load. On a quiet Mac Medium is 17.3 to 19.3 ms. The body, rain, moon shadow, island and glass are cheap. SSIL costs about 2.0 ms (paired runs); fog, shadows, ocean and glow cost about 2 ms each (single runs). Probe writes now happen only on change (no visual change). **P1 done** (SSIL off on Medium, about -2 ms; DECISIONS Q18). P2 and P3 stay proposals for Stage G.
+- **Stage S:** R5, R6, R7 (cause: the exterior tower's white top cap under the floor), R8, C4 animation, door luminance 0.121, new `stairwell.py` → `stairwell.glb` (`pipeline.sh` defaults now include it), regress R26.
+  - Build: v075, watch_room v058, lighthouse v050, stairwell v002.
+- **Daniel (2026-11-17):** Stage S approved; the bowl glint stays; "U determine the rest" (Q18).
+- **Still open:** listen to `door_dogs` and `door_heavy`; `ch4.dlg:127` "two inches of oak" goes to the Stage C script document; the next stage is Daniel's choice (Stage P is next in the plan).
+- **Gotchas:**
+  - a class referenced by name from `-s` tests (`PlayerBody`) cannot use autoload names: look them up at run time;
+  - a node with `process_mode` DISABLED takes its colliders out of the physics world (use `set_process(false)` in tests);
+  - setting a ReflectionProbe property can make it re-capture (write on change only);
+  - the stairwell's lower level is `LAYER_LOWER` (8192): any new light needs `ROOM_LIGHT_MASK` or an explicit mask.
+
 ## LATEST (2026-11-16, end of session): audit Stage A done and committed locally; resume at the perf bisect, then Stage S
 - **Record:** `docs/last_light/audit-2026-11/11_stageA_evidence.md`; decisions DECISIONS Q17 (Daniel delegated them: "determine all choices ... according to suggested").
 - **Done:**

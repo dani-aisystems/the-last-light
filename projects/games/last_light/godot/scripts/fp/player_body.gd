@@ -43,6 +43,10 @@ func setup(p: Node, station: Node) -> void:
 		# chest, its beam was sliced by the torso and arm when looking down)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if k == "view" \
 			else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		if (get_node("/root/GameState").user_args as Dictionary).has("nobodyshadow"):   # perf bisect (debug only): the body casts nothing (run-time lookup: tests compile this class before autoloads)
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			if k == "shadow":
+				mi.visible = false
 	ap.play("sit")
 	ap.seek(0.0, true)
 	var hb := skel.find_bone("head")

@@ -14,6 +14,22 @@ const GAUGE_SWEEP := deg_to_rad(270.0)
 ## the window lights below are the only way the night, the dawn and the lightning get in.
 const LAYER_INTERIOR := 2
 const LAMP_LAYER := 4                   # render layer 3 (bit value 4): emissive bulbs
+## audit Stage S: the stairwell below the room's floor (ladder, service landing). Only its own bulkhead lamp
+## and the stair pendant over the hatch light it: unshadowed room lamps would reach it through the slab, and
+## its lamp would light the room's walls from below (outside.gd EXTERIOR_ONLY leaves it out as well).
+const LAYER_LOWER := 8192               # render layer 14
+const ROOM_LIGHT_MASK := 0xFFFFF & ~LAYER_LOWER
+## The stair door (Stage S, C4/R8): dogs lift while the wheel turns, then the leaf swings; closing reverses.
+const DOOR_LATCH_S := 0.8
+const DOOR_SWING_S := 1.6
+const DOOR_OPEN_DEG := -105.0
+const DOOR_WHEEL_TURN_DEG := 540.0
+const DOOR_DOG_LIFT_DEG := -78.0        # review_views.py DOG_LIFT_DEG: up off the wedges, toward the leaf centre
+## Stage S (S4): the stair door read at 0.032 mean luminance in cu_door (plan: 0.10-0.14). Wall lamps 2 and 3
+## strike the leaf edge-on, and the sky ambient that used to fill it was the R4 bug. A soft spot from the
+## ceiling in front of the door stands in for the lit room's bounce (no shadow, off with the room lights).
+const DOOR_FILL_ENERGY := 1.6            # first capture at 0.8: 0.084 mean luminance (target 0.10-0.14)
+const BOWL_GLINT_ENERGY := 0.1          # the sediment bowl's catch of the cage lamp (diffuse only; 0.18 with specular streaked the fuel line)
 const F := 20.0                         # floor height (Blender z = Godot y)
 const WARM := Color(1.0, 0.72, 0.45)
 const GLASS_MATS := ["M_LL_Glass", "M_LL_Lens"]
@@ -35,6 +51,14 @@ var _rx_flash := 0.0
 var _flicker := 0.0
 var _hold_id := ""
 var door_open := false
+var _door_p := 0.0                      # 0 shut and dogged .. DOOR_LATCH_S dogs up .. + DOOR_SWING_S fully open
+var _door_drawn := -1.0
+var stairwell: Node3D                   # stairwell.glb (Stage S)
+var _lower_nodes: Array = []            # shown only while the door is open or moving
+var probe_low: ReflectionProbe
+var _lower_shown := true
+var _low_recapture := 0
+var fills := {}                         # Stage S: id -> Light3D (door_fill, bowl_glint), on with the room lights
 var door_prompt := "Try the stair door"     # game_fp keeps it in step with the chapter and the door
 var outside: Node3D                     # set by game_fp: storm, dawn and lightning for the window lights
 var windows: Array = []                 # [{light: SpotLight3D, out: Vector3}] one per window bay
@@ -121,11 +145,19 @@ func setup(k: KeeperSim) -> void:
 	room = load("res://assets/models/watch_room.glb").instantiate()
 	add_child(room)
 	_bind(room)
+	if ResourceLoader.exists("res://assets/models/stairwell.glb"):   # audit Stage S
+		stairwell = load("res://assets/models/stairwell.glb").instantiate()
+		add_child(stairwell)
+		_bind(stairwell)
+		_bind_stairwell(stairwell)
+	_bind_door()
 	_make_window_lights()
 	_make_instrument_lights()
 	_make_catch_lights()
 	_make_probe()
 	_make_fog_cut()
+	_make_lower_probe()
+	_make_fills()
 	apply_shadow_preset()
 	for key in _story_props:
 		set_story_prop(key, false)
@@ -307,6 +339,14 @@ func _make_light(n: Node3D, id: String) -> void:
 	l.light_energy = _base_energy(id)
 	l.light_color = WARM
 	l.light_volumetric_fog_energy = 0.0
+	# Stage S: room lamps never reach the stairwell's lower level (LAYER_LOWER); the stair pendant does, down
+	# the hatch (it casts shadows); the lower bulkhead lamp lights only the lower level
+	l.light_cull_mask = ROOM_LIGHT_MASK
+	if id == "stair":
+		l.light_cull_mask = 0xFFFFF
+	elif id == "stair_low":
+		l.light_cull_mask = LAYER_LOWER
+		(l as OmniLight3D).omni_range = 4.5
 	add_child(l)
 	l.global_transform = n.global_transform.orthonormalized()
 	if id == "desk":
@@ -429,6 +469,7 @@ func _make_instrument_lights() -> void:
 		o.light_color = WARM
 		o.light_energy = _base_energy("cage")
 		o.light_volumetric_fog_energy = 0.0
+		o.light_cull_mask = ROOM_LIGHT_MASK          # Stage S: never the stairwell's lower level
 		add_child(o)
 		o.global_position = (lamp_nodes["cage"] as Node3D).global_position + Vector3.DOWN * 0.06
 		lights["cage"] = o
@@ -458,6 +499,164 @@ func _make_probe() -> void:
 	probe.update_mode = ReflectionProbe.UPDATE_ONCE
 	add_child(probe)
 	probe.global_position = Vector3(0, F + 1.6, 0)          # y F-0.25 .. F+3.45 (ceiling F+3.1)
+
+
+## audit Stage S: the service landing one flight down gets its own probe (the room's stops 25 cm under the
+## floor) with the same 5 cm blend (R4), so the sky's ambient never reaches it, and its own fog cut.
+## Both are on only while the lower level is shown.
+func _make_lower_probe() -> void:
+	if stairwell == null or probe_mode == "off":
+		return
+	probe_low = ReflectionProbe.new()
+	probe_low.size = Vector3(5.4, 3.1, 2.8)
+	probe_low.blend_distance = 0.05
+	probe_low.box_projection = true
+	probe_low.interior = true
+	probe_low.cull_mask = LAYER_LOWER | LAYER_INTERIOR
+	probe_low.ambient_mode = ReflectionProbe.AMBIENT_COLOR
+	probe_low.ambient_color = Color(0.15, 0.13, 0.11)
+	probe_low.ambient_color_energy = 0.3
+	probe_low.update_mode = ReflectionProbe.UPDATE_ONCE
+	add_child(probe_low)
+	probe_low.global_position = Vector3(0, F - 1.65, 2.05)    # bearings 130-230, r 0.8-3.3, below the slab
+	var fv := FogVolume.new()
+	fv.shape = RenderingServer.FOG_VOLUME_SHAPE_BOX
+	fv.size = Vector3(5.4, 3.1, 2.8)
+	fv.material = fog_cut
+	add_child(fv)
+	fv.global_position = probe_low.global_position
+	_lower_nodes.append(probe_low)
+	_lower_nodes.append(fv)
+	_show_lower(door_open)
+
+
+## Stage S (S4): fills that are not lamps: the door's bounce fill and the sediment bowl's glint.
+func _make_fills() -> void:
+	if parts.has("PT_stair_door"):
+		var door: Vector3 = parts["PT_stair_door"]["node"].global_position
+		var aim := door + _door_across() * 0.53 + Vector3(0, 1.05, 0)     # the leaf's centre (door = its hinge foot)
+		var flat := Vector3(aim.x, 0, aim.z)
+		var sp := SpotLight3D.new()
+		sp.name = "FILL_door"
+		sp.spot_angle = 19.0
+		sp.spot_angle_attenuation = 1.6
+		sp.spot_range = 4.0
+		sp.spot_attenuation = 1.0
+		sp.light_color = WARM
+		sp.light_energy = 0.0
+		sp.light_specular = 0.25
+		sp.shadow_enabled = false
+		sp.light_volumetric_fog_energy = 0.0
+		sp.light_cull_mask = ROOM_LIGHT_MASK
+		add_child(sp)
+		sp.global_position = flat.normalized() * 0.7 + Vector3(0, F + 2.85, 0)
+		sp.look_at(aim, Vector3.UP)
+		fills["door_fill"] = sp
+	if _ia_bodies.has("sediment_bowl"):
+		var p: Vector3 = (_ia_bodies["sediment_bowl"] as Node3D).global_position
+		var l := OmniLight3D.new()
+		l.name = "FILL_bowl"
+		l.omni_range = 0.22
+		l.omni_attenuation = 1.4
+		l.light_color = Color(1.0, 0.7, 0.42)
+		l.light_energy = 0.0
+		l.light_specular = 0.0          # diffuse only: the glass and diesel catch it; the copper fuel line (metal) doesn't streak
+		l.shadow_enabled = false
+		l.light_cull_mask = LAYER_INTERIOR
+		add_child(l)
+		l.global_position = p + Vector3(-p.x, 0, -p.z).normalized() * 0.1 + Vector3(0, -0.02, 0)   # level with the glass
+		fills["bowl_glint"] = l
+
+
+## The leaf's "across" direction (hinge to latch) when shut, in world space.
+func _door_across() -> Vector3:
+	var leaf: Node3D = parts["PT_stair_door"]["node"]
+	var b: Basis = leaf.get_parent().global_basis * (parts["PT_stair_door"]["rest"] as Transform3D).basis
+	return b.x.normalized()
+
+
+## Stage S: the stairwell GLB's visuals go on their layers. The housing's lining, landing and rails
+## (SM_Well_*) are room geometry, lit by the room; the ladder and the service landing (SM_Ladder_*,
+## SM_Lower_*, the lower lamp) are LAYER_LOWER and hidden while the door is shut.
+func _bind_stairwell(root: Node) -> void:
+	for n in root.find_children("*", "VisualInstance3D", true, false):
+		var nm := String(n.name)
+		if nm.begins_with("SM_Ladder") or nm.begins_with("SM_Lower") or nm == "LMP_stair_low":
+			(n as VisualInstance3D).layers = LAYER_LOWER
+			_lower_nodes.append(n)
+	if lights.has("stair_low"):
+		_lower_nodes.append(lights["stair_low"])
+
+
+func _show_lower(on: bool) -> void:
+	if on == _lower_shown:
+		return
+	_lower_shown = on
+	for n in _lower_nodes:
+		(n as Node3D).visible = on
+	if on and probe_low:
+		probe_low.update_mode = ReflectionProbe.UPDATE_ALWAYS     # a few fresh captures, then back to once
+		_low_recapture = 8
+
+
+## Stage S: the handwheel, the two lever dogs and the leaf's collider ride on the leaf. They are
+## reparented under it (global pose kept) and their rest poses re-read.
+func _bind_door() -> void:
+	if not parts.has("PT_stair_door"):
+		return
+	var leaf: Node3D = parts["PT_stair_door"]["node"]
+	for nm in ["PT_stair_handwheel", "PT_stair_dog_0", "PT_stair_dog_1"]:
+		if parts.has(nm):
+			var n: Node3D = parts[nm]["node"]
+			n.reparent(leaf, true)
+			parts[nm]["rest"] = n.transform
+	var col := room.find_child("COL_stair_leaf*", true, false) as Node3D
+	if col:
+		col.reparent(leaf, true)
+
+
+## Stage S: the door's sequence, driven by door_open. One clock, _door_p: the latch phase (wheel and dogs,
+## eased) then the swing (smoothstep, so the heavy leaf starts and stops gently). Transforms are written only
+## while it moves (the 1p shadow-cache rule).
+func _update_door(delta: float) -> void:
+	var total := DOOR_LATCH_S + DOOR_SWING_S
+	_door_p = move_toward(_door_p, total if door_open else 0.0, delta)
+	_show_lower(door_open or _door_p > 0.0)
+	if _low_recapture > 0:
+		_low_recapture -= 1
+		if _low_recapture == 0 and probe_low:
+			probe_low.update_mode = ReflectionProbe.UPDATE_ONCE
+	if is_equal_approx(_door_p, _door_drawn):
+		return
+	_door_drawn = _door_p
+	var a := smoothstep(0.0, 1.0, clampf(_door_p / DOOR_LATCH_S, 0.0, 1.0))
+	var s := smoothstep(0.0, 1.0, clampf((_door_p - DOOR_LATCH_S) / DOOR_SWING_S, 0.0, 1.0))
+	_pose_part("PT_stair_door", deg_to_rad(DOOR_OPEN_DEG) * s)
+	_pose_part("PT_stair_handwheel", deg_to_rad(DOOR_WHEEL_TURN_DEG) * a)
+	_pose_part("PT_stair_dog_0", deg_to_rad(DOOR_DOG_LIFT_DEG) * a)
+	_pose_part("PT_stair_dog_1", deg_to_rad(DOOR_DOG_LIFT_DEG) * a)
+
+
+## Put the door straight into its state (a loaded save, a capture restore): no replayed animation.
+func snap_door() -> void:
+	_door_p = DOOR_LATCH_S + DOOR_SWING_S if door_open else 0.0
+	_door_drawn = -1.0
+	_update_door(0.0)
+
+
+## The door's phases, for tests: [latch 0..1, swing 0..1].
+func door_phase() -> Vector2:
+	return Vector2(clampf(_door_p / DOOR_LATCH_S, 0.0, 1.0), clampf((_door_p - DOOR_LATCH_S) / DOOR_SWING_S, 0.0, 1.0))
+
+
+func _pose_part(name_: String, angle: float) -> void:
+	if not parts.has(name_):
+		return
+	var p: Dictionary = parts[name_]
+	p["angle"] = angle
+	p["w_angle"] = angle
+	var rest: Transform3D = p["rest"]
+	p["node"].transform = Transform3D(rest.basis * Basis(Vector3.UP, angle), rest.origin)
 
 
 ## The storm's volumetric fog also filled the room (milky at dawn). A negative-density volume over
@@ -520,6 +719,14 @@ func _update_windows() -> void:
 		l.visible = e > 0.02
 
 
+## Perf bisect (2026-11-16): a ReflectionProbe re-captures its six faces whenever one of its properties is
+## set, even in UPDATE_ONCE. Writing the same ambient energy and intensity every frame kept it re-rendering
+## (--probe=off saved ~6 ms on Medium). Write only a real change.
+static func _probe_set(pr: ReflectionProbe, prop: String, v: float) -> void:
+	if absf(float(pr.get(prop)) - v) > 1e-3:
+		pr.set(prop, v)
+
+
 ## Probe: ambient always follows the room-light level. Mode "a" also scales the (stale) captured
 ## reflections; mode "b" re-captures whenever the lighting state changes (power, dawn).
 func _update_probe(level: float, room_on: bool) -> void:
@@ -527,14 +734,14 @@ func _update_probe(level: float, room_on: bool) -> void:
 		return
 	# 1b: cream walls and palette albedo bounce far more. R4: 0.45 -> 0.8 lit: the walls by the windows used to
 	# get the (dusk) sky's ambient through the probe's 1 m blend; with that fixed they need this fill instead
-	probe.ambient_color_energy = lerpf(0.12, 0.8, level)
+	_probe_set(probe, "ambient_color_energy", lerpf(0.12, 0.8, level))
 	if probe_mode == "a":
-		probe.intensity = lerpf(0.25, 1.0, level)
+		_probe_set(probe, "intensity", lerpf(0.25, 1.0, level))
 		return
 	# R4/R6: in a blackout the captured reflections are the red-lit stair well (seen as thin red lines along
 	# the door's grazing chamfers and rivets, Daniel's "red lines round the doorway") and whatever the torch
 	# lit at capture time (a pool reflected where nothing is lit: the "floating" reflection). Dim them.
-	probe.intensity = lerpf(1.0, 0.15, dark)
+	_probe_set(probe, "intensity", lerpf(1.0, 0.15, dark))
 	var key := "%s|%d" % [room_on, int(round((outside.dawn if outside else 0.0) * 4.0))]
 	if key != _probe_key:
 		_probe_key = key
@@ -856,7 +1063,7 @@ func _process_body(delta: float) -> void:
 	if not Settings.v["hold_to_crank"] and k.start_held and k.gen == KeeperSim.Gen.RUNNING:
 		k.set_start(false)
 	_set_press("PT_start", 0.012 if k.start_held else 0.0, delta)
-	_set_angle("PT_stair_door", deg_to_rad(-105.0) if door_open else 0.0, delta, 1.2)
+	_update_door(delta)
 	# Stage 1 iteration 5: PT_handset is the desk mic's press-to-talk bar (it was the whole mic, which sank 3 cm into the desk)
 	_set_press("PT_handset", -0.004 if k.tx_t > 0.0 else 0.0, delta)
 	# lamps
@@ -887,11 +1094,19 @@ func _process_body(delta: float) -> void:
 			l.light_color = Color(1.0, 0.72, 0.45) if room_on else Color(1.0, 0.15, 0.08)
 			on = true
 			base = 0.26 if room_on else 0.42    # 0.6 turned the 20 mm door gap into a glowing white slot (R6: x0.85 for attenuation 1.2)
+		elif id == "stair_low":              # Stage S: the bulkhead lamp below, on the same emergency circuit
+			l.light_color = Color(1.0, 0.72, 0.45) if room_on else Color(1.0, 0.15, 0.08)
+			on = _lower_shown
+			base = 0.5 if room_on else 0.4
 		l.light_energy = base * f if on else 0.0
 	dark = move_toward(dark, 0.0 if room_on else 1.0, delta / 0.6)
 	_update_windows()
 	_update_catch_lights(room_on)
+	for id in fills:
+		(fills[id] as Light3D).light_energy = (DOOR_FILL_ENERGY if id == "door_fill" else BOWL_GLINT_ENERGY) * f if room_on else 0.0
 	_update_probe(f if room_on else 0.0, room_on)
+	if probe_low:
+		_probe_set(probe_low, "ambient_color_energy", lerpf(0.1, 0.35, f if room_on else 0.0))
 	for id in lamps:
 		if id.begins_with("wall"):
 			# well-glass bulb: bright enough to read as lit, dim enough that the globe and guard stay
@@ -899,7 +1114,7 @@ func _process_body(delta: float) -> void:
 			_lamp(id, 1.5 * f if room_on else 0.0)
 		elif id == "desk" or id == "cage":
 			_lamp(id, 4.0 * f if room_on else 0.0)
-		elif id == "stair":
+		elif id.begins_with("stair"):
 			lamps[id].emission = Color(1.0, 0.75, 0.42) if room_on else Color(1.0, 0.15, 0.08)
 			_lamp(id, 4.0 * f if room_on else 2.5)
 

@@ -6,7 +6,7 @@ const SHIP_VIEW := preload("res://scripts/fp/ship_view2.gd")
 const LANTERN_Y := 24.8
 ## Render layer 2 = the watch-room interior (station.gd LAYER_INTERIOR). Exterior lights skip it:
 ## the room is lit only by its own lamps and by what comes in through the windows.
-const EXTERIOR_ONLY := 0xFFFFF & ~2
+const EXTERIOR_ONLY := 0xFFFFF & ~2 & ~8192   # not the room (2), not the stairwell's lower level (station.LAYER_LOWER)
 
 var sim: KeeperSim
 var env: Environment
@@ -287,7 +287,7 @@ func _environment() -> void:
 	moon.light_color = Color(0.55, 0.64, 0.82)
 	moon.light_energy = 0.45
 	moon.rotation_degrees = Vector3(-34, 160, 0)
-	moon.shadow_enabled = true
+	moon.shadow_enabled = not GameState.user_args.has("nomoonshadow")   # --nomoonshadow: perf bisect
 	moon.directional_shadow_max_distance = 140.0
 	moon.light_volumetric_fog_energy = 0.3
 	moon.light_cull_mask = EXTERIOR_ONLY
@@ -363,6 +363,7 @@ func _island() -> void:
 		_apply_mats(isl)
 		island_glb = isl.find_child("SM_Landing*", true, false) != null
 		_coast_from(isl.find_child("SM_Island_Terrain", true, false) as MeshInstance3D)
+		isl.visible = not GameState.user_args.has("noisland")   # --noisland: perf bisect (the coast still loads)
 		return
 	# procedural stand-in: rugged dome with cliffs, rises to the tower plinth (3.5 m)
 	var st := SurfaceTool.new()

@@ -153,7 +153,7 @@ func apply_render_scale() -> void:
 
 ## Quality presets consumed by outside.gd / station.gd (Stage 1a: interior lighting per preset).
 ##   Low:    probe ambient only, no SSAO/SSIL, shadows on the desk lamp only, hard-ish shadows
-##   Medium: SSAO + SSIL at half size, shadows on desk + two wall lamps + the centre window
+##   Medium: SSAO at half size (no SSIL since 2026-11-17, DECISIONS Q18), shadows on desk + two wall lamps + the stair
 ##   High:   SSAO + SSIL (half size, higher quality), 8 interior lights cast soft shadows
 func q_volumetric() -> bool:
 	return int(v["quality"]) >= 1
@@ -163,8 +163,10 @@ func q_ssao() -> bool:
 	return int(v["quality"]) >= 1
 
 
+## Perf bisect P1 (2026-11-17, DECISIONS Q18): SSIL cost about 2 ms on Medium (paired benches, 12_perf_bisect.md),
+## which put Medium over 16.7 ms; it stays on High.
 func q_ssil() -> bool:
-	return int(v["quality"]) >= 1
+	return int(v["quality"]) >= 2
 
 
 ## Half-resolution SSAO/SSIL on every preset: full-size AO cost ~4-15 ms more per frame at High on

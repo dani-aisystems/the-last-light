@@ -90,6 +90,11 @@ MATS = {
     "M_LL_LampAmber": ("#6A4810", 0.4, 0.0, {"emission_hex": "#FFAA20", "emission_strength": 0.0}),
     "M_LL_Screen": ("#06140C", 0.2, 0.0, {}),
     "M_LL_Collision": ("#FF00FF", 1.0, 0.0, {}),
+    # audit Stage S (stairwell.py, its own GLB): limewashed stone, chequer plate, stone flags, red-oxide drums
+    "M_LL_Limewash": ("#B9B3A4", 0.9, 0.0, {}),
+    "M_LL_Chequer": ("#55574F", 0.5, 0.6, {}),
+    "M_LL_Flags": ("#57534B", 0.85, 0.0, {}),
+    "M_LL_Drum": ("#6A2C1C", 0.6, 0.2, {}),
 }
 TEXTURED = {"M_LL_Atlas": "T_LL_Atlas.png", "M_LL_Chart": "T_LL_Chart.png", "M_LL_Rose": "T_LL_Rose.png",
             "M_LL_Rug": "T_LL_Rug.png",
@@ -175,7 +180,11 @@ BEVEL = {"on": True, "max": 0.006}
 # battery feed, generator feed, two ring-main drops. The supply diagram hangs over the middle between them.
 CHARGER_GLANDS = (-0.34, -0.29, 0.29, 0.34)
 SMOOTH_ONLY = ("SM_CoatCloth",)       # buckets shaded smooth with no angle split (cloth: audit C5)
-STAIR_DEPTH = 0.62                    # stair bulkhead depth into the room (Stage 1 iteration 3)    # Stage 1 iteration 2: small chamfers so edges catch the light
+STAIR_DEPTH = 0.62                    # stair bulkhead depth into the room (Stage 1 iteration 3)
+HOUSING_HALF, HOUSING_H = 0.65, 2.3   # stair housing: half width (side-plate centre lines) and height (audit S)
+DOOR_WHEEL_C = Vector((0.78, -0.09, 1.05))   # stair door handwheel centre, leaf frame (X across, -Y room, Z up)
+DOOR_DOG_Z = (0.45, 1.65)                    # stair door lever dogs: pivot heights on the latch side
+# Stage 1 iteration 2: small chamfers so edges catch the light (box() bevel)
 
 
 def box(bm, loc, size, b3=None, bevel=None, segs=1):
@@ -689,6 +698,34 @@ def in_window(b):
     return any(abs(((b - c + 180) % 360) - 180) < R["bay_half_deg"] for c in R["window_bays"])
 
 
+def cut_away(bm, planes):
+    """Delete the part of bm inside every half-space n.(p - co) > 0 (planes: [(co, n)]), splitting faces
+    on the planes first. Leaves the cut open (callers cover the edge)."""
+    for co, no in planes:
+        geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=geom, plane_co=Vector(co), plane_no=Vector(no), dist=1e-6)
+    kill = [f for f in bm.faces
+            if all(Vector(no).dot(f.calc_center_median() - Vector(co)) > 1e-5 for co, no in planes)]
+    bmesh.ops.delete(bm, geom=kill, context="FACES")
+
+
+def housing_span():
+    """Bearings (b0, b1) of the stair housing's side-plate centre lines on the wall (audit Stage S)."""
+    half = math.degrees(math.asin(HOUSING_HALF / R_IN))
+    return R["stair"] - half, R["stair"] + half
+
+
+def housing_split(b0, b1):
+    """Split the wall segment [b0, b1] into pieces outside / inside the housing span: [(c0, c1, inside)]."""
+    h0, h1 = housing_span()
+    pts = sorted({b0, b1, *(x for x in (h0, h1) if b0 < x < b1)})
+    out = []
+    for c0, c1 in zip(pts, pts[1:]):
+        if c1 - c0 > 1e-6:
+            out.append((c0, c1, h0 <= (c0 + c1) / 2 <= h1))
+    return out
+
+
 def ring_seg(bm, b0, b1, r0, r1, z0, z1):
     def P(b, rr, z):
         a = math.radians(b)
@@ -715,11 +752,19 @@ def build_shell(B):
             ring_seg(B.bm("M_LL_Wood", "SM_Wainscot"), b0, b1, R_IN - 0.055, R_IN - 0.035, 0.74, 0.86)
             ring_seg(B.bm("M_LL_Wood", "SM_Wainscot"), b0, b1, R_IN - 0.055, R_IN - 0.035, 0.05, 0.17)
         else:
-            ring_seg(conc, b0, b1, R_IN, R_OUT, 0, H)
-            ring_seg(B.bm("M_LL_Iron", "SM_RoomBand"), b0, b1, R_IN - 0.014, R_IN, 0.0, 0.14)          # dark skirting
-            # oak dado rail at the paint line (room_pbr dado_h = 1.05): a stepped half-round
-            ring_seg(B.bm("M_LL_Wood", "SM_DadoRail"), b0, b1, R_IN - 0.022, R_IN, 1.03, 1.07)
-            ring_seg(B.bm("M_LL_Wood", "SM_DadoRail"), b0, b1, R_IN - 0.012, R_IN, 1.022, 1.078)
+            # audit Stage S (R5): behind the stair housing the room's painted wall, skirting and dado stop; the
+            # stairwell GLB (stairwell.py) lines that span with limewashed masonry. Above the housing's top plate
+            # the room wall goes on as before. Each piece is cut to the span, so a segment the housing's edge
+            # crosses keeps its part outside the housing.
+            for c0, c1, inside in housing_split(b0, b1):
+                if inside:
+                    ring_seg(conc, c0, c1, R_IN, R_OUT, HOUSING_H, H)
+                    continue
+                ring_seg(conc, c0, c1, R_IN, R_OUT, 0, H)
+                ring_seg(B.bm("M_LL_Iron", "SM_RoomBand"), c0, c1, R_IN - 0.014, R_IN, 0.0, 0.14)          # dark skirting
+                # oak dado rail at the paint line (room_pbr dado_h = 1.05): a stepped half-round
+                ring_seg(B.bm("M_LL_Wood", "SM_DadoRail"), c0, c1, R_IN - 0.022, R_IN, 1.03, 1.07)
+                ring_seg(B.bm("M_LL_Wood", "SM_DadoRail"), c0, c1, R_IN - 0.012, R_IN, 1.022, 1.078)
         # stepped crown moulding where the wall meets the ceiling (all the way round)
         ring_seg(B.bm("M_LL_Concrete", "SM_Cornice"), b0, b1, R_IN - 0.06, R_IN, H - 0.06, H)
         ring_seg(B.bm("M_LL_Concrete", "SM_Cornice"), b0, b1, R_IN - 0.03, R_IN, H - 0.11, H - 0.06)
@@ -814,11 +859,16 @@ def build_shell(B):
             if math.hypot(cx, cy) > R_IN + 0.3:
                 continue
             v = Vector((cx, cy, 0))
-            # the stair hatch: only cells lying wholly inside the bulkhead (a cell centre inside but its edge
-            # 10 cm out in the room opened a lit slot across the floor in front of the door)
-            if abs(v.dot(sr)) < 0.6 - cell / 2 and back_dist(1.3, 0.0) - STAIR_DEPTH + cell / 2 + 0.02 < v.dot(so) < 3.4:
+            # cells wholly inside the stair housing are left out; the rest are cut to its planes below
+            if abs(v.dot(sr)) < HOUSING_HALF - cell * 0.71 and back_dist(1.3, 0.0) - STAIR_DEPTH + cell * 0.71 < v.dot(so):
                 continue
             box(floor, (cx, cy, F - 0.1), (cell, cell, 0.2), bevel=0.0)   # one seamless slab: no 25 cm tile grooves
+    # audit Stage S (R5-R7): the floor under the stair housing is cut exactly to the housing (front plane and
+    # side-plate centre lines). The old stepped hole followed the world-axis 25 cm grid, which is not aligned
+    # to bearing 170: it showed slivers of the shaft below. The stairwell's landing plate, coaming and
+    # threshold plate (stairwell.py) cover the cut edges.
+    front_d = back_dist(1.3, 0.0) - STAIR_DEPTH
+    cut_away(floor, [(so * front_d, so), (sr * HOUSING_HALF, -sr), (sr * -HOUSING_HALF, sr)])
     B.collider("floor", (0, 0, F - 0.25), (8, 8, 0.5))
     rose = B.bm("M_LL_Rose")
     disc_uv(rose, B.uv(rose), (0, 0, F + 0.002), Matrix.Identity(3), 0.62, 48, None)
@@ -1685,7 +1735,7 @@ def build_stair(B):
     for sx in (-1, 1):
         box(trim, dp(b, sx * (w / 2 - 0.06), h / 2, front), (0.12, 0.06, h), bs)
         rivets(B, dp(b, sx * (w / 2 - 0.06), 0.1, front - 0.031), dp(b, sx * (w / 2 - 0.06), h - 0.1, front - 0.031), 14, basis(r, u, -o))
-    # heavy bulkhead door, CLOSED: hinged at the left jamb, opens inward (Godot animates PT_stair_door)
+    # heavy bulkhead door, CLOSED: hinged at the left jamb, swings out into the room (Godot animates PT_stair_door)
     hinge = dp(b, -w / 2 + 0.12, 0, front - 0.02)
     db3 = basis(r, u.cross(r), u)          # X = across the opening, Z = up (hinge axis)
 
@@ -1702,58 +1752,59 @@ def build_stair(B):
             cyl(bm, (0.0, -0.01, z), 0.026, 0.026, 0.2, 14)             # hinge knuckles
         # audit C4 (2026-11-16): the dogs were painted boxes. Each is now a wedge block on the frame, a lever
         # pivoting on a through-bolt with a nut, and a rounded handle end (Stage S animates them).
-        for z in (0.45, 1.65):                                         # lever dogs on the latch side
+        # Stage S: the levers and handle ends are their own parts (PT_stair_dog_0/1, below), so they can lift
+        for z in DOOR_DOG_Z:                                           # lever dogs on the latch side
             box(bm, (1.005, -0.045, z), (0.05, 0.022, 0.06))           # wedge block bolted to the flange
-            lv = rot_about((0, 1, 0), -12.0)                           # lever slightly off vertical, latched
-            box(bm, Vector((0.985, -0.066, z)) + lv @ Vector((0, 0, 0.045)), (0.024, 0.014, 0.13), lv, bevel=0.004)
-            cyl(bm, Vector((0.985, -0.066, z)) + lv @ Vector((0, 0, 0.108)), 0.014, 0.014, 0.016, 12, basis_z(yb))  # handle end
             cyl(bm, (0.985, -0.06, z), 0.011, 0.011, 0.04, 12, basis_z(yb))          # pivot bolt
             cyl(bm, (0.985, -0.078, z), 0.015, 0.015, 0.008, 6, basis_z(yb))         # hex nut
         box(bm, (0.95, -0.05, 1.3), (0.14, 0.03, 0.03))                # the bolt that rattles at the knock
         # audit C4: the diagonal spokes were unrotated boxes 0.17 m square (a brass plate). Now a hub on its
-        # boss, five round spokes and a rim with a grip bulge per spoke.
-        wc = Vector((0.78, -0.09, 1.05))
-        wheel = made(bm, lambda: (cyl(bm, (0.78, -0.06, 1.05), 0.03, 0.03, 0.05, 14, basis_z(yb)),
-                                  torus(bm, wc, 0.11, 0.012, 32, 8, basis_z(yb)),
-                                  cyl(bm, wc, 0.026, 0.026, 0.03, 16, basis_z(yb)),
-                                  cyl(bm, wc - yb * 0.017, 0.012, 0.012, 0.006, 12, basis_z(yb))))   # hub and its cap nut
+        # boss, five round spokes and a rim with a grip bulge per spoke. Stage S: only the boss stays on the
+        # leaf; the wheel is PT_stair_handwheel (below), so it turns.
+        tag(made(bm, lambda: cyl(bm, (0.78, -0.06, 1.05), 0.03, 0.03, 0.05, 14, basis_z(yb))), 1)
+    B.part("PT_stair_door", "M_LL_SteelPaint", hinge, db3, door, extra_mats=("M_LL_Brass",))
+    # audit Stage S: the handwheel and the two lever dogs as their own parts. Each is built in the leaf's
+    # frame and stored in a frame whose local Z is the leaf's normal (its turning axis), with the origin on
+    # that axis; Godot reparents them under the leaf and turns them about local Z (glTF: Y).
+    yb = Vector((0, 1, 0))
+    LZ = basis(Vector((1, 0, 0)), Vector((0, 0, -1)), yb)       # local X = leaf X, local Z = leaf +Y (into the housing)
+
+    def in_frame(origin, fn):
+        def build_fn(bm, uv):
+            for v in made(bm, lambda: fn(bm)):
+                v.co = LZ.transposed() @ (v.co - origin)
+        return build_fn
+
+    def wheel(bm):
+        wc = DOOR_WHEEL_C
+        torus(bm, wc, 0.11, 0.012, 32, 8, basis_z(yb))
+        cyl(bm, wc, 0.026, 0.026, 0.03, 16, basis_z(yb))
+        cyl(bm, wc - yb * 0.017, 0.012, 0.012, 0.006, 12, basis_z(yb))          # hub and its cap nut
         for k in range(5):
             a = 2 * math.pi * k / 5 + math.pi / 2
             dv = Vector((math.cos(a), 0.0, math.sin(a)))
-            wheel += made(bm, lambda dv=dv: seg_cyl(bm, wc + dv * 0.022, wc + dv * 0.104, 0.0065, 8))
-            wheel += made(bm, lambda dv=dv: sphere(bm, wc + dv * 0.11, 0.0155, 10, 6))                    # grip bulge
-        tag(wheel, 1)
-    B.part("PT_stair_door", "M_LL_SteelPaint", hinge, db3, door, extra_mats=("M_LL_Brass",))
+            seg_cyl(bm, wc + dv * 0.022, wc + dv * 0.104, 0.0065, 8)
+            sphere(bm, wc + dv * 0.11, 0.0155, 10, 6)                          # grip bulge
+    B.part("PT_stair_handwheel", "M_LL_Brass", hinge + db3 @ DOOR_WHEEL_C, db3 @ LZ, in_frame(DOOR_WHEEL_C, wheel))
+    for i, z in enumerate(DOOR_DOG_Z):
+        piv = Vector((0.985, -0.066, z))
+
+        def dog(bm, piv=piv):
+            lv = rot_about((0, 1, 0), -12.0)                           # lever slightly off vertical, latched
+            box(bm, piv + lv @ Vector((0, 0, 0.045)), (0.024, 0.014, 0.13), lv, bevel=0.004)
+            cyl(bm, piv + lv @ Vector((0, 0, 0.108)), 0.014, 0.014, 0.016, 12, basis_z(yb))   # handle end
+        B.part(f"PT_stair_dog_{i}", "M_LL_SteelPaint", hinge + db3 @ piv, db3 @ LZ, in_frame(piv, dog))
+    # Stage S (R8): the leaf's own collider, the leaf's size and place when shut; Godot moves it with the leaf
+    B.collider("stair_leaf", hinge + db3 @ Vector((0.53, 0.0, 1.04)), (1.09, 0.06, 2.04), db3)
     # audit C1 (2026-11-16): the bulkhead lamp over the door (LMP_wall_4) is gone: its backplate overlapped the
     # leaf's top by 2.5 cm and it glared on the door. Wall lamps 2 (148) and 3 (-160) light the door.
     B.empty("IA_door", dp(b, 0, 1.1, front - 0.15), (0.55, 0.15, 0.9), bs)
     B.collider("stair_l", dp(b, -w / 2, h / 2, (front + back) / 2), (0.1, back - front, h), bs)
     B.collider("stair_r", dp(b, w / 2, h / 2, (front + back) / 2), (0.1, back - front, h), bs)
-    B.collider("stair_door", dp(b, 0, 1.0, front - 0.02), (1.1, 0.08, 2.0), bs)
-    dmid = (front + back) / 2
-    B.collider("stair_well", dp(b, 0, 0.5, dmid), (w - 0.1, back - front - 0.06, 1.0), bs)
-    # steep ship's stair: drops 3 m along the wall (+r) from the hatch inside the bulkhead; below the floor
-    # it runs on under the room. 14 treads at about 60 degrees, iron stringers, an oak handrail.
-    iron = B.bm("M_LL_Iron", "SM_Stair")
-    rise, run, n = 0.214, 0.124, 14
-    x0 = -0.5
-    for k in range(n):
-        box(iron, dp(b, x0 + run * (k + 0.5), -rise * (k + 1) + 0.01, dmid), (0.16, back - front - 0.12, 0.025), bs)
-    dz, dx = -rise * n, run * n
-    for sy in (-1, 1):
-        dd = dmid + sy * (back - front - 0.08) / 2
-        seg_cyl(iron, dp(b, x0, -0.025, dd), dp(b, x0 + dx, dz - 0.025, dd), 0.02, 8)   # item 5: was 2 cm proud of the floor
-    seg_cyl(B.bm("M_LL_Wood", "SM_Stair"), dp(b, x0 + 0.05, 0.9, front + 0.06), dp(b, x0 + dx, dz + 0.9, front + 0.06), 0.022, 10)
-    # the shaft below the hatch (concrete), so nothing shows through from the room. Brief item 5: the wall
-    # tops sat exactly at floor level and reached past the bulkhead into the room, so the cream concrete
-    # z-fought the dark floor round the door (white speckles). They now stop 5 mm under the floor.
-    conc = B.bm("M_LL_Concrete", "SM_Stair")
-    SHAFT_TOP = -0.005
-    sh_h = 3.1 + SHAFT_TOP
-    box(conc, dp(b, 0.35, SHAFT_TOP - sh_h / 2, front - 0.03), (2.3, 0.06, sh_h), bs, bevel=0.0)
-    box(conc, dp(b, 0.35, SHAFT_TOP - sh_h / 2, back + 0.05), (2.3, 0.06, sh_h), bs, bevel=0.0)
-    box(conc, dp(b, -0.68, SHAFT_TOP - sh_h / 2, dmid), (0.06, back - front + 0.1, sh_h), bs, bevel=0.0)
-    box(conc, dp(b, 0.35, -3.1, dmid), (2.3, back - front + 0.1, 0.1), bs, bevel=0.0)
+    # Stage S: the shut-shaped COL_stair_door and the invisible COL_stair_well box are gone. The leaf has its
+    # own collider (above); the landing, coaming, rails and drop chain carry real ones (stairwell.py).
+    # Stage S: the ship's ladder, its rails and the shaft below moved to stairwell.py (ASSET_stairwell), with
+    # the landing, hatch and the service landing one flight down.
     bm = bmesh.new()
     bm.loops.layers.uv.new("UVMap")
     sphere(bm, dp(b, 0, h - 0.12, (front + back) / 2), 0.04)
@@ -2359,8 +2410,12 @@ def build_props(B):
     quad_uv(pm, B.uv(pm), lid + tu_ * 0.0142, basis(tr_, -to_, tu_), 0.12, 0.12, region_rect("tin_band", 0.0, 0.0, 0.33, 1.0))
     solid(B, "tin_gold", lambda bm: torus(bm, lid + tu_ * 0.0135, 0.086, 0.0018, 40, 5))
     # (R) touched-up paint at hand height, a slightly different cream (maintained, not new)
-    for tb, tz, tw, th in ((-96.0, 1.45, 0.2, 0.14), (101.0, 1.3, 0.16, 0.12), (158.0, 1.55, 0.22, 0.16), (-19.0, 1.12, 0.1, 0.08)):
+    # Stage S: the 158 patch reached 159.9, inside the stair housing (158.5), where the room's wall no longer runs:
+    # it showed as a pale card on the side plate. Now 156.
+    for tb, tz, tw, th in ((-96.0, 1.45, 0.2, 0.14), (101.0, 1.3, 0.16, 0.12), (156.0, 1.55, 0.22, 0.16), (-19.0, 1.12, 0.1, 0.08)):
         assert not in_window(tb), f"touch-up patch at {tb} would float in a window bay"
+        half_deg = math.degrees(tw / 2 / R_IN)
+        assert tb + half_deg < housing_span()[0] or tb - half_deg > housing_span()[1], f"touch-up patch at {tb} reaches into the stair housing"
         tr, to, tu = wall_frame(tb)
         box(B.bm("M_LL_Paper", "SM_Props"), dp(tb, 0, tz, R_IN - 0.0015), (tw, 0.002, th), basis(tr, to, tu), bevel=0.0)
 
@@ -2777,7 +2832,11 @@ def build_lighthouse(B):
     T = S["tower"]
     conc = B.bm("M_LL_TowerPaint", "SM_Tower")
     segs = T["segments"]
-    cyl(conc, (0, 0, (T["base_z"] + T["top_z"]) / 2), T["radius_base"], T["radius_top"], T["top_z"] - T["base_z"], segs)
+    # audit Stage S (R7, the "white floor patch"): the tower's top cap lay at the room floor's height, under the
+    # whole room, in white tower paint; through the stair hatch it showed as a pale patch (Blender raycast from
+    # the pp_door eye: 65 of 117 rays into the hatch hit it). The tower is open-ended; the room floor, the
+    # stairwell and the plinth close it.
+    cyl(conc, (0, 0, (T["base_z"] + T["top_z"]) / 2), T["radius_base"], T["radius_top"], T["top_z"] - T["base_z"], segs, caps=False)
     stone = B.bm("M_LL_Stone", "SM_Tower")
     cyl(stone, (0, 0, T["base_z"] + 0.3), T["radius_base"] + 0.5, T["radius_base"] + 0.35, 0.8, segs)
     cyl(stone, (0, 0, T["base_z"] - 1.0), T["radius_base"] + 0.9, T["radius_base"] + 0.6, 2.2, segs)
@@ -2957,8 +3016,14 @@ def build():
     B4 = Builder(boat)
     exterior.build_boat(H, B4)
     B4.flush()
+    # audit Stage S: the stairwell behind the stair door (stairwell.py), its own GLB
+    import stairwell
+    sw = reset("ASSET_stairwell")
+    B5 = Builder(sw)
+    stairwell.build_stairwell(H, B5)
+    B5.flush()
     stats = {}
-    for c in (room, lh, isl, boat):
+    for c in (room, lh, isl, boat, sw):
         tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in c.objects if o.type == "MESH")
         stats[c.name] = {"objects": len(c.objects), "tris": tris}
     return stats

@@ -78,7 +78,38 @@ VIEWS = {
     "cu_bowl": (*eye(-140, 0.7, -157, 1.56, 0.95, 0.52), lens_for_vfov(40), False),      # audit A5: fuel filter and sediment bowl
     "cu_phone": (*eye(20, 2.2, 15, 2.95, 1.3, 0.8), lens_for_vfov(40), False),       # mug, ashtray, phone, binoculars
     "ext": ((24, -38, 12), (0, 0, 17), 40, False),
+    # audit Stage S (2026-11-16): the stairwell. Use with --door_open (and --dogs_up for the latch shots).
+    "pp_door": (*eye(170, 1.114, 170, 2.846, 1.65, 0.65), lens_for_vfov(60), False),  # capture pp_door!pitch_m30
+    "cu_landing": (*eye(163, 1.5, 172, 3.05, 1.6, 0.55), lens_for_vfov(60), False),   # into the housing from the room
+    "in_hatch": (*eye(160.05, 2.894, 175.97, 2.886, 1.65, -1.5), lens_for_vfov(70), False),   # on the landing, looking down
+    "plan_hatch": (*eye(174.0, 2.875, 174.05, 2.875, 2.05, -3.0), lens_for_vfov(80), False),   # straight down the hatch
+    "low_ladder": (*eye(203, 2.3, 176, 2.75, -1.45, -2.3), lens_for_vfov(70), False),  # service landing: ladder foot
+    "low_engine": (*eye(150, 2.6, 196, 1.6, -1.5, -2.2), lens_for_vfov(70), False),    # drums, engine-room door
 }
+
+
+DOG_LIFT_DEG = -78.0     # station.gd DOOR_DOG_LIFT: the levers swing up off their wedges, toward the leaf centre
+DOOR_OPEN_DEG = -105.0   # station.gd: the leaf's open angle about its hinge (local Z here, Y in Godot)
+
+
+def pose_stair_door(open_, dogs_up):
+    """Stage S: pose the stair door as Godot does: the dogs about their pivots, then the leaf (with its
+    handwheel, dogs and collider) about the hinge."""
+    from mathutils import Matrix
+    door = bpy.data.objects.get("PT_stair_door")
+    if door is None:
+        return
+    if dogs_up:
+        for i in range(2):
+            d = bpy.data.objects.get(f"PT_stair_dog_{i}")
+            if d:
+                d.matrix_world = d.matrix_world @ Matrix.Rotation(math.radians(DOG_LIFT_DEG), 4, "Z")
+    if open_:
+        T = door.matrix_world @ Matrix.Rotation(math.radians(DOOR_OPEN_DEG), 4, "Z") @ door.matrix_world.inverted()
+        for o in bpy.data.objects:
+            if o.name.startswith(("PT_stair_handwheel", "PT_stair_dog_", "COL_stair_leaf")):
+                o.matrix_world = T @ o.matrix_world
+        door.matrix_world = T @ door.matrix_world
 
 
 def main():
@@ -86,6 +117,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--res", type=int, default=960)
     ap.add_argument("--views", default=",".join(VIEWS))
+    ap.add_argument("--door_open", action="store_true", help="swing the stair door to its open pose (-105 deg)")
+    ap.add_argument("--dogs_up", action="store_true", help="lift the stair door's lever dogs")
     a = parse(ap)
     out = ensure_allowed(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -105,6 +138,7 @@ def main():
     for o in bpy.data.objects:
         if o.name.startswith("COL_"):
             o.hide_render = True
+    pose_stair_door(a.door_open, a.dogs_up)
     cam_data = bpy.data.cameras.new("ReviewCam")
     cam = bpy.data.objects.new("ReviewCam", cam_data)
     sc.collection.objects.link(cam)

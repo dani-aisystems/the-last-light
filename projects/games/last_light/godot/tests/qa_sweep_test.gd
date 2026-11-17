@@ -168,9 +168,9 @@ func _options() -> void:
 	_opt("max_fps", 0)
 	for q in [0, 1, 2]:
 		_opt("quality", q)
-		# Stage 1a presets: SSAO + SSIL from Medium, <= 8 shadowed interior lights on High
+		# Stage 1a presets: SSAO from Medium, SSIL on High only (Q18), <= 8 shadowed interior lights on High
 		var ids: Array = Settings.q_shadow_ids()
-		_check(Settings.q_ssao() == (q >= 1) and Settings.q_ssil() == (q >= 1) and Settings.q_volumetric() == (q >= 1)
+		_check(Settings.q_ssao() == (q >= 1) and Settings.q_ssil() == (q >= 2) and Settings.q_volumetric() == (q >= 1)
 			and ids.size() <= 8 and not ("*" in ids), "quality %d presets (shadowed lights %d)" % [q, ids.size()])
 		# 1p: FXAA on Low/Medium, 2x MSAA on High (4x MSAA everywhere cost about 5 ms)
 		_check(root.msaa_3d == [Viewport.MSAA_DISABLED, Viewport.MSAA_DISABLED, Viewport.MSAA_2X][q]

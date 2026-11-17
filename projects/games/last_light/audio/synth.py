@@ -486,6 +486,26 @@ def knock():
     save("knock", x, -1)
 
 
+def door_dogs():
+    """Audit Stage S: the stair door's handwheel spun (a ratchety rasp) and its two lever dogs knocked up off
+    their wedges (steel on steel). The swing itself is door_heavy, 0.8 s later."""
+    sec = 0.9
+    tt = t(sec)
+    x = np.zeros(len(tt))
+    # wheel: a geared rasp, quick ticks that slow as it stops
+    ticks = np.cumsum(np.interp(tt, [0, 0.7], [38, 14]) / SR)
+    rasp = band(noise(sec), 900, 4500) * (np.sin(2 * np.pi * ticks) > 0.6) * np.clip(0.72 - tt, 0, 1) * 0.5
+    x += rasp
+    for t0, f0 in ((0.22, 610.0), (0.5, 540.0)):           # the two dogs, the lower one first
+        i0 = int(t0 * SR)
+        n = len(tt) - i0
+        d = np.arange(n) / SR
+        hit = band(noise(n / SR), 300, 6000) * env(n, 0.0005, 0.03) * 0.9
+        ring = (np.sin(2 * np.pi * f0 * d) + 0.5 * np.sin(2 * np.pi * f0 * 2.21 * d)) * np.exp(-d * 18) * 0.35
+        x[i0:] += hit + ring
+    save("door_dogs", x, -3)
+
+
 def door_heavy():
     sec = 2.4
     tt = t(sec)
@@ -575,7 +595,7 @@ def main(argv=None):
         ("gen_stop", lambda: save("gen_stop", band(noise(2.0), 30, 300) * env(int(2.0 * SR), 0.01, 0.8), -4)),
         ("step_metal", lambda: footsteps("step_metal", True)),
         ("step_stone", lambda: footsteps("step_stone", False)),
-        ("knock", knock), ("door_heavy", door_heavy), ("door_base", base_door), ("paper_slide", paper_slide),
+        ("knock", knock), ("door_dogs", door_dogs), ("door_heavy", door_heavy), ("door_base", base_door), ("paper_slide", paper_slide),
         ("horn_fishing", lambda: horn("horn_fishing", 233, peak=-4.0)),     # was -3: RMS sat on the LOUD gate
         ("horn_ship", lambda: horn("horn_ship", 98, 3.6)),
         ("squelch", squelch), ("blip", blip),

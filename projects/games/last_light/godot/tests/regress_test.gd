@@ -24,6 +24,10 @@ extends SceneTree
 ##  R12 brief G2: the pause menu (no saving; Transcript / Options / Main menu with a confirm), Options handed
 ##      to main_fp, device checks answered with a logged thought, the step objective panel (ticks, compact
 ##      in device views, clear of the radio panel at every text size)
+##  R26 audit Stage S: the stair door's sequence (dogs up and wheel turned before the leaf moves, eased both
+##      ends), its collider riding on the leaf, the doorway clear when open, the hatch closed by the rail and
+##      chain, the lower level shown only with the door open and lit only by its own lamp, and an instant pose
+##      when a save is loaded
 ##   godot --path godot -s res://tests/regress_test.gd            (windowed: all checks)
 ##   godot --headless --path godot -s res://tests/regress_test.gd (R1 mouse checks SKIPPED: the headless
 ##                                                                  display server ignores mouse modes)
@@ -111,6 +115,7 @@ func _run() -> void:
 	await _r12_brief_g2()
 	await _r24_vhf_panel()
 	await _r25_no_skip()
+	await _r26_stair_door()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -2779,3 +2784,137 @@ func _r13_duty_hud() -> void:
 	settings.v["guidance"] = 1
 	settings.v["duty_hold_s"] = 6.0
 	g.presenter.set_objective("")
+
+
+# ------------------------------------------------------------------ R26 (audit Stage S)
+
+## build.py dp(170, along, z, dist) in Godot coordinates (Blender x, z, -y).
+func _sdp(al: float, z: float, d: float) -> Vector3:
+	var b := deg_to_rad(170.0)
+	var bx := sin(b) * d + cos(b) * al
+	var by := cos(b) * d - sin(b) * al
+	return Vector3(bx, 20.0 + z, -by)
+
+
+## Does a sphere (or the player's capsule) at p touch any solid (layer 1) collider? Returns the names hit.
+func _solid_at(p: Vector3, capsule := false, r := 0.1) -> Array:
+	var q := PhysicsShapeQueryParameters3D.new()
+	if capsule:
+		var c := CapsuleShape3D.new()
+		c.radius = 0.28
+		c.height = 1.75
+		q.shape = c
+	else:
+		var sp := SphereShape3D.new()
+		sp.radius = r
+		q.shape = sp
+	q.transform = Transform3D(Basis(), p)
+	q.collision_mask = 1
+	var out := []
+	for h in g.get_world_3d().direct_space_state.intersect_shape(q, 16):
+		var n: Node = h["collider"]
+		if n.name.begins_with("COL_floor"):
+			continue
+		out.append(String(n.name))
+	return out
+
+
+func _ray_names(a: Vector3, b: Vector3) -> String:
+	var q := PhysicsRayQueryParameters3D.create(a, b, 1)
+	var h := g.get_world_3d().direct_space_state.intersect_ray(q)
+	return String(h["collider"].name) if not h.is_empty() else ""
+
+
+func _r26_stair_door() -> void:
+	print("R26 stair door and stairwell (audit Stage S)")
+	var st = g.station
+	_check(st.stairwell != null, "stairwell.glb is loaded beside the room")
+	var leaf: Node3D = st.parts["PT_stair_door"]["node"]
+	for nm in ["PT_stair_handwheel", "PT_stair_dog_0", "PT_stair_dog_1"]:
+		_check(st.parts.has(nm) and st.parts[nm]["node"].get_parent() == leaf, "%s rides on the leaf" % nm)
+	var col: Node = st.room.find_child("COL_stair_leaf*", true, false)
+	_check(col != null and col.get_parent() == leaf, "the leaf carries its own collider (R8)")
+	_check(st.room.find_child("COL_stair_door*", true, false) == null and st.room.find_child("COL_stair_well*", true, false) == null,
+		"no shut-shaped door collider and no invisible well box")
+	_check(st.lights.has("stair_low") and st.lights["stair_low"].light_cull_mask == st.LAYER_LOWER,
+		"the lower bulkhead lamp lights only the lower level")
+	var leak := []
+	for id in st.lights:
+		if id != "stair" and id != "stair_low" and (st.lights[id].light_cull_mask & st.LAYER_LOWER) != 0:
+			leak.append(id)
+	_check(leak.is_empty(), "no room lamp reaches the lower level through the slab (%s)" % [leak])
+	var lower_layers := true
+	var n_lower := 0
+	for n in st.stairwell.find_children("SM_Lower*", "VisualInstance3D", true, false) + st.stairwell.find_children("SM_Ladder*", "VisualInstance3D", true, false):
+		n_lower += 1
+		lower_layers = lower_layers and n.layers == st.LAYER_LOWER
+	_check(n_lower > 0 and lower_layers, "the ladder and the service landing are on the lower layer (%d meshes)" % n_lower)
+	# drive the door by hand: the station's _process off (set_process, not process_mode: a disabled node takes
+	# its colliders out of the physics world), its clock stepped in 50 ms ticks
+	st.door_open = false
+	st.snap_door()
+	st.set_process(false)
+	var lower: Node3D = st.stairwell.find_child("SM_Lower*", true, false)
+	_check(lower != null and not lower.visible, "the lower level is hidden with the door shut")
+	await physics_frame
+	await physics_frame
+	var shut_mid := _sdp(0.0, 1.0, 2.5636 - 0.02)
+	_check(_solid_at(shut_mid).any(func(nm): return nm.begins_with("COL_stair_leaf")), "the shut leaf is solid")
+	st.door_open = true
+	var moved_early := false
+	var steps := 0
+	while st.door_phase().x < 1.0 and steps < 100:
+		st._update_door(0.05)
+		steps += 1
+		if absf(st.parts["PT_stair_door"]["angle"]) > 1e-4:
+			moved_early = true
+	_check(not moved_early and steps == 16, "the leaf stays put while the wheel turns and the dogs lift (%d ticks)" % steps)
+	_check(is_equal_approx(st.parts["PT_stair_dog_0"]["angle"], deg_to_rad(st.DOOR_DOG_LIFT_DEG))
+		and is_equal_approx(st.parts["PT_stair_handwheel"]["angle"], deg_to_rad(st.DOOR_WHEEL_TURN_DEG)),
+		"dogs up and wheel turned before the swing")
+	_check(lower.visible, "the lower level shows as the door starts to open")
+	var angles := []
+	while st.door_phase().y < 1.0 and steps < 200:
+		st._update_door(0.05)
+		steps += 1
+		angles.append(st.parts["PT_stair_door"]["angle"])
+	var first := absf(angles[0])
+	var mid_step := absf(angles[angles.size() / 2] - angles[angles.size() / 2 - 1])
+	var last := absf(angles[-1] - angles[-2])
+	_check(first < mid_step * 0.25 and last < mid_step * 0.25, "the swing eases in and out (first %.4f, middle %.4f, last %.4f rad)" % [first, mid_step, last])
+	_check(is_equal_approx(angles[-1], deg_to_rad(st.DOOR_OPEN_DEG)), "the leaf ends at %.0f deg" % st.DOOR_OPEN_DEG)
+	await physics_frame
+	await physics_frame
+	var hinge: Vector3 = leaf.global_position
+	var leaf_mid := hinge + leaf.global_basis.x.normalized() * 0.55 + Vector3(0, 1.0, 0)
+	_check(_solid_at(leaf_mid).any(func(nm): return nm.begins_with("COL_stair_leaf")), "the open leaf is solid where it stands")
+	var gone := _solid_at(shut_mid, false, 0.03)        # the leaf's own thickness (the rail stands 3 cm behind it)
+	_check(gone.is_empty(), "nothing solid is left where the shut leaf was (%s)" % [gone])
+	var door_cap := _solid_at(_sdp(0.0, 0.9, 2.5636 - 0.26), true)
+	_check(door_cap.is_empty(), "the keeper can stand in the open doorway, up to the rail (%s)" % [door_cap])
+	_check(_ray_names(_sdp(0.2, 0.5, 2.35), _sdp(0.2, 0.5, 2.9)).begins_with("COL_hatch_rail"), "the guard rail closes the hatch on the door side")
+	_check(_ray_names(_sdp(-0.5, 0.5, 2.85), _sdp(0.2, 0.5, 2.85)).begins_with("COL_hatch_chain"), "the drop chain closes the ladder head")
+	# mid-swing: the collider follows the leaf
+	st.door_open = false
+	while st.door_phase().y > 0.5:
+		st._update_door(0.05)
+	await physics_frame
+	await physics_frame
+	var mid_leaf := leaf.global_position + leaf.global_basis.x.normalized() * 0.55 + Vector3(0, 1.0, 0)
+	_check(_solid_at(mid_leaf).any(func(nm): return nm.begins_with("COL_stair_leaf")), "half way, the collider is where the leaf is")
+	var dogs_down_late := true
+	while st.door_phase().y > 0.0:
+		st._update_door(0.05)
+		dogs_down_late = dogs_down_late and is_equal_approx(st.parts["PT_stair_dog_0"]["angle"], deg_to_rad(st.DOOR_DOG_LIFT_DEG))
+	_check(dogs_down_late, "closing: the dogs stay up until the leaf is home")
+	while st.door_phase().x > 0.0:
+		st._update_door(0.05)
+	_check(absf(st.parts["PT_stair_dog_0"]["angle"]) < 1e-4 and absf(st.parts["PT_stair_handwheel"]["angle"]) < 1e-4, "shut: dogs down, wheel back")
+	# a loaded save is posed at once
+	st.door_open = true
+	st.snap_door()
+	_check(is_equal_approx(st.parts["PT_stair_door"]["angle"], deg_to_rad(st.DOOR_OPEN_DEG)) and lower.visible, "a save with the door open loads open, no replay")
+	st.door_open = false
+	st.snap_door()
+	_check(absf(st.parts["PT_stair_door"]["angle"]) < 1e-4 and not lower.visible, "a save with the door shut loads shut")
+	st.set_process(true)
