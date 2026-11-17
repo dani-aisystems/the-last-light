@@ -10,7 +10,10 @@ uniform float time_s = 0.0;
 uniform vec4 waves[6];
 uniform vec3 foam_color : source_color = vec3(0.62, 0.66, 0.68);
 uniform float intensity = 1.0;      // speed and fade-in from the ship
-uniform float lift = 0.05;          // metres above the surface (no z-fight with the sea)
+uniform float glow = 0.05;          // daylight on white water (outside.gd dawn): lit foam alone reads no brighter
+                                    // than the sky-reflecting sea at the tower's grazing angle (E2 captures)
+uniform float lift = 0.25;          // metres above the analytic surface: the ocean mesh (3.33 m cells) interpolates
+                                    // between vertices and buried a 5 cm ribbon (E2 capture); invisible offset at the tower's angle
 
 varying vec3 w_pos;
 
@@ -52,11 +55,12 @@ void fragment() {
 	float across = abs(UV.x * 2.0 - 1.0);
 	// a turbulent centre that spreads, two brighter edges (the Kelvin arms) further back
 	float n = vnoise(w_pos.xz * 0.9 + vec2(time_s * 0.3, 0.0)) * 0.6 + vnoise(w_pos.xz * 2.7 - time_s * 0.2) * 0.4;
-	float core = (1.0 - smoothstep(0.15, 0.9, across)) * (1.0 - smoothstep(0.0, 0.55, age));
+	float core = (1.0 - smoothstep(0.45, 1.0, across)) * (1.0 - smoothstep(0.0, 0.6, age));
 	float arms = smoothstep(0.55, 0.92, across) * (1.0 - smoothstep(0.92, 1.0, across)) * smoothstep(0.05, 0.3, age);
-	float a = max(core, arms * 0.6) * smoothstep(0.25, 0.75, n + 0.25 * (1.0 - age));
+	float a = max(core, arms * 0.7) * (0.6 + 0.4 * smoothstep(0.25, 0.75, n + 0.25 * (1.0 - age)));
 	a *= (1.0 - age) * (1.0 - age) * intensity;
 	ALBEDO = foam_color;
 	ROUGHNESS = 0.9;
+	EMISSION = foam_color * glow;
 	ALPHA = clamp(a, 0.0, 0.85);
 }

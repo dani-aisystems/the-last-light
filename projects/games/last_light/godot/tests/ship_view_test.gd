@@ -52,6 +52,7 @@ func _run() -> void:
 	test_motion_scales_with_size()
 	test_stand_in_outward()
 	test_wake_and_spray()
+	test_tick_cost()
 	print("SHIPVIEW_RESULT ", JSON.stringify({"tests": _count, "failed": _fails.size(), "failures": _fails, "info": _info}))
 	quit(1 if _fails.size() > 0 else 0)
 
@@ -227,3 +228,33 @@ func test_wake_and_spray() -> void:
 		v.tick(t, 1.0 / 30.0, 1.0, null)
 	check(not v._spray.emitting, "no spray from a sinking ship")
 	v.queue_free()
+
+
+## CPU cost of one ship's frame (motion on the displaced sea at 20 Hz, wake upkeep and rebuilds, spray drive),
+## measured over 600 ticks under `taskpolicy -b` (efficiency cores, so pessimistic). Budget: four ships' mean
+## under 0.4 ms a frame (2.4 % of 16.7 ms).
+func test_tick_cost() -> void:
+	var out := {}
+	var worst := 0.0
+	for c in [["Kittiwake", "fishing"], ["Iona Star", "steamer"]]:
+		var s := _ship(c[0], c[1], false)
+		s.speed = 3.0
+		s.cruise = 3.0
+		var v := _view(s)
+		var t := 10.0
+		var us: Array[float] = []
+		var total := 0.0
+		for i in 600:
+			t += 1.0 / 60.0
+			s.pos += Vector2(sin(s.heading), -cos(s.heading)) * s.speed / 60.0
+			var t0 := Time.get_ticks_usec()
+			v.tick(t, 1.0 / 60.0, 1.0, null)
+			var d := float(Time.get_ticks_usec() - t0)
+			us.append(d)
+			total += d
+		us.sort()
+		out[c[0]] = {"mean_us": snappedf(total / 600.0, 0.1), "median_us": us[300], "p95_us": us[570]}
+		worst = maxf(worst, total / 600.0)
+		v.queue_free()
+	_info["tick_cost"] = out
+	check(worst * 4.0 < 400.0, "four ships' ticks under 0.4 ms a frame (mean %.0f us a ship)" % worst)

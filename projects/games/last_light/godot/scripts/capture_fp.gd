@@ -419,6 +419,16 @@ func _force(g, st: String) -> void:
 			var sp := st.split("_")              # restored: put such shots last). Pair with binoculars!face_north
 			g._route(g.sim.spawn_story_ship({"name": "Capture " + sp[1], "kind": sp[1], "bearing": 0, "aim": 90,
 				"range": float(sp[2]) if sp.size() > 2 else 120.0, "hold": true, "protected": true}))
+		_ when st.begins_with("vessel_"):        # audit E2: vessel_<name>_<range m>, a named vessel under way (not
+			var vp := st.trim_prefix("vessel_")   # restored), 6 deg east of north crossing west: shoot again ~12 s
+			var vr := float(vp.get_slice("_", vp.get_slice_count("_") - 1))   # later for her wake and spray
+			var slug := vp.substr(0, vp.rfind("_"))
+			var known := {"kittiwake": ["Kittiwake", "fishing"], "corrie_may": ["Corrie May", "fishing"],
+				"gannet": ["Gannet", "schooner"], "lowestoft_star": ["Lowestoft Star", "schooner"],
+				"iona_star": ["Iona Star", "steamer"], "hendrika": ["Hendrika", "steamer"], "visitor": ["Visitor", "launch"]}
+			var who: Array = known.get(slug, ["Kittiwake", "fishing"])
+			g._route(g.sim.spawn_story_ship({"name": who[0], "kind": who[1], "bearing": 6, "aim": 90, "range": vr,
+				"protected": true, "unlit": slug == "visitor"}))
 		"caption":
 			g.presenter.caption.text = "FOOTSTEPS ON THE STAIR. ONE STEP AT A TIME."
 			g.presenter.caption.modulate.a = 0.85

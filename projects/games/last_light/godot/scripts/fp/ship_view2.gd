@@ -28,6 +28,10 @@ var _heave := 0.0
 var _pitch := 0.0
 var _roll := 0.0
 var _settled := false
+const SAMPLE_DT := 0.05         # s: the sea under the hull is sampled at 20 Hz (damping tau >= 1 s)
+var _sample_acc := 0.0
+var _tgt := Vector3.ZERO
+var _wake_cache := Vector3(-1, -1, -1)   # storm, intensity, daylight last sent to the wake shader
 var _lights: Array[OmniLight3D] = []
 var _bulbs: Array[StandardMaterial3D] = []
 # wake (audit E2): the stern's track as a ribbon in world space, displaced on the GPU like the sea
@@ -242,20 +246,55 @@ func wreck() -> void:
 
 ## The sea surface the GPU draws (shaders/ocean.gdshader): Gerstner waves displace horizontally as well as
 ## vertically, so the rest point q whose displaced position lands on p is found first (two fixed-point steps),
-## then its height is taken. OceanWaves.height_at alone reads the height at the undisplaced point.
-static func surface_y(p: Vector2, t: float, storm: float) -> float:
-	var amp := OceanWaves.amp_mul(storm)
-	var q := p
-	for _i in 2:
-		var hd := Vector2.ZERO
+## then its height is taken (the same sum as OceanWaves.height_at). OceanWaves.height_at alone reads the
+## height at the undisplaced point (up to 0.4 m off in a storm). Wave constants are computed once.
+static var _wc := PackedFloat64Array()  # per wave, 5 values: dir.x, dir.y, k, k*c, steepness/k
+
+
+static func _consts() -> PackedFloat64Array:
+	if _wc.is_empty():
 		for wv in OceanWaves.WAVES:
 			var w: Vector4 = wv
 			var k := TAU / w.w
 			var d := Vector2(w.x, w.y).normalized()
-			var f := k * (d.dot(q) - sqrt(9.8 / k) * t)
-			hd += d * (w.z * amp / k) * cos(f)
-		q = p - hd * lerpf(0.35, 1.0, smoothstep(15.0, 45.0, q.length()))
-	return OceanWaves.height_at(q, t, storm)
+			_wc.append_array(PackedFloat64Array([d.x, d.y, k, k * sqrt(9.8 / k), w.z / k]))
+	return _wc
+
+
+static func surface_y(p: Vector2, t: float, storm: float) -> float:
+	return surface_ys([p], t, storm)[0]
+
+
+## Several points at once (one pass over the waves per step).
+static func surface_ys(ps: Array, t: float, storm: float) -> PackedFloat32Array:
+	var wc := _consts()
+	var nw := wc.size() / 5
+	var amp := OceanWaves.amp_mul(storm)
+	var n := ps.size()
+	var qs: Array = ps.duplicate()
+	for _i in 2:
+		for j in n:
+			var q: Vector2 = qs[j]
+			var hx := 0.0
+			var hz := 0.0
+			for i in nw:
+				var o := i * 5
+				var c: float = cos(wc[o + 2] * (wc[o] * q.x + wc[o + 1] * q.y) - wc[o + 3] * t) * wc[o + 4] * amp
+				hx += wc[o] * c
+				hz += wc[o + 1] * c
+			var calm := lerpf(0.35, 1.0, smoothstep(15.0, 45.0, q.length()))
+			var p0: Vector2 = ps[j]
+			qs[j] = Vector2(p0.x - hx * calm, p0.y - hz * calm)
+	var out := PackedFloat32Array()
+	out.resize(n)
+	for j in n:
+		var q: Vector2 = qs[j]
+		var h := 0.0
+		for i in nw:
+			var o := i * 5
+			h += wc[o + 4] * amp * sin(wc[o + 2] * (wc[o] * q.x + wc[o + 1] * q.y) - wc[o + 3] * t)
+		out[j] = h * lerpf(0.35, 1.0, smoothstep(15.0, 45.0, q.length()))
+	return out
 
 
 ## Heave, pitch and roll from the sea under the hull: four points at 80 % of the length and beam, then damped
@@ -264,11 +303,14 @@ func motion_targets(t: float, storm: float) -> Vector3:
 	var p := ship.pos
 	var hl := length * 0.4
 	var hb := beam * 0.4
-	var hbow := surface_y(p + _dir(hl, 0.0), t, storm)
-	var hst := surface_y(p + _dir(-hl, 0.0), t, storm)
-	var hp := surface_y(p + _dir(0.0, -hb), t, storm)
-	var hs := surface_y(p + _dir(0.0, hb), t, storm)
-	var hc := surface_y(p, t, storm)
+	var fw := _dir(1.0, 0.0)
+	var sd := Vector2(-fw.y, fw.x)                       # starboard (to_v3: x -> x, y -> z)
+	var hh := surface_ys([p + fw * hl, p - fw * hl, p - sd * hb, p + sd * hb, p], t, storm)
+	var hbow := hh[0]
+	var hst := hh[1]
+	var hp := hh[2]
+	var hs := hh[3]
+	var hc := hh[4]
 	return Vector3((hbow + hst + hp + hs + 2.0 * hc) / 6.0, atan2(hbow - hst, 2.0 * hl), atan2(hp - hs, 2.0 * hb))
 
 
@@ -355,9 +397,13 @@ func _wake_tick(t: float, dt: float, storm: float) -> void:
 			_wake_pts.pop_back()
 		_wake.mesh = _wake_mesh(t)
 	_wake_mat.set_shader_parameter("time_s", t)
-	_wake_mat.set_shader_parameter("storm", storm)
 	var spd := clampf(ship.speed / maxf(ship.cruise, 0.5), 0.0, 1.0)
-	_wake_mat.set_shader_parameter("intensity", (0.35 + 0.65 * spd) * (1.0 - _fade))
+	var cur := Vector3(snappedf(storm, 0.01), snappedf((0.35 + 0.65 * spd) * (1.0 - _fade), 0.01), snappedf(_daylight(), 0.01))
+	if cur != _wake_cache:
+		_wake_cache = cur
+		_wake_mat.set_shader_parameter("storm", storm)
+		_wake_mat.set_shader_parameter("intensity", cur.y)
+		_wake_mat.set_shader_parameter("glow", 0.05 + 0.5 * cur.z)
 
 
 ## The ribbon: one pair of vertices per sample, at rest (y = 0); it widens with age as the wake spreads.
@@ -394,6 +440,16 @@ func _wake_mesh(t: float) -> ArrayMesh:
 	return m
 
 
+## Daylight 0 (night) .. 1 (dawn), read from the exterior (outside.gd, the ship views' parent) when there is one.
+func _daylight() -> float:
+	var o := get_parent()
+	if o != null:
+		var d = o.get("dawn")
+		if d != null:
+			return clampf(float(d), 0.0, 1.0)
+	return 0.0
+
+
 func _spray_tick(dt: float, storm: float) -> void:
 	var bow := _heave + sin(_pitch) * length * 0.46
 	if not _spray_ready:                     # first frame: nothing to compare with yet
@@ -411,7 +467,11 @@ func _spray_tick(dt: float, storm: float) -> void:
 
 func tick(t: float, dt: float, storm: float, _k: KeeperSim) -> void:
 	var p := ship.pos
-	var tgt := motion_targets(t, storm)
+	_sample_acc -= dt
+	if not _settled or _sample_acc <= 0.0:
+		_tgt = motion_targets(t, storm)
+		_sample_acc += SAMPLE_DT if _settled else SAMPLE_DT * fposmod(float(ship.id) * 0.37, 1.0)   # ships out of step
+	var tgt := _tgt
 	var tau := 0.32 * sqrt(maxf(length, 4.0))           # 10 m: 1.0 s, 30 m: 1.75 s
 	var a := 1.0 if not _settled else 1.0 - exp(-dt / tau)
 	var ah := 1.0 if not _settled else 1.0 - exp(-dt / (tau * 0.7))
