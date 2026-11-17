@@ -181,7 +181,8 @@ E2 runs on its own branch. Stage M has recorded no milestone yet, so the main tr
 | `regress_test` | **PASS** 449 / 449 (4 headless skips), the same as Stage P |
 | `story`, `opening`, `run_tests`, `interaction`, `qa_sweep`, `g5`, `save_compat` | **PASS**: 0 failed; 31 / 95 / 164 / 7,703 / 50 / 305 checks |
 | `sim_v2`, seeds 1 to 5 | **PASS**, no gate failures |
-| In-game look (binoculars at 120 / 230 / 400 m, through the glass and outside) | **NOT TESTED**: windowed captures need Daniel's OK. The existing `ship_<kind>_<range>` shots cover the four kind files. Wake and spray need a moving-ship shot in `capture_fp.gd` (Stage M's file) after the merge. |
-| Bench | **NOT TESTED**: it needs a free Mac and Daniel's OK |
+| In-game look (Daniel's OK, 2026-11-17) | **PASS** for the four kind files. Binoculars from `pp_radio`, facing north at 120 / 230 / 400 m (pitch −10 / −5 / −3°), dawn and night, with the glass and with `--noglass`: 8 windowed runs, 48 frames, viewed. Every hull is closed and upright on the water; no inward faces, no sliding texture (M1 fixed on screen). Sidelights show on the correct side (the coaster heading west shows red); windows glow at night. Sheets: `exports/worktrees/last_light_e2/renders/last_light/sheet_e2_<kind>_<glass\|noglass>.png`. The capture ship `Capture launch` is spawned lit, so its lamps show; the story's Visitor is spawned unlit (0 lights, covered by `ship_view_test`). |
+| In-game look: the three name variants, wake and spray | **NOT TESTED in a window**: they need a named, moving capture ship in `capture_fp.gd` (Stage M's file), which comes after the merge. Headless coverage only. |
+| Bench | **NOT TESTED**: deferred. Load average was 3.5 to 4.6 with other sessions running; Stage P showed that a loaded bench is noise. Run on a quiet Mac. |
 
 **Found on the way (not E2's):** Stage P's extracted body and hands textures (`assets/models/body_T_LL_*`, `hands_T_LL_*`, 24 files with their `.import`) were never committed. A clean checkout cannot load `body.glb` or `hands.glb`, and regress fails 8 checks there. They were copied into the worktree only; committing them in main is Daniel's call.
