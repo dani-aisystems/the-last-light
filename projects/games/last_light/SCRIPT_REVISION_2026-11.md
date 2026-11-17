@@ -1,6 +1,6 @@
 # THE LAST LIGHT: script revision, November 2026 (audit Stage C, part 1)
 
-> **Status (2026-11-17): APPROVED by Daniel ("Approved").** All six chapters, the Ross cue points, the canon check, reading time, page risks and open questions are written. Daniel approved the voice sample (chapters 1 and 2) without changes, then the whole document. The open questions in section 14 were not answered one by one: Stage C part 2 confirms them with Daniel before building anything that depends on them. Next: Stage C part 2, the data (section 13), when Daniel chooses.
+> **Status (2026-11-17): APPROVED by Daniel ("Approved").** All six chapters, the Ross cue points, the canon check, reading time, page risks and open questions are written. Daniel approved the voice sample (chapters 1 and 2) without changes, then the whole document. **Section 14's open questions are decided as recommended** (Daniel, 2026-11-17: "I will go with recommendations on open questions"). Next: Stage C part 2, the data (section 13), when Daniel chooses.
 > - This is the single document Daniel approves before any change to `.dlg` or `chapters.json`. **Nothing in the game has been changed:** no `.dlg`, `chapters.json`, `speakers.gd`, test, Blender or Godot file.
 > - The Stage P session, running in parallel, owns `docs/SESSION_HANDOFF.md`, the audit README and `DECISIONS.md`. This status block stands in for them until this document is approved.
 > - Sources: the approved plan, sections 7.1 to 7.6, 10.4, 14 and 17.1 to 17.7 (`docs/last_light/audit-2026-11/04_narrative.md`); the drafts in `PROPOSAL_35_RADIO_CAST.md`; DECISIONS Q15 to Q18; the Stage S canon note; the story as shipped (`godot/data/story/`).
@@ -929,7 +929,16 @@ These are not dialogue. They list what part 2 has to build, so nothing above is 
 ---
 
 ## 14. Open questions for Daniel
-Each has a recommendation; nothing above depends on a "no" except where stated.
+**Decided 2026-11-17: all seven as recommended** (Daniel: "I will go with recommendations on open questions"):
+1. MacAskill at Sgeir Mhòr (fictional).
+2. Line cards now; a portrait later only if Daniel makes one (Visser first).
+3. Journal notes later, after the Stage G playthrough.
+4. The Primus.
+5. Elspeth's card hidden until she is named.
+6. A short web check of the period claims in a later session, before part 2 ships.
+7. Elspeth's own Mayday terms, split only.
+
+The questions as put, with their reasoning, follow.
 
 1. **The neighbouring keeper's name and station.** **Recommended: Murdo MacAskill, principal keeper of Sgeir Mhòr**, a fictional rock light to the south, relieved by the same tender *Sula*.
    - A fictional station keeps the game free of real-world history claims, as North Point does. A real light, such as Eilean Glas on Scalpay (Kenny Bain's island), would bring dates to get right.
