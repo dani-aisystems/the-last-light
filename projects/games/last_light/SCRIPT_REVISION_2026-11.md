@@ -16,7 +16,7 @@
 7. Chapter 6, The Last Light
 8. Ross cue points for Stage R
 9. Canon check
-10. Period claims: invention or to verify
+10. Period claims (checked 2026-11-17)
 11. Reading time
 12. Three-line page risks
 13. Notes for Stage C part 2 (data)
@@ -785,24 +785,38 @@ NARRATIVE.md is the superseded 2026-11-04 draft ("Superseded (2026-11-06)" at it
 
 ---
 
-## 10. Period claims: invention or to verify
-Nothing was looked up in this session. Each claim is either marked as invention, or to be checked against a named source before part 2 ships (plan 17.7).
+## 10. Period claims: checked 2026-11-17
+Open question 6 was decided as recommended, and the check was run the same day. It used web searches of public sources only, with generic queries that mention nothing about Daniel or the project. Each claim below is **Confirmed** (a source supports it), **Plausible** (a source supports the background but not the detail), **Invention** (stays fiction, and nothing found contradicts it) or **Open** (nothing found). Not every search was exhaustive; the sources are listed under the table.
 
-| Claim | Where | Status |
-|---|---|---|
-| Keepers at neighbouring lights kept radio schedules and exchanged weather | MacAskill, ch1 to ch3, ch6 | **To verify** (NLB history; keepers' memoirs). Otherwise label it invention |
-| Keepers gave weather observations to ships on request | Marsh, ch2 | **To verify** |
-| NLB tender relief on a fixed day "weather allowing", carrying stores and tradesmen | Gillies, ch1 | Plausible; **to verify** |
-| *Sula*, *Western Venture*, *Hendrika*, Sgeir Mhòr | — | **Invention** (check that none is a real 1971 vessel or station) |
-| "Imminent" in a gale warning means within six hours of issue | `ch3:6`, `after_forecast_2200` | **To verify** (Met Office gale-warning terms, and that they applied in 1971) |
-| GMT on 14 November 1971 (British Standard Time ended 31 October 1971) | teleprinter sheets | **To verify** |
-| A teleprinter forecast in a lighthouse watch room in 1971 | `forecast` (already in the game), `forecast_2200` | **To verify**; otherwise invention |
-| Seismic survey vessels sheltering in the Minch in 1971 | Marsh | **To verify** |
-| "Automatic inside ten years" | Marsh | Her hearsay, so fair either way; **to verify** the NLB's automation start date |
-| The Glasgow to Stornoway route passes Neist Point | `ch2_iona_heard` | **To verify** on a chart |
-| Dutch merchant call signs in the PA to PI series | Visser | **To verify** (ITU allocation) |
-| A Primus is lit by pre-heating with methylated spirit in its cup | `look_kettle_a` | Standard practice; low risk |
-| Fear a' bhàta is a traditional song whose melody is free to use | `look_clockwork` hum (Stage D recording) | **To verify** before a recording is made |
+| Claim | Where | Result | Script change |
+|---|---|---|---|
+| "Imminent" in a gale warning means within six hours of issue | `ch3:6`, `after_forecast_2200` | **Confirmed** by the Met Office marine glossary [1] ("imminent" within 6 h; "soon" 6 to 12 h; "later" more than 12 h). The glossary is current; the same terms in 1971 is likely but not shown | None; the plan's "within the hour" stays out |
+| GMT on 14 November 1971 | teleprinter sheets ("1600 GMT", "2200 GMT") | **Confirmed**: the British Standard Time experiment (GMT+1 all year) ran from 27 October 1968 to 31 October 1971, then the UK went back to GMT [2] | None |
+| Dutch merchant call signs | Visser, "PEJX" | **Confirmed**: the Netherlands' ITU series is PAA to PIZ [3]. A check that PEJX was not a real 1971 ship is **Open** | None |
+| "Automatic inside ten years" | Marsh | **Plausible as her hearsay**: the NLB's first conversion to an unattended light was in 1970, and a big push of automation ran from 1960 to 1980, finishing in 1998 [4] | None |
+| Keepers kept weather records | MacAskill's glass; the barometer duty | **Confirmed**: Scottish keepers had to keep meteorological records twice a day from 1868 [5] | None |
+| Keepers gave observations to ships and to other lights by radio, on a nightly "schedule" | MacAskill (ch1 to ch3, ch6); Marsh (ch2) | **Open**: nothing found on NLB inter-station radio schedules [6]. Treat as **invention** in the game's credits or notes if asked; it fits the record-keeping duty above | None |
+| NLB tender relief "weather allowing", with stores and tradesmen | Gillies | **Plausible**: the NLB fleet carried relief and supplies [7]; the details are invention | None |
+| *Sula* as an NLB tender | Gillies | **Invention**: no NLB vessel of that name found in the fleet index or in searches [7][8] | None |
+| *Western Venture*, *Hendrika*, Sgeir Mhòr | — | **Invention**; nothing found that clashes (not searched exhaustively) | None |
+| A seismic survey party sheltering in the Minch in 1971 | Marsh | **Plausible as a research survey**: 1971 seismic and geophysical research cruises worked west of the Hebrides and Shetland (RRS *Surveyor*, RRS *Researcher*). Oil-industry seismic work in the Minches is recorded only later (a 1977 parliamentary answer) [9] | None. Her lines never mention oil; the notes for part 2 make her party a research survey (section 13) |
+| The Glasgow to Stornoway route passes Neist Point | `ch2_iona_heard` | **Open**: the old Clyde to Stornoway service ran by the Mull of Kintyre [10], which is consistent with going north past Skye's west coast (Neist Point) into the Little Minch. No source names the waypoint | None. Check on a chart in part 2, or change it to "south of Skye" |
+| A teleprinter forecast in a lighthouse watch room in 1971 | `forecast` (in the game since Stage B), `forecast_2200` | **Open**: not searched to a result. Treat as invention | None |
+| Fear a' Bhàta | `look_clockwork` (hum), `ch4:68` | **Confirmed traditional**: late 18th century, author unknown (the Jean Finlayson story is a legend) [11]. The melody is long out of copyright; any recording (Stage D) must be new or properly licensed | None |
+| The Primus is lit by pre-heating with methylated spirit in its cup | `look_kettle_a` | Standard practice; not searched | None |
+
+**Sources:**
+1. Met Office, [Marine forecasts glossary](https://weather.metoffice.gov.uk/guides/coast-and-sea/glossary) and [Guide to marine forecasts](https://weather.metoffice.gov.uk/guides/coast-and-sea).
+2. [tz database mailing list, Europe/London 1968 to 1971](https://mm.icann.org/pipermail/tz/2014-September/021596.html); [Hansard, British Standard Time debate, 2 December 1970](https://api.parliament.uk/historic-hansard/commons/1970/dec/02/british-standard-time); [British Summer Time (Wikipedia)](https://www.wikipedia.org/wiki/BDST).
+3. [ITU prefix (Wikipedia)](https://Www.Wikipedia.org/wiki/ITU_prefix); [International call sign prefix allocations (ARRL table)](https://www.qsl.net/ve3xap/$alloc.htm).
+4. [Canmore event record (first NLB light converted to unattended automatic operation, 1970)](https://canmore.org.uk/event/575706); [The Scotsman, "When Scotland's last lighthouse keeper turned off the lights"](https://www.scotsman.com/arts-and-culture/when-scotlands-last-lighthouse-keeper-turned-off-the-lights-336136).
+5. [National Records of Scotland, "A place of threat"](https://nrscotland.gov.uk/learning-and-events/for-the-safety-of-all-scotlands-lighthouses/a-place-of-threat/); [Met Office, ship, light vessel and lighthouse logs](https://www.metoffice.gov.uk/research/library-and-archive/archive/ship-logs).
+6. [National Records of Scotland, lighthouses research guide](https://nrscotland.gov.uk/learning-and-events/research-guides/lighthouses/) (NLB correspondence 1901 to 1987, a lead for a deeper check).
+7. [Granton history, Northern Lighthouse Board fleet](https://grantonhistory.org/harbour/lighthouse_vessels_index.htm).
+8. [Find a Tender, NLB vessel notices](https://www.find-tender.service.gov.uk/Notice/011111-2021) (recent fleet only).
+9. [BODC cruise summary report 9426](https://www.bodc.ac.uk/resources/inventories/cruise_inventory/report/9426/); [BODC cruise summary report 8252](https://www.bodc.ac.uk/resources/inventories/cruise_inventory/report/8252/); [Hansard, oil exploration, Minches and Western Isles, 28 November 1977](https://api.parliament.uk/historic-hansard/written-answers/1977/nov/28/oil-exploration-minches-and-western-isles).
+10. [Dalmadan, "All the way to Stornoway"](https://www.dalmadan.com/?p=6638).
+11. [Fear a' Bhàta (Wikipedia)](https://en.wikipedia.org/wiki/Fear_a%27_Bh%C3%A0ta); [Mainly Norfolk, Fhír a Bhata](https://www.mainlynorfolk.info/sandy.denny/songs/fhirabhata.html).
 
 ---
 
@@ -924,6 +938,7 @@ These are not dialogue. They list what part 2 has to build, so nothing above is 
   - the canon lint (plan 13) should check the names, ages and dates of section 9;
   - `qa_sweep` must stay at three lines or fewer on every page;
   - `save_compat_test`: all 70 fixtures must still load onto the right beats.
+- **Dr Marsh's party** is a research survey (section 10), not an oil company's; her character profile says so.
 - **Character refs:** add profiles for the four new voices to `character-refs/`, and CANON_INDEX rows for them.
 
 ---
@@ -935,7 +950,7 @@ These are not dialogue. They list what part 2 has to build, so nothing above is 
 3. Journal notes later, after the Stage G playthrough.
 4. The Primus.
 5. Elspeth's card hidden until she is named.
-6. A short web check of the period claims in a later session, before part 2 ships.
+6. A short web check of the period claims: **done 2026-11-17** (section 10). Nothing found needs a line changed; three items stay open for a chart or archive check.
 7. Elspeth's own Mayday terms, split only.
 
 The questions as put, with their reasoning, follow.
