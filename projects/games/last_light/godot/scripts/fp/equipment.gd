@@ -30,6 +30,17 @@ const NORTH := Vector3(0, 0, -1)          # Geo: bearing 0 = (x 0, z -1)
 const TORCH_POS := Vector3(0.16, -0.21, -0.32)
 const G_H := Vector3(0.0, -0.15, -0.03)
 const POSE_BLEND := 10.0                  # per second, toward the target pose
+## Audit Stage P (4.1 item 5): the sleeve bends. hands.glb gives each hand a forearm bone (with an elbow
+## marker at its tip) and a wrist helper, children of the hand; each frame the forearm is turned toward an
+## elbow point low and outside the view (camera frame), at most ARM_BEND_MAX from straight, and the wrist
+## takes half that turn so the bend keeps its volume. The cuff's first 4 cm stay with the hand.
+const ELBOW := {"L": Vector3(-0.26, -0.40, 0.02), "R": Vector3(0.26, -0.40, 0.02)}
+const ARM_BEND_MAX := deg_to_rad(70.0)
+const ARM_BONES := ["wrist", "forearm", "elbow"]
+## Stage P: each hand moved off its item, in the hand's own frame (metres), fitted with the finger poses in
+## hands.py so no finger, palm or thumb goes into the item or the other hand (blender/hands.py --grip_check).
+const GRIP_FIT := {"compass_L": Vector3(-0.004, -0.004, 0.010), "torch_R": Vector3(0.0, 0.0, 0.004),
+	"bino_L": Vector3(0.0, 0.0, 0.011), "bino_R": Vector3(0.0, 0.0, 0.011)}
 const LAYER_HELD := 512                   # render layer 10: the hands and the held torch (the fill light's only target)
 const LIGHT_GAP := 0.03                   # the torch light stops this short of a wall between the eye and the lens
 const TORCH_EYE := Vector3(0.07, -0.08, -0.12)   # R4: where the beam starts when looking steeply down
@@ -55,6 +66,8 @@ var pose_now := {"L": "", "R": ""}        # the pose each hand is moving to
 var fill: OmniLight3D                     # see setup: the torch spill on the hands
 var torch_node: Node3D                    # a copy of the shelf torch, in the right hand while it's on
 var grips := {}                           # "compass_L" / "torch_R" / "bino_L" / "bino_R" -> Transform3D in the item frame
+var _arm := {}                            # Stage P: side -> {"hand", "wrist", "forearm", "elbow"} bone indices
+var _arm_on := {"L": false, "R": false}    # the hand was shown last frame (else the sleeve snaps to its aim)
 var hold_raise := -1.0                    # captures: hold the binoculars part-way up (0..1); -1 off
 
 
@@ -132,6 +145,12 @@ func _setup_hands() -> void:
 		for mi in hand[side].find_children("*", "MeshInstance3D", true, false):
 			(mi as MeshInstance3D).layers = station.LAYER_INTERIOR | LAYER_HELD   # lit by the room, as the props are
 			(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			PlayerBody.fabric_rim((mi as MeshInstance3D).mesh)                      # Stage P: wool and cotton
+		var ids := {}
+		for nm in ["hand"] + ARM_BONES:
+			ids[nm] = skel[side].find_bone(nm)
+		if not ids.values().has(-1):
+			_arm[side] = ids
 	var ap: AnimationPlayer = hands.get_node_or_null("AnimationPlayer")
 	if ap:
 		for an in ap.get_animation_list():
@@ -146,7 +165,7 @@ func _setup_hands() -> void:
 					continue              # each action also carries the other hand's rest tracks (same bone names)
 				var bone := String(path.get_subname(0))
 				var bi: int = skel[side].find_bone(bone)
-				if bi >= 0:
+				if bi >= 0 and not ARM_BONES.has(bone):      # Stage P: the arm bones are aimed, not posed
 					pose[bi] = a.track_get_key_value(t, 0)
 			poses[String(an)] = pose
 		ap.queue_free()                   # the poses are read; each hand is set on its own below
@@ -155,6 +174,8 @@ func _setup_hands() -> void:
 	grips["torch_R"] = _grip(Basis(Vector3(0, -1, 0), Vector3(0, 0, -1), Vector3(1, 0, 0)), Vector3(0.0, -0.03, 0.0))
 	grips["bino_L"] = _grip(Basis(Vector3(0, 0, -1), Vector3(0, -1, 0), Vector3(-1, 0, 0)), Vector3(-0.058, -0.004, -0.02))
 	grips["bino_R"] = _grip(Basis(Vector3(0, 0, 1), Vector3(0, -1, 0), Vector3(1, 0, 0)), Vector3(0.058, -0.004, -0.02))
+	for k in GRIP_FIT:
+		grips[k] = grips[k] * Transform3D(Basis(), GRIP_FIT[k])
 
 
 ## Move one hand toward a pose (blended), place it on its item, or hide it.
@@ -344,6 +365,42 @@ func _process(delta: float) -> void:
 		"binoculars" if bino_node.visible else "compass", delta)
 	_hand("R", bino_node if bino_node.visible else torch_node, "bino_R" if bino_node.visible else "torch_R",
 		"binoculars" if bino_node.visible else "torch", delta)
+	for side in ["L", "R"]:
+		aim_sleeve(side, delta)
+
+
+## Stage P: turn the forearm (and half as far, the wrist) toward this side's elbow point. Snaps when the hand
+## has just appeared or delta is 0 (tests, captures); otherwise eases at POSE_BLEND.
+func aim_sleeve(side: String, delta: float) -> void:
+	var on: bool = hand.has(side) and hand[side].visible and _arm.has(side)
+	var snap: bool = not _arm_on[side] or delta == 0.0
+	_arm_on[side] = on
+	if not on:
+		return
+	var sk: Skeleton3D = skel[side]
+	var b: Dictionary = _arm[side]
+	var q := sleeve_turn(side)
+	var hp: Basis = sk.get_bone_global_pose(b["hand"]).basis
+	var k := 1.0 if snap else clampf(delta * POSE_BLEND, 0.0, 1.0)
+	for nm in ["forearm", "wrist"]:
+		var bi: int = b[nm]
+		var qq: Quaternion = q if nm == "forearm" else Quaternion.IDENTITY.slerp(q, 0.5)
+		var want := (hp.inverse() * (Basis(qq) * sk.get_bone_global_rest(bi).basis)).get_rotation_quaternion()
+		sk.set_bone_pose_rotation(bi, sk.get_bone_pose_rotation(bi).slerp(want, k))
+
+
+## The turn (skeleton space) that takes the forearm's rest direction toward the elbow point, clamped.
+func sleeve_turn(side: String) -> Quaternion:
+	var sk: Skeleton3D = skel[side]
+	var b: Dictionary = _arm[side]
+	var fr: Transform3D = sk.get_bone_global_rest(b["forearm"])
+	var d0 := (sk.get_bone_global_rest(b["elbow"]).origin - fr.origin).normalized()
+	var target: Vector3 = sk.global_transform.affine_inverse() * (global_transform * ELBOW[side])
+	var d1 := (target - fr.origin).normalized()
+	var axis := d0.cross(d1)
+	if axis.length() < 1e-6:
+		return Quaternion.IDENTITY
+	return Quaternion(axis.normalized(), minf(d0.angle_to(d1), ARM_BEND_MAX))
 
 
 ## The torch light sits at the lens, unless a wall is between the eye and the lens (nose to a wall the

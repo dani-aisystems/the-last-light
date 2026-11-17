@@ -37,6 +37,10 @@ var _bob := 0.0
 var _focus_from := Transform3D()
 var _focus_to := Transform3D()
 var _focus_t := 1.0
+## Audit Stage P (C11): how far the keeper is sat down at the radio, 0 standing .. 1 seated. It follows the
+## camera's own eased blend, from wherever it was when the view changed (a second E mid-blend reverses it).
+var _sit_from := 0.0
+var _sit_to := 0.0
 var _holding := ""
 var _last_prompt := {}
 ## Device-view cursor that is not the OS pointer (Vector2.INF = follow the mouse). Captures set it to
@@ -251,6 +255,8 @@ func enter_focus(id: String) -> void:
 		events.emit(station.release_all())
 		if focused == "console":
 			station.sim.set_wheel(0.0)
+	_sit_from = sit_amount()
+	_sit_to = 1.0 if id == "radio" else 0.0
 	focused = id
 	if equipment:
 		equipment.put_away_now()             # G3a: hands free for the device
@@ -271,10 +277,17 @@ func leave_focus() -> void:
 	events.emit(station.release_all())
 	if focused == "console":
 		station.sim.set_wheel(0.0)
+	_sit_from = sit_amount()
+	_sit_to = 0.0
 	focused = ""
 	_focus_from = camera.global_transform
 	_focus_t = 0.0
 	focus_changed.emit("")              # game_fp re-applies the mouse policy (the single owner)
+
+
+## 0 standing .. 1 seated at the radio, on the camera's ease (PlayerBody poses and places the body by it).
+func sit_amount() -> float:
+	return lerpf(_sit_from, _sit_to, ease(_focus_t, -2.2))
 
 
 func _apply_look() -> void:

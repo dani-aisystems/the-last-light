@@ -1,5 +1,28 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-17, later): audit Stage P (player body) approved by Daniel and committed locally
+- **Record:** `docs/last_light/audit-2026-11/15_stageP_evidence.md`; DECISIONS Q19 (one navy, the chair's #363F58; room untouched). Plan: `~/.claude/plans/pasted-content-id-c83a-continue-the-gentle-lollipop.md`.
+- **C11 fixed:** the body is placed and posed from the camera's blend (`player.sit_amount()`, `body.py` action `sitdown`). Regress R27 checks it and fails on the old code, as it should. Sheets: `renders/last_light/stageP_cmp3_sitseq.png`, `stageP_cmp4_standseq.png`.
+- **Clothing:**
+  - the guernsey and trousers are their own garments (clean plane-cut hems, turned-in edges, a welt over the waistband, a break over the boots);
+  - one knit from the chair's (`blender/knit_tex.py`, run before `body.py` and `hands.py`);
+  - the sleeves bend on forearm bones aimed at the elbow;
+  - a 1.2 cm shirt cuff;
+  - the G3b finger poses and grips were refitted: the fingers went into the binoculars by 16.7 mm, now 1.31 mm at worst.
+- **Build:** body v007 → `body_v005.glb`; hands v009 → `hands_v009.glb`. Exported by hand (export_asset `--collection ASSET_body` / `ASSET_hands`, then `sync_assets.py`).
+- **New checks:**
+  - `body.py --check OUT.json` (garment poke-through, 9 poses);
+  - `hands.py --grip_check renders/last_light/stageP/grips OUT.json` (reads the grips regress R27 writes).
+- **Bench:** PARTIAL. Draw calls are unchanged, but the frame times were noisy (unfocused windows, load 3 to 7). Leave it for the clean Stage G bench.
+- **Daniel (2026-11-17):** Stage P approved; the guernsey rim stays 0.35; the cloth textures are committed (DECISIONS Q19).
+- **Next:** the next stage is Daniel's choice (the plan's order: C narrative, which waits on the script document; R Ross; D audio; E sea).
+- **Not committed on purpose:** the `--film` hunk in `capture_fp.gd`, the Stage M handoff entry and docs, `docs/ROADMAP.md`, `CLAUDE.md`, `.claude/settings.json`, and the untracked `.blend` versions.
+- **Gotchas:**
+  - `MeshInstance3D.bake_mesh_from_current_skeleton_pose()` fails headless (the skin is never registered with the renderer); R27 skins on the CPU;
+  - `tools/godot` benches often open unfocused behind other windows (check `focused` in the JSON);
+  - a nearest-point sign test misreads turned-in rims (use rays along the inner layer's normal).
+
+
 ## LATEST (2026-11-17): perf bisect done, P1 in; Stage S approved and committed locally
 - **Records:** `docs/last_light/audit-2026-11/12_perf_bisect.md`, `13_stageS_evidence.md`.
 - **Bisect:** Stage 0's 27 to 30 ms was machine load. On a quiet Mac Medium is 17.3 to 19.3 ms. The body, rain, moon shadow, island and glass are cheap. SSIL costs about 2.0 ms (paired runs); fog, shadows, ocean and glow cost about 2 ms each (single runs). Probe writes now happen only on change (no visual change). **P1 done** (SSIL off on Medium, about -2 ms; DECISIONS Q18). P2 and P3 stay proposals for Stage G.

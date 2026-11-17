@@ -28,6 +28,9 @@ extends SceneTree
 ##      ends), its collider riding on the leaf, the doorway clear when open, the hatch closed by the rail and
 ##      chain, the lower level shown only with the door open and lit only by its own lamp, and an instant pose
 ##      when a save is loaded
+##  R27 audit Stage P (C11): sitting down and standing up at the radio never put the body in front of the
+##      camera (stepped at 30, 60 and 120 fps; reversals mid-blend; after a document and a radio line; the
+##      console switch; a load while seated)
 ##   godot --path godot -s res://tests/regress_test.gd            (windowed: all checks)
 ##   godot --headless --path godot -s res://tests/regress_test.gd (R1 mouse checks SKIPPED: the headless
 ##                                                                  display server ignores mouse modes)
@@ -116,6 +119,7 @@ func _run() -> void:
 	await _r24_vhf_panel()
 	await _r25_no_skip()
 	await _r26_stair_door()
+	await _r27_sit_glimpse()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -1719,6 +1723,8 @@ func _hand_depth(eq, side: String) -> float:
 	var sk: Skeleton3D = eq.skel[side]
 	var nearest := 99.0
 	for bi in sk.get_bone_count():
+		if Equipment.ARM_BONES.has(sk.get_bone_name(bi)):
+			continue      # Stage P: the forearm and elbow run back past the eye, low and outside the view, by design
 		var p: Vector3 = cam.global_transform.affine_inverse() * (sk.global_transform * sk.get_bone_global_pose(bi).origin)
 		nearest = minf(nearest, -p.z)
 	return nearest
@@ -1774,8 +1780,8 @@ func _r16_hands() -> void:
 	for side in ["L", "R"]:
 		for pose in ["relaxed", "torch", "compass", "binoculars"]:
 			want.append(side + "_" + pose)
-	_check(nb == 32 and want.all(func(k): return eq.poses.has(k) and not eq.poses[k].is_empty()),
-		"hands.glb gives two 16-bone hands and all eight grip poses (%d bones, poses %s)" % [nb, eq.poses.keys()])
+	_check(nb == 38 and want.all(func(k): return eq.poses.has(k) and not eq.poses[k].is_empty()),   # Stage P: + wrist, forearm, elbow
+		"hands.glb gives two 19-bone hands (16 + wrist, forearm, elbow) and all eight grip poses (%d bones, poses %s)" % [nb, eq.poses.keys()])
 	g.player.leave_focus()
 	await _settle_focus()
 	eq.has = {"compass": true, "binoculars": true}
@@ -2918,3 +2924,319 @@ func _r26_stair_door() -> void:
 	st.snap_door()
 	_check(absf(st.parts["PT_stair_door"]["angle"]) < 1e-4 and not lower.visible, "a save with the door shut loads shut")
 	st.set_process(true)
+
+
+# ------------------------------------------------------------------ R27 (audit Stage P)
+
+## Audit Stage P (C11): sitting down at the radio and standing up again never show the keeper's body in front
+## of the camera. The player and the body are stepped by hand at 30, 60 and 120 fps through the whole blend;
+## at every step the head bone may not be more than 5 cm AHEAD of the camera or 5 cm to its side (the walk
+## rule keeps it 8 to 28 cm behind, by design), and no vertex of the seen mesh (legs, boots, torso) may be in
+## the camera's frustum. Plus: a second E mid-blend reverses from where it is (no jump), sitting after a
+## document and after a radio line, the console <-> radio switches, and a load while seated.
+var _r27 := {}
+
+
+func _r27_reset() -> void:
+	_r27 = {"ahead": -1.0, "side": 0.0, "seen": 0, "steps": 0, "jump": 0.0, "s_prev": -1.0}
+
+
+## The seen mesh's vertices in world space, each rigid to its strongest bone (as _mesh_eye_clear).
+func _r27_points(mi: MeshInstance3D, sk: Skeleton3D) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var skin: Skin = mi.skin
+	var m: Mesh = mi.mesh
+	for s in m.get_surface_count():
+		var arr: Array = m.surface_get_arrays(s)
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var bones = arr[Mesh.ARRAY_BONES]
+		var wts = arr[Mesh.ARRAY_WEIGHTS]
+		if bones == null or wts == null or verts.is_empty() or skin == null:
+			continue
+		var per: int = bones.size() / verts.size()
+		for i in range(0, verts.size(), 2):
+			var bst := 0
+			for j in per:
+				if wts[i * per + j] > wts[i * per + bst]:
+					bst = j
+			var bind: int = bones[i * per + bst]
+			var bi: int = skin.get_bind_bone(bind)
+			if bi < 0:
+				bi = sk.find_bone(skin.get_bind_name(bind))
+			out.append(sk.global_transform * (sk.get_bone_global_pose(bi) * skin.get_bind_pose(bind) * verts[i]))
+	return out
+
+
+func _r27_measure() -> void:
+	var pb = g.player.body
+	var cam: Camera3D = g.player.camera
+	var ct: Transform3D = cam.global_transform
+	var s: float = g.player.sit_amount()
+	if _r27["s_prev"] >= 0.0:
+		_r27["jump"] = maxf(_r27["jump"], absf(s - _r27["s_prev"]))
+	_r27["s_prev"] = s
+	_r27["steps"] += 1
+	if not pb.visible:
+		return
+	var head: Vector3 = pb.skel.global_transform * pb.skel.get_bone_global_pose(pb.skel.find_bone("head")).origin
+	var f := -ct.basis.z
+	f.y = 0.0
+	f = f.normalized()
+	var r := Vector3(-f.z, 0.0, f.x)
+	var d := head - ct.origin
+	_r27["ahead"] = maxf(_r27["ahead"], d.dot(f))
+	_r27["side"] = maxf(_r27["side"], absf(d.dot(r)))
+	var n := 0
+	for p in _r27_points(pb.meshes["view"], pb.skel):
+		var pc: Vector3 = ct.affine_inverse() * p
+		if pc.z < -cam.near and cam.is_position_in_frustum(p):
+			n += 1
+	_r27["seen"] = maxi(_r27["seen"], n)
+
+
+## Step the player and the body by hand until the focus blend is over (plus two steps), measuring each one.
+func _r27_run(dt: float, stop_at := 2.0) -> void:
+	var extra := 0
+	var n := 0
+	while extra < 2 and n < 1000:
+		g.player._process(dt)
+		g.player.body._process(dt)
+		_r27_measure()
+		n += 1
+		if g.player.sit_amount() >= stop_at:
+			return
+		if g.player._focus_t >= 1.0:
+			extra += 1
+
+
+func _r27_ok(label: String) -> void:
+	_check(_r27["ahead"] <= 0.05 and _r27["side"] <= 0.05 and _r27["seen"] == 0,
+		"%s: the head never more than 5 cm ahead (%.3f m) or aside (%.3f m), no seen vertex in view (%d), %d steps"
+		% [label, _r27["ahead"], _r27["side"], _r27["seen"], _r27["steps"]])
+
+
+func _r27_sit_glimpse() -> void:
+	print("R27 sitting down and standing up without a glimpse (audit Stage P, C11)")
+	var pl = g.player
+	var pb = pl.body
+	if dlg.is_active():
+		dlg.close()
+	pl.leave_focus()
+	await _settle_focus()
+	pl.equipment.put_away_now()
+	# stand 0.9 m behind the radio view's eye, facing the set, level (as a player walking up to it)
+	var fv: Dictionary = g.station.focus["radio"]
+	var eye: Vector3 = fv["eye"]
+	var look: Vector3 = fv["at"] - eye
+	look.y = 0.0
+	look = look.normalized()
+	var at := eye - look * 0.9
+	pl.global_position = Vector3(at.x, pl.global_position.y, at.z)
+	pl._yaw = atan2(-look.x, -look.z)
+	pl._pitch = -0.08
+	pl._apply_look()
+	_check(pl.sit_amount() == 0.0 and pl._focus_t >= 1.0, "standing, no blend running: sit amount 0 (a loaded game starts here: saves keep no seat)")
+	pl.set_process(false)
+	pb.set_process(false)
+	for dt in [1.0 / 30.0, 1.0 / 60.0, 1.0 / 120.0]:
+		_r27_reset()
+		pl.enter_focus("radio")
+		_r27_run(dt)
+		_r27_ok("sit down at %d fps" % roundi(1.0 / dt))
+		_check(pb.state == "sit" and is_equal_approx(pl.sit_amount(), 1.0), "seated at the end (%s, s %.2f)" % [pb.state, pl.sit_amount()])
+		_r27_reset()
+		pl.leave_focus()
+		_r27_run(dt)
+		_r27_ok("stand up at %d fps" % roundi(1.0 / dt))
+		pb._process(dt)
+		_check(pb.state != "sit" and pl.sit_amount() == 0.0, "on his feet at the end (%s)" % pb.state)
+	# a second E half-way: the blend turns round where it is
+	var dt60 := 1.0 / 60.0
+	_r27_reset()
+	pl.enter_focus("radio")
+	_r27_run(dt60, 0.5)
+	var mid: float = pl.sit_amount()
+	pl.leave_focus()
+	_r27_run(dt60)
+	_check(mid >= 0.5 and mid < 0.75 and _r27["jump"] < 0.08, "E half-way down stands up from there (s %.2f, largest step %.3f)" % [mid, _r27["jump"]])
+	_r27_ok("half-way down and back up")
+	_r27_reset()
+	pl.enter_focus("radio")
+	_r27_run(dt60)
+	pl.leave_focus()
+	_r27_run(dt60, -1.0)                          # one step into standing up ...
+	for i in 12:
+		pl._process(dt60)
+		pb._process(dt60)
+		_r27_measure()
+	pl.enter_focus("radio")                       # ... then E again: back down from there
+	_r27_run(dt60)
+	_check(_r27["jump"] < 0.08 and is_equal_approx(pl.sit_amount(), 1.0), "E while standing up sits back down from there (largest step %.3f)" % _r27["jump"])
+	_r27_ok("standing up and back down")
+	pl.leave_focus()
+	_r27_run(dt60)
+	# after a document, after a radio line
+	g.presenter.open_document("tide_tables")
+	await _frames(2)
+	g.presenter.close_document()
+	await _frames(2)
+	_r27_reset()
+	pl.enter_focus("radio")
+	_r27_run(dt60)
+	_r27_ok("sitting down after a document")
+	pl.leave_focus()
+	_r27_run(dt60)
+	dlg.show_line({"mode": "radio", "speaker": "MORAG", "text": "North Point, Stornoway. Radio check. Over."})
+	await _frames(2)
+	_r27_reset()
+	pl.enter_focus("radio")
+	_r27_run(dt60)
+	_r27_ok("sitting down during a radio line")
+	dlg.close()
+	# straight across to the console and back: away there, under the eye again coming back
+	pl.enter_focus("console")
+	_r27_run(dt60)
+	_check(not pb.visible and pb.state == "away", "radio to console: the body is put away (%s)" % pb.state)
+	_r27_reset()
+	pl.enter_focus("radio")
+	_r27_run(dt60)
+	_r27_ok("console straight to the radio")
+	# a load while seated poses nothing new: still seated under the eye
+	g._apply_save(g.save_dict())
+	_r27_reset()
+	_r27_run(dt60)
+	_r27_ok("a load while seated")
+	pl.leave_focus()
+	_r27_run(dt60)
+	pl.set_process(true)
+	pb.set_process(true)
+	await _settle_focus()
+	await _r27_grips()
+
+
+## A skinned mesh posed on the CPU, every weight counted, in the skeleton's space (MeshInstance3D's
+## bake_mesh_from_current_skeleton_pose needs the skin registered with the renderer, which a headless run
+## never does).
+func _r27_skinned(mi: MeshInstance3D, sk: Skeleton3D) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	var skin: Skin = mi.skin
+	for s in mi.mesh.get_surface_count():
+		var arr: Array = mi.mesh.surface_get_arrays(s)
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var nrm: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		var bones = arr[Mesh.ARRAY_BONES]
+		var wts = arr[Mesh.ARRAY_WEIGHTS]
+		var mats := {}
+		var per: int = bones.size() / verts.size()
+		var pv := PackedVector3Array()
+		var pn := PackedVector3Array()
+		pv.resize(verts.size())
+		pn.resize(verts.size())
+		for i in verts.size():
+			var acc := Vector3.ZERO
+			var accn := Vector3.ZERO
+			for j in per:
+				var w: float = wts[i * per + j]
+				if w <= 0.0:
+					continue
+				var bind: int = bones[i * per + j]
+				if not mats.has(bind):
+					var bi: int = skin.get_bind_bone(bind)
+					if bi < 0:
+						bi = sk.find_bone(skin.get_bind_name(bind))
+					mats[bind] = sk.get_bone_global_pose(bi) * skin.get_bind_pose(bind)
+				var m: Transform3D = mats[bind]
+				acc += (m * verts[i]) * w
+				accn += (m.basis * nrm[i]) * w
+			pv[i] = acc
+			pn[i] = accn.normalized()
+		var a2 := []
+		a2.resize(Mesh.ARRAY_MAX)
+		a2[Mesh.ARRAY_VERTEX] = pv
+		a2[Mesh.ARRAY_NORMAL] = pn
+		a2[Mesh.ARRAY_INDEX] = arr[Mesh.ARRAY_INDEX]
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a2)
+	return out
+
+
+## Stage P (4.1 item 5): in each held pose the sleeve bends toward the elbow and its far end leaves the frame;
+## the posed hands, cuffs, shirt cuffs and the held item are written to renders/last_light/stageP/grips/ as
+## glTF for the Blender fit check (blender/hands.py --grip_check), which measures any penetration.
+func _r27_grips() -> void:
+	var pl = g.player
+	var eq = pl.equipment
+	var cam: Camera3D = pl.camera
+	pl._pitch = -0.08
+	pl._apply_look()
+	eq.has = {"compass": true, "binoculars": true}
+	var dir := ProjectSettings.globalize_path("res://").path_join("../../../../renders/last_light/stageP/grips").simplify_path()
+	DirAccess.make_dir_recursive_absolute(dir)
+	var written := 0
+	for cfg in ["compass", "torch", "bino_half", "compass_torch"]:
+		eq.put_away_now()
+		eq.hold_raise = -1.0
+		pl.give_torch(false)
+		await _frames(2)
+		if cfg.begins_with("compass"):
+			eq.toggle("compass")
+		if cfg.ends_with("torch"):
+			pl.give_torch(true)
+		if cfg == "bino_half":
+			eq.toggle("binoculars")
+			eq.hold_raise = 0.5
+		await create_timer(0.8).timeout
+		var root_n := Node3D.new()
+		root_n.name = "grips_" + cfg
+		var sides := []
+		for side in ["L", "R"]:
+			if not eq.hand[side].visible:
+				continue
+			sides.append(side)
+			var sk: Skeleton3D = eq.skel[side]
+			var b: Dictionary = eq._arm[side]
+			var elbow: Vector3 = sk.global_transform * sk.get_bone_global_pose(b["elbow"]).origin
+			var bend: float = rad_to_deg(eq.sleeve_turn(side).get_angle())
+			_check(not cam.is_position_in_frustum(elbow) and bend <= 70.5,
+				"%s: the %s sleeve bends %.0f deg toward the elbow and its far end is out of the frame" % [cfg, side, bend])
+			var arm_n := Node3D.new()                 # where the hand's skeleton sits (hands.py fits poses to it)
+			arm_n.name = "arm_" + side
+			root_n.add_child(arm_n)
+			arm_n.owner = root_n
+			arm_n.transform = eq.global_transform.affine_inverse() * sk.global_transform
+			for mi in eq.hand[side].find_children("*", "MeshInstance3D", true, false):
+				var m2 := MeshInstance3D.new()
+				m2.mesh = _r27_skinned(mi as MeshInstance3D, sk)
+				m2.name = "hand%s_%s" % [side, mi.name]
+				root_n.add_child(m2)
+				m2.owner = root_n
+				m2.transform = eq.global_transform.affine_inverse() * sk.global_transform
+		var items := []
+		if eq.compass_node.visible:
+			items.append(eq.compass_node)
+		if eq.torch_node.visible:
+			items.append(eq.torch_node)
+		if eq.bino_node.visible:
+			items.append(eq.bino_node)
+		for it in items:
+			var k := 0
+			for mi in (it as Node).find_children("*", "MeshInstance3D", true, false):
+				var m2 := MeshInstance3D.new()
+				m2.mesh = (mi as MeshInstance3D).mesh
+				m2.name = "item_%s_%d" % [it.name, k]
+				k += 1
+				root_n.add_child(m2)
+				m2.owner = root_n
+				m2.transform = eq.global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform
+		var doc := GLTFDocument.new()
+		var st := GLTFState.new()
+		var err := doc.append_from_scene(root_n, st)
+		if err == OK:
+			err = doc.write_to_filesystem(st, dir.path_join("grips_%s.glb" % cfg))
+		written += int(err == OK)
+		root_n.free()
+		_check(err == OK and not sides.is_empty() and not items.is_empty(),
+			"%s: hands %s and %d item(s) written for the fit check" % [cfg, sides, items.size()])
+	eq.put_away_now()
+	eq.hold_raise = -1.0
+	pl.give_torch(false)
+	print("R27 grips written to ", dir, " (", written, ")")

@@ -225,18 +225,30 @@ func _run() -> void:
 			g.station.snap_door()
 			continue
 		if vname == "sitseq":                   # audit stage 0: sitting down at the radio, frame by frame
-			_place(g, "pp_radio")               # (the player's own camera; every frame for 0.3 s, then every 4th)
+			_place(g, "pp_radio")               # (the player's own camera)
 			await _frames(30)
-			g.player.enter_focus("radio")
-			for fi in 40:
-				await _frames(1)
-				if fi < 18 or fi % 4 == 0:
-					_save("%s_t%03d_sitseq_f%02d" % [name_, int(target), fi])
-			g.player.leave_focus()
-			for fo in 40:
-				await _frames(1)
-				if fo < 18 or fo % 4 == 0:
-					_save("%s_t%03d_standseq_f%02d" % [name_, int(target), fo])
+			# Stage P: a capture frame is slow, so at 1x the 0.45 s blend was over in one or two frames. Time
+			# runs at 0.1x for the sequence, and a frame is saved each time the blend moves on by 1/16.
+			Engine.time_scale = 0.1
+			for leg in ["sitseq", "standseq"]:
+				if leg == "sitseq":
+					g.player.enter_focus("radio")
+				else:
+					g.player.leave_focus()
+				var fi := 0
+				var last := -1.0
+				var after := 0
+				while fi < 40 and after < 3:
+					await _frames(1)
+					var t: float = g.player._focus_t
+					if t - last >= 1.0 / 16.0 or (t >= 1.0 and after < 3):
+						_save("%s_t%03d_%s_f%02d" % [name_, int(target), leg, fi])
+						fi += 1
+						last = t
+						if t >= 1.0:
+							after += 1
+				await _frames(10)
+			Engine.time_scale = 1.0
 			continue
 		_place(g, vname)
 		for st in states:

@@ -13,7 +13,8 @@ the game's 1.65 m (player.gd EYE): 1.77 m.
 
 Output collection ASSET_body: ARM_body with SK_body (visible: legs, boots, torso) and SK_body_shadow (arms,
 hands, neck, head). Actions: idle (loop), walk (loop; one stride of two 0.72 m steps in 0.9 s = 1.6 m/s,
-the WALK speed), sit (held). Origin at the feet, between them.
+the WALK speed), sit (held), sitdown (Stage P: standing to seated in 11 keys, sought by the camera blend).
+Origin at the feet, between them.
 
   tools/bl -P projects/games/last_light/blender/body.py -- --new --save [--preview DIR]
 """
@@ -37,7 +38,7 @@ EYE_SRC = 1.575                 # traced: the eyes of the source mesh
 EYE_GAME = 1.65                 # player.gd EYE
 S = EYE_GAME / EYE_SRC
 
-GUERNSEY = "#343A46"            # G3c captures: #272B33 read flat black on the body; still dark navy-charcoal
+GUERNSEY = "#363F58"            # Stage P (Q19): the chair gansey's navy (knit_tex.py measures documents.knit)
 TROUSERS = "#4B473F"            # dark grey-brown wool (#34332F read black)
 BOOTS = "#3E2F25"               # dark oiled leather (#2B211A read black)
 SKIN = "#C99079"                # as the G3b hands (shadow-only here)
@@ -64,15 +65,24 @@ SHADOW_BONES = ("upper_arm", "forearm", "hand", "neck", "head")
 FPS = 30
 WALK_FRAMES = 27                # 0.9 s per stride (two steps)
 STEP = 0.72                     # metres per step at the WALK speed
+SITDOWN_KEYS = 11               # Stage P: the sit-down blend, s = 0, 0.1 ... 1
 
 X, Y, Z = Vector((1, 0, 0)), Vector((0, 1, 0)), Vector((0, 0, 1))
+
+# Audit Stage P (4.1): the clothes are garments, not the skin pushed out. Heights (scaled, metres):
+NECK_Z, WRIST_Z, WAIST_Z, HEM_Z, BOOT_Z = 1.42 * S, 0.90 * S, 0.95 * S, 0.885 * S, 0.17 * S
+WELT = 0.06                     # the guernsey's ribbed welt above the hem: snug over the trousers' waistband
+TEX = HERE / "textures" / "cloth"   # knit_tex.py (run it first)
+KNIT_TILE = 32 * 10 / 12 / 100  # knit_tex.py: metres per tile
+TWILL_TILE = 0.06
 
 
 def args():
     a = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    out = {"new": "--new" in a, "save": "--save" in a, "preview": ""}
-    if "--preview" in a:
-        out["preview"] = a[a.index("--preview") + 1]
+    out = {"new": "--new" in a, "save": "--save" in a, "preview": "", "check": ""}
+    for k in ("preview", "check"):
+        if "--" + k in a:
+            out[k] = a[a.index("--" + k) + 1]
     return out
 
 
@@ -84,6 +94,34 @@ def material(name, hex_, rough, sheen=0.0):
     b.inputs["Roughness"].default_value = rough
     if "Sheen Weight" in b.inputs:
         b.inputs["Sheen Weight"].default_value = sheen
+    return m
+
+
+def tex_material(name, albedo, normal, rough, rough_val, sheen=0.0):
+    """Principled BSDF with albedo / OpenGL normal / roughness maps from knit_tex.py (glTF exports them)."""
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rough_val
+    if "Sheen Weight" in b.inputs:
+        b.inputs["Sheen Weight"].default_value = sheen
+
+    def img(fn, colour):
+        path = TEX / fn
+        if not path.exists():
+            raise SystemExit(f"missing {path}: run tools/py projects/games/last_light/blender/knit_tex.py first")
+        n = nt.nodes.new("ShaderNodeTexImage")
+        n.image = bpy.data.images.load(str(path), check_existing=True)
+        n.image.colorspace_settings.name = "sRGB" if colour else "Non-Color"
+        return n
+    nt.links.new(img(albedo, True).outputs["Color"], b.inputs["Base Color"])
+    if normal:
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(img(normal, False).outputs["Color"], nm.inputs["Color"])
+        nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
+    if rough:
+        nt.links.new(img(rough, False).outputs["Color"], b.inputs["Roughness"])
     return m
 
 
@@ -143,32 +181,269 @@ def build_armature(coll):
     return ob
 
 
-def clothe(body, mats):
-    """Materials by region, and each layer pushed out along the normals (the guernsey hem over the trousers)."""
-    me = body.data
-    for m in mats:
-        me.materials.append(m)
-    boot_z, waist_z, neck_z, wrist_z = 0.17 * S, 0.95 * S, 1.42 * S, 0.90 * S
+def part_of(co, mat_name, m=0.03):
+    """Which garment(s) a body face belongs to, with a margin m: the edges are then cut exactly by planes
+    (garment_cuts). The welt band (HEM_Z .. WAIST_Z) is in both: the guernsey over the trousers' waistband."""
+    if mat_name == "M_LL_Boots":
+        return {"boots"}
+    out = set()
+    if _is_arm(co):
+        if co.z >= WRIST_Z - m:
+            out.add("guernsey")
+        if co.z < WRIST_Z + m:
+            out.add("skin")
+        return out
+    if co.z > NECK_Z - m:
+        out.add("skin")
+    if HEM_Z - m <= co.z <= NECK_Z + m:
+        out.add("guernsey")
+    if BOOT_Z - m <= co.z <= WAIST_Z + m:
+        out.add("trousers")
+    return out
 
-    def region(co):
-        if co.z > neck_z:
-            return 3                              # skin: neck and head
-        if _is_arm(co):
-            return 3 if co.z < wrist_z else 0      # hands skin, sleeves guernsey
-        if co.z < boot_z:
-            return 2
-        if co.z < waist_z:
-            return 1
-        return 0
-    push = {0: 0.010, 1: 0.007, 2: 0.012, 3: 0.0}
+
+def garment_cuts(kind):
+    """Planes (point, normal, which verts) whose positive side is cut away: clean, level hems instead of the
+    face staircase. The neckline dips 2.5 cm at the front (a crew neck); each cuff is square to its forearm."""
+    if kind == "trousers":
+        return [(Vector((0, 0, WAIST_Z)), Vector((0, 0, 1)), None),
+                (Vector((0, 0, BOOT_Z)), Vector((0, 0, -1)), None)]
+    cuts = [(Vector((0, 0, HEM_Z)), Vector((0, 0, -1)), lambda co: abs(co.x) < 0.20 * S),
+            (Vector((0, 0, NECK_Z)), Vector((0, -0.25, 1)).normalized(), None)]
+    for side, sgn in (("L", 1.0), ("R", -1.0)):
+        h, t = joint(f"forearm.{side}")
+        cuts.append((t, (t - h).normalized(), lambda co, sgn=sgn: co.x * sgn > 0.15 * S))
+    return cuts
+
+
+def skin_cuts():
+    """The skin left under nothing: the neck and head above the neckline, the hands below the cuffs (cut 1 cm
+    inside the garment so no gap opens between them)."""
+    cuts = [(Vector((0, 0, NECK_Z - 0.01)), -Vector((0, -0.25, 1)).normalized(),
+             lambda co: co.z > 1.2 * S and not _is_arm(co))]          # the neck only (never the boots)
+    for side, sgn in (("L", 1.0), ("R", -1.0)):
+        h, t = joint(f"forearm.{side}")
+        d = (t - h).normalized()
+        cuts.append((t - d * 0.01, -d, lambda co, sgn=sgn: co.x * sgn > 0.15 * S and _is_arm(co)))
+    return cuts
+
+
+def cut(me, cuts):
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    for co, no, which in cuts:
+        verts = [v for v in bm.verts if which is None or which(v.co)]
+        vs = set(verts)
+        edges = [e for e in bm.edges if e.verts[0] in vs and e.verts[1] in vs]
+        faces = [f for f in bm.faces if all(v in vs for v in f.verts)]
+        bmesh.ops.bisect_plane(bm, geom=verts + edges + faces, dist=1e-5, plane_co=co, plane_no=no,
+                               clear_outer=True)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
+
+
+def _smooth01(x):
+    x = max(0.0, min(1.0, x))
+    return x * x * (3 - 2 * x)
+
+
+def guernsey_offset(co):
+    """Off the skin along its normal: snug at the welt and the sleeves, easy over the belly and back (a
+    working jumper, not a skin), back to fitted across the chest and shoulders."""
+    if _is_arm(co):
+        return 0.008
+    if co.z < HEM_Z + WELT:
+        return 0.016                      # the welt: 10 mm clear of the waistband (walk and sit moved it 2.9 mm)
+    above = co.z - (HEM_Z + WELT)
+    loose = _smooth01(above / 0.04) * (1.0 - _smooth01((co.z - 1.12 * S) / 0.12))
+    # the knit blouses over the tighter welt: soft horizontal ripples, wandering round the body, fading upward
+    th = math.atan2(co.x, -co.y)
+    ripple = 0.5 + 0.5 * math.sin(2 * math.pi * above / 0.035 + 1.6 * math.sin(3 * th))
+    blouse = (1.0 - _smooth01(above / 0.11)) * _smooth01(above / 0.01)
+    return 0.013 + 0.008 * loose + 0.0028 * ripple * blouse
+
+
+def trousers_offset(co, n):
+    """Wool trousers with volume: 12 mm off the leg, cinched to 6 mm at the waistband (under the welt), a
+    little fuller over the knee and the seat."""
+    top = _smooth01((co.z - (HEM_Z - 0.05)) / 0.05)
+    off = 0.012 * (1.0 - top) + 0.006 * top
+    off += 0.004 * math.exp(-((co.z - 0.48 * S) / 0.07) ** 2) * max(0.0, -n.y)        # knee, at the front
+    off += 0.004 * math.exp(-((co.z - 0.80 * S) / 0.06) ** 2) * max(0.0, n.y) * (1.0 - top)   # seat
+    return off
+
+
+def foot_frame(side):
+    """As boot() builds it: (ankle, along the foot toward the toe, across the foot outward)."""
+    sgn = 1.0 if side == "L" else -1.0
+    ankle = Vector((0.172 * sgn, 0.045, 0.0)) * S
+    ball = Vector((0.21 * sgn, -0.08, 0.0)) * S
+    d = (ball - ankle).normalized()
+    ax = Vector((-d.y, d.x, 0.0))
+    if ax.x * sgn < 0:
+        ax = -ax
+    return ankle, d, ax
+
+
+def trouser_hem(me):
+    """The hem clears the boot shaft (its ellipse + 7 mm) and breaks: lower at the front, over the instep."""
+    for v in me.vertices:
+        if v.co.z > 0.27 * S:
+            continue
+        side = "L" if v.co.x > 0 else "R"
+        ankle, d, ax = foot_frame(side)
+        c = ankle + d * (-0.01 * S)
+        rel = Vector((v.co.x - c.x, v.co.y - c.y, 0.0))
+        a, b = rel.dot(ax), rel.dot(d)
+        ln = max(rel.length, 1e-6)
+        ca, sb = a / ln, b / ln
+        r_e = 1.0 / math.sqrt((ca / (0.052 * S)) ** 2 + (sb / (0.060 * S)) ** 2)
+        ramp = 1.0 - _smooth01((v.co.z - 0.20 * S) / (0.07 * S))
+        want = r_e + 0.007
+        if ln < want and ramp > 0:
+            k = (want - ln) * ramp
+            v.co.x += rel.x / ln * k
+            v.co.y += rel.y / ln * k
+        if v.co.z < 0.20 * S and sb > 0:
+            v.co.z -= 0.012 * sb * (1.0 - _smooth01((v.co.z - BOOT_Z) / 0.04))
+
+
+def garment(body, faces, name, offset, cuts=()):
+    """A copy of the body (its weights, parent and armature come with it) keeping only `faces`, each vertex
+    moved out along the skin's own normal by offset(co, normal), then trimmed by the cut planes."""
+    ob = body.copy()
+    ob.data = body.data.copy()
+    ob.name = ob.data.name = name
+    for c in body.users_collection:
+        c.objects.link(ob)
+    me = ob.data
+    for v, v0 in zip(me.vertices, body.data.vertices):
+        v.co = v0.co + v0.normal * offset(v0.co, v0.normal)
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    keep = set(faces)
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.index not in keep], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
+    cut(me, cuts)
+    return ob
+
+
+def turn_in(ob, depth):
+    """Every open edge of the garment gets a turned-in rim `depth` deep (toward the body), so a hem, cuff or
+    neck reads as cloth with thickness, never a paper edge; it also closes the gap to the skin."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bm.normal_update()
+    bnd = [e for e in bm.edges if e.is_boundary]
+    inward = {tuple(round(c, 6) for c in v.co): -v.normal.copy() for e in bnd for v in e.verts}
+    geom = bmesh.ops.extrude_edge_only(bm, edges=bnd)["geom"]
+    for v in [g for g in geom if isinstance(g, bmesh.types.BMVert)]:
+        n = inward.get(tuple(round(c, 6) for c in v.co))
+        if n is not None:
+            v.co += n * depth
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(ob.data)
+    bm.free()
+
+
+def _chain_uv(p, segs, tile, radius, ref):
+    """Cylindrical UV round a bone chain: u = arc round the axis, v = distance along it."""
+    best, along_best, acc = None, 0.0, 0.0
+    for a, b in segs:
+        ab = b - a
+        t = max(0.0, min(1.0, (p - a).dot(ab) / ab.length_squared))
+        d = (p - (a + ab * t)).length
+        if best is None or d < best[0]:
+            best = (d, a + ab * t, ab.normalized())
+            along_best = acc + ab.length * t
+        acc += ab.length
+    _d, q, axis = best
+    r = p - q
+    r -= axis * r.dot(axis)
+    x0 = (ref - axis * ref.dot(axis)).normalized()
+    y0 = axis.cross(x0)
+    th = math.atan2(r.dot(y0), r.dot(x0))
+    return th * radius / tile, along_best / tile, 2 * math.pi * radius / tile
+
+
+def uv_garment(ob, kind):
+    """Knit / twill UVs in metres over the tile size: the torso round the body's vertical axis, the arms
+    and legs round their bones. Faces across the wrap seam are unwrapped (no smeared seam face)."""
+    me = ob.data
+    if not me.uv_layers:
+        me.uv_layers.new(name="UVMap")
+    uvl = me.uv_layers[0].data
+    tile = KNIT_TILE if kind == "guernsey" else TWILL_TILE
+    chains = {}
+    for side in ("L", "R"):
+        ua, ut = joint(f"upper_arm.{side}")
+        fa, ft = joint(f"forearm.{side}")
+        th, tt = joint(f"thigh.{side}")
+        sh, st = joint(f"shin.{side}")
+        chains["arm" + side] = [(ua, ut), (fa, ft)]
+        chains["leg" + side] = [(th, tt), (sh, st)]
+    crotch = 0.86 * S
     for p in me.polygons:
-        p.material_index = region(p.center)
-    vreg = [region(v.co) for v in me.vertices]
-    for v, r in zip(me.vertices, vreg):
-        v.co += v.normal * push[r]
-        if r == 2 and v.co.z < 0.012:
-            v.co.z = 0.0                          # a flat sole on the floor
-    me.update()
+        c = p.center
+        side = "L" if c.x > 0 else "R"
+        if kind == "guernsey" and _is_arm(c):
+            how = ("arm" + side, 0.05)
+        elif kind == "trousers" and c.z < crotch:
+            how = ("leg" + side, 0.065)
+        else:
+            how = None
+        uvs = []
+        for li in p.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            if how:
+                u, v, per = _chain_uv(co, chains[how[0]], tile, how[1], Vector((0, -1, 0)))
+            else:
+                th = math.atan2(co.x, -co.y)
+                u, v, per = th * 0.16 / tile, co.z / tile, 2 * math.pi * 0.16 / tile
+            uvs.append([u, v])
+        us = [u for u, _ in uvs]
+        if max(us) - min(us) > per / 2:
+            for q in uvs:
+                if q[0] < (max(us) + min(us)) / 2:
+                    q[0] += per
+        for li, q in zip(p.loop_indices, uvs):
+            uvl[li].uv = q
+
+
+def build_garments(body, mats):
+    """Guernsey and trousers as their own meshes; the body keeps skin (neck, head, hands) and the boots."""
+    me = body.data
+    names = [m.name for m in me.materials]
+    parts = {"guernsey": [], "trousers": [], "skin": [], "boots": []}
+    for p in me.polygons:
+        for k in part_of(p.center, names[p.material_index] if names else ""):
+            parts[k].append(p.index)
+    g = garment(body, parts["guernsey"], "SK_guernsey", lambda co, n: guernsey_offset(co), garment_cuts("guernsey"))
+    t = garment(body, parts["trousers"], "SK_trousers", trousers_offset, garment_cuts("trousers"))
+    trouser_hem(t.data)
+    for ob, kind, mat in ((g, "guernsey", mats[0]), (t, "trousers", mats[1])):
+        turn_in(ob, 0.009 if kind == "guernsey" else 0.010)
+        uv_garment(ob, kind)
+        ob.data.materials.clear()
+        ob.data.materials.append(mat)
+        for p in ob.data.polygons:
+            p.material_index = 0
+            p.use_smooth = True
+    # the body itself: skin and boots only (what the garments cover goes)
+    keep = set(parts["skin"]) | set(parts["boots"])
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    bmesh.ops.delete(bm, geom=[f for f in bm.faces if f.index not in keep], context="FACES")
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
+    cut(me, skin_cuts())
+    return g, t
 
 
 def _seg_dist(p, a, b):
@@ -222,6 +497,7 @@ def boot(name, side, coll, mat):
     if ax.x * sgn < 0:
         ax = -ax
     bm = bmesh.new()
+    uvl = bm.loops.layers.uv.new("UVMap")
     seg = 20
 
     def ring(c, hw, hd, z0, z1, n=seg):
@@ -245,12 +521,17 @@ def boot(name, side, coll, mat):
         rings.append([bm.verts.new(c + ax * (0.052 * S * math.cos(2 * math.pi * i / seg)) +
                                    d * (0.060 * S * math.sin(2 * math.pi * i / seg)) + Vector((0, 0, z * S)))
                       for i in range(seg)])
+    def quad(k, i, v0, v1):
+        # Stage P: real UVs, u round the boot (0.3 m of leather a unit), v along the loft
+        f = bm.faces.new((rings[k][i], rings[k][(i + 1) % seg], rings[k + 1][(i + 1) % seg], rings[k + 1][i]))
+        for lp, (uu, vv) in zip(f.loops, ((i, v0), (i + 1, v0), (i + 1, v1), (i, v1))):
+            lp[uvl].uv = (uu / seg, vv)
     for k in range(len(prof) - 1):
         for i in range(seg):
-            bm.faces.new((rings[k][i], rings[k][(i + 1) % seg], rings[k + 1][(i + 1) % seg], rings[k + 1][i]))
+            quad(k, i, prof[k][0] / 0.3, prof[k + 1][0] / 0.3)
     for k in range(len(prof), len(rings) - 1):
         for i in range(seg):
-            bm.faces.new((rings[k][i], rings[k][(i + 1) % seg], rings[k + 1][(i + 1) % seg], rings[k + 1][i]))
+            quad(k, i, 1.0 + k * 0.15, 1.15 + k * 0.15)
     bm.faces.new(list(reversed(rings[0])))
     bm.faces.new(rings[len(prof) - 1])
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
@@ -405,21 +686,119 @@ def bake_actions(arm_ob):
         set_rot(arm_ob, "hips", Z, 4.0 * math.cos(2 * math.pi * ph))
         set_rot(arm_ob, "chest", Z, -5.0 * math.cos(2 * math.pi * ph))
 
-    def sit(f):
-        # the chair seat is 0.46 m high (build.py); the hip joint over its centre at about 0.55 m
+    def sit_at(s):
+        """Standing (s 0) to seated (s 1). The chair seat is 0.46 m high (build.py); the hip joint ends over its
+        centre at about 0.55 m. Audit Stage P (C11): the game drives this by the camera's blend, so the body
+        lowers under the eye instead of waiting on the chair; the trunk leans forward as it goes down (a real
+        sit), most at the middle, and ends at the held G3c sit pose exactly."""
+        e = s * s * (3 - 2 * s)
         drop = 0.92 * S - 0.55
-        set_loc(arm_ob, "hips", (0, 0.0, -drop))
+        set_loc(arm_ob, "hips", (0, 0.0, -drop * e))
         for side in ("L", "R"):
-            leg(arm_ob, side, 88.0, 92.0, 0.0)
-        set_rot(arm_ob, "spine", X, -6.0)                  # leaning to the set
-        arms_down(arm_ob, 30.0, 30.0)
+            leg(arm_ob, side, 88.0 * e, 92.0 * e, 0.0)
+        # +X tips the upright spine forward (-Y); the held sit keeps the G3c -6 (a slight settle back)
+        set_rot(arm_ob, "spine", X, -6.0 * e + 16.0 * math.sin(math.pi * s))
+        arms_down(arm_ob, 30.0 * e, 30.0 * e)
 
     make_action(arm_ob, "idle", list(range(1, 92, 6)), idle)
     make_action(arm_ob, "walk", list(range(1, WALK_FRAMES + 2)), walk)
-    make_action(arm_ob, "sit", [1, 2], sit)
+    make_action(arm_ob, "sit", [1, 2], lambda f: sit_at(1.0))
+    # SITDOWN_KEYS keys, one per tenth of the blend: the game seeks s * length (player_body.gd)
+    make_action(arm_ob, "sitdown", list(range(1, SITDOWN_KEYS + 1)), lambda f: sit_at((f - 1) / (SITDOWN_KEYS - 1)))
     rest(arm_ob)
     for tr in arm_ob.animation_data.nla_tracks:
         tr.mute = True                                     # saved and validated at rest; the export writes each action
+
+
+CHECK_POSES = [("idle", 1), ("walk", 1), ("walk", 8), ("walk", 15), ("walk", 22),
+               ("sitdown", 1), ("sitdown", 6), ("sitdown", 11), ("sit", 1)]
+
+
+def check(arm_ob, body, gu, tr, out_path):
+    """Poke-through, posed (audit Stage P): in each pose, how far (m) the trousers' waistband comes out through
+    the guernsey's welt, and the boot shafts out through the trouser hems: a ray from each inner point into the
+    body along its own normal; the outer garment met within 3 cm means the inner layer is through it by that
+    much. (A nearest-point sign test gave false 17 mm hits on the turned-in hem rim.) Also: the share of
+    garment faces whose normal points away from the body (the rims must not flip a shell inside out)."""
+    from mathutils.bvhtree import BVHTree
+    sc = bpy.context.scene
+    boots_i = [i for i, m in enumerate(body.data.materials) if m.name == "M_LL_Boots"]
+    boot_v = sorted({v for p in body.data.polygons if p.material_index in boots_i for v in p.vertices
+                     if body.data.vertices[v].co.z > 0.185 * S})
+    # the waistband under the welt, not its own turned-in top edge (rim normals face sideways: a ray "into the
+    # body" from them runs out through the welt, a false hit; that edge is inside the guernsey anyway)
+    band_v = [v.index for v in tr.data.vertices if HEM_Z + 0.01 <= v.co.z <= WAIST_Z - 0.005]
+
+    legs = {sd: [joint(f"thigh.{sd}"), joint(f"shin.{sd}")] for sd in ("L", "R")}
+
+    def outward(ob):
+        """Faces facing away from the axis they wrap (the leg bones below the crotch, else the body's
+        vertical axis); arms are judged by the renders."""
+        me = ob.data
+        good = 0
+        for p in me.polygons:
+            c = p.center
+            if _is_arm(c):
+                good += 1
+                continue
+            if c.z < 0.86 * S:
+                a, b = min(legs["L" if c.x > 0 else "R"], key=lambda ab: _seg_dist(c, *ab))
+                ab = b - a
+                t = max(0.0, min(1.0, (c - a).dot(ab) / ab.length_squared))
+                radial = c - (a + ab * t)
+            else:
+                radial = Vector((c.x, c.y, 0.0))
+            if radial.length < 1e-4 or p.normal.dot(radial.normalized()) > -0.2:
+                good += 1
+        return round(good / max(1, len(me.polygons)), 4)
+
+    rep = {"outward_share": {"guernsey": outward(gu), "trousers": outward(tr)}, "poses": {}}
+    for act, frame in CHECK_POSES:
+        arm_ob.animation_data.action = bpy.data.actions[act]
+        sc.frame_set(frame)
+        dg = bpy.context.evaluated_depsgraph_get()
+
+        def posed(ob):
+            m = ob.evaluated_get(dg).to_mesh()
+            r3 = ob.matrix_world.to_3x3()
+            vs = [ob.matrix_world @ v.co for v in m.vertices]
+            ns = [(r3 @ v.normal).normalized() for v in m.vertices]
+            ps = [list(p.vertices) for p in m.polygons]
+            ob.evaluated_get(dg).to_mesh_clear()
+            return vs, ns, ps
+        gv, _gn, gp = posed(gu)
+        tv, tn, tp = posed(tr)
+        bv, bn, _bp = posed(body)
+        res = {}
+        for label, idx, (pv, pn), (ov, op) in (("waistband_through_welt", band_v, (tv, tn), (gv, gp)),
+                                               ("boot_through_hem", boot_v, (bv, bn), (tv, tp))):
+            # inner layer point -> along its own normal INTO the body: meeting the outer garment there means
+            # the inner layer is through it by that distance (an open garment has no inside to test against)
+            bvh = BVHTree.FromPolygons(ov, op)
+            worst, n_over, at = 0.0, 0, None
+            for i in idx:
+                hit = bvh.ray_cast(pv[i] - pn[i] * 0.0002, -pn[i], 0.03)
+                if hit[0] is not None:
+                    d = hit[3] + 0.0002
+                    if d > worst:
+                        worst, at = d, i
+                    n_over += d > 0.002
+            res[label] = {"max_mm": round(worst * 1000, 2), "over_2mm": n_over, "points": len(idx)}
+            if at is not None and worst > 0.002:
+                src = tr if label.startswith("waist") else body
+                gi = {g.index: g.name for g in src.vertex_groups}
+                ws = sorted(((g.weight, gi[g.group]) for g in src.data.vertices[at].groups), reverse=True)[:3]
+                res[label]["worst_at_rest"] = [round(c, 3) for c in src.data.vertices[at].co]
+                res[label]["worst_weights"] = [[n, round(w, 2)] for w, n in ws]
+        rep["poses"][f"{act}{frame}"] = res
+    arm_ob.animation_data.action = None
+    rest(arm_ob)
+    worst = max(r[k]["max_mm"] for r in rep["poses"].values() for k in r)
+    rep["worst_mm"] = worst
+    rep["pass"] = worst < 2.0 and min(rep["outward_share"].values()) > 0.97
+    with open(out_path, "w") as f:
+        json.dump(rep, f, indent=1)
+    print("BODY_CHECK", json.dumps({"worst_mm": worst, "outward": rep["outward_share"], "pass": rep["pass"]}))
 
 
 def main():
@@ -428,16 +807,24 @@ def main():
         clear_scene()
     bpy.context.scene.render.fps = FPS
     coll = get_collection("ASSET_body")
-    mats = [material("M_LL_Guernsey", GUERNSEY, 0.92, 0.6), material("M_LL_Trousers", TROUSERS, 0.88, 0.3),
+    mats = [tex_material("M_LL_Guernsey", "T_LL_Knit_albedo.png", "T_LL_Knit_normal.png", "T_LL_Knit_rough.png", 0.9, 0.6),
+            tex_material("M_LL_Trousers", "T_LL_Twill_albedo.png", "T_LL_Twill_normal.png", None, 0.88, 0.3),
             material("M_LL_Boots", BOOTS, 0.55), material("M_LL_Skin", SKIN, 0.52, 0.15)]
     body = source_body(coll)
     arm_ob = build_armature(coll)
-    clothe(body, mats)
+    for m in mats:
+        body.data.materials.append(m)
+    for p in body.data.polygons:
+        p.material_index = 3                               # skin until the garments take their faces
     drop_feet(body)
     merge_into(body, [boot(f"boot_{s}", s, coll, mats[2]) for s in ("L", "R")])
     weights(body, arm_ob)
-    shadow = split_shadow(body, coll)
+    garments = build_garments(body, mats)
     bake_actions(arm_ob)
+    if a["check"]:
+        check(arm_ob, body, *garments, a["check"])
+    merge_into(body, list(garments))
+    shadow = split_shadow(body, coll)
     res = {"objects": len(coll.all_objects), "bones": len(arm_ob.data.bones), "tris": {}, "scale": round(S, 4)}
     dg = bpy.context.evaluated_depsgraph_get()
     for ob in (body, shadow):
@@ -471,12 +858,31 @@ def preview(arm_ob, outdir):
         sc.collection.objects.link(L)
         L.location = loc
         L.rotation_euler = tuple(math.radians(v) for v in rot)
-    shots = [("idle", 1, "front"), ("idle", 1, "side"), ("walk", 1, "side"), ("walk", 8, "side"), ("sit", 1, "side")]
+    shots = [("idle", 1, "front"), ("idle", 1, "side"), ("walk", 1, "side"), ("walk", 8, "side"), ("sit", 1, "side"),
+             ("sitdown", 4, "side"), ("sitdown", 6, "side"), ("sitdown", 8, "side"), ("idle", 1, "back"),
+             ("idle", 1, "q34"), ("idle", 1, "down"), ("walk", 8, "down")]
     for act, frame, view in shots:
         arm_ob.animation_data.action = bpy.data.actions[act]
         sc.frame_set(frame)
-        cam.location = (0, -4, 0.95) if view == "front" else (4, 0, 0.95)
-        cam.rotation_euler = (math.radians(90), 0, 0) if view == "front" else (math.radians(90), 0, math.radians(90))
+        cam.data.type = "ORTHO"
+        if view == "down":
+            # Stage P: as the keeper sees himself (player_body.gd: pitch -1.2, the body 0.28 m behind the eye)
+            cam.data.type = "PERSP"
+            cam.data.sensor_fit = "VERTICAL"
+            cam.data.angle = math.radians(70.0)
+            cam.location = (0, -0.28 - 0.04 * S, 1.65)
+            cam.rotation_euler = (math.radians(90 - 69), 0, math.radians(180))
+        elif view == "q34":
+            cam.data.type = "PERSP"
+            cam.data.lens = 50
+            cam.location = (-1.6, -2.2, 1.35)
+            cam.rotation_euler = (math.radians(84), 0, math.radians(-36))
+        elif view in ("front", "back"):
+            cam.location = (0, -4 if view == "front" else 4, 0.95)
+            cam.rotation_euler = (math.radians(90), 0, 0 if view == "front" else math.radians(180))
+        else:
+            cam.location = (4, 0, 0.95)
+            cam.rotation_euler = (math.radians(90), 0, math.radians(90))
         sc.render.filepath = f"{outdir}/body_{act}{frame}_{view}.png"
         bpy.ops.render.render(write_still=True)
     arm_ob.animation_data.action = None
