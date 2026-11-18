@@ -82,7 +82,8 @@ func _ready() -> void:
 	camera.fov = float(Settings.v["fov"])
 	Settings.changed.connect(func(): camera.fov = float(Settings.v["fov"]))
 	camera.near = 0.03
-	camera.far = 1200.0
+	# Stage M: past the radial sea's 6 km rim (the binoculars use this camera too); --sea=legacy keeps 1200 m
+	camera.far = 1200.0 if String(GameState.user_args.get("sea", "")) == "legacy" else preload("res://scripts/fp/sea_mesh.gd").FAR
 	head.add_child(camera)
 	camera.top_level = true                 # placed by _sync_camera (interpolated position, live look)
 	camera.current = true

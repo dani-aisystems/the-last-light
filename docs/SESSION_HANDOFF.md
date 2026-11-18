@@ -9,12 +9,17 @@
   - capture states `storm_<pct>`, `far_ships`, `ext_b<deg>`, `shipseq`, the `fp_bino` bench shot, and `<capture>_cams.json`;
   - the before-set: horizon step 10 to 52/255, always at the far-plane clip; the vessels pop both ways;
   - suites all green; the `sim_v2` reference is `renders/last_light/stageM/m0_sim_v2_seeds_1_5.json`.
-- **M1 is next.** `scripts/fp/sea_mesh.gd` (the radial mesh) is written and checked headless, but not wired in yet.
+- **M1 done 2026-11-18** (J.2):
+  - the radial sea (`sea_mesh.gd`) to 6 km, with no skirt;
+  - the per-wave distance fade (`OceanWaves.FADE` / `wave_gain`);
+  - far planes 6500 m; bolt foot −2.2; `--sea=legacy` for A/B;
+  - regress R28; all suites green; `sim_v2` identical.
+  - H1 still fails until M2. **M2 (one atmosphere) is next.**
 - **Gotchas:**
   - the windows only see bearings −51° to +51°;
   - capture ships beyond 310 m need `far_ships`;
   - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off.
-- **For the Stage E merge:** if M1 adds a per-wave distance fade, `ship_view2.surface_ys()` and `wake.gdshader` must mirror it (written up in section J when it lands).
+- **For the Stage E merge:** `ship_view2.surface_ys()` (both loops) and `wake.gdshader`'s `gerstner()` must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = |rest position| (record J.2).
 
 ## LATEST (2026-11-17, latest): audit Stage C (narrative) done, merged locally; next is Stage R (Ross)
 - **Record:** `projects/games/last_light/SCRIPT_REVISION_2026-11.md`. It is the approved script; section 15 records how it was built and verified. Decisions are DECISIONS Q20.

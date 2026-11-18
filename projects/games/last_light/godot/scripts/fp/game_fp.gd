@@ -92,7 +92,7 @@ func start(seed_value: int, mode := "", attract_mode := false, story := false, s
 	if attract:
 		cine_cam = Camera3D.new()
 		cine_cam.fov = CINE_FOV
-		cine_cam.far = 2000.0
+		cine_cam.far = 2000.0 if String(GameState.user_args.get("sea", "")) == "legacy" else preload("res://scripts/fp/sea_mesh.gd").FAR
 		add_child(cine_cam)
 		cine_cam.current = true
 		_cine_t = float(GameState.user_args.get("cine_t", "0"))   # G6d captures: a fixed point on the orbit

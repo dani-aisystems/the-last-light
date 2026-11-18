@@ -7,6 +7,10 @@ render_mode cull_back, specular_schlick_ggx;
 uniform float storm = 0.5;
 uniform float time_s = 0.0;
 uniform vec4 waves[6];          // dir.x, dir.y, steepness, wavelength
+// Stage M (M1): wave i is at full height inside wave_fade[i].x metres from the tower and gone beyond .y
+// (OceanWaves.FADE; scripts/fp/sea_mesh.gd's cells get too coarse for it out there). Every CPU mirror of
+// this surface applies the same gain: OceanWaves.height_at, ship_view2, wake.gdshader.
+uniform vec2 wave_fade[6];
 uniform vec3 deep_color : source_color = vec3(0.012, 0.03, 0.045);
 uniform vec3 shallow_color : source_color = vec3(0.03, 0.075, 0.085);
 uniform vec3 foam_color : source_color = vec3(0.62, 0.66, 0.68);
@@ -38,11 +42,14 @@ void vertex() {
 	vec3 binormal = vec3(0.0, 0.0, 1.0);
 	float amp = mix(0.35, 1.0, storm);
 	vec3 disp = vec3(0.0);
+	float r = length(p.xz);         // the rest position's distance from the tower
 	for (int i = 0; i < 6; i++) {
-		disp += gerstner(waves[i], p, amp, tangent, binormal);
+		float gain = 1.0 - smoothstep(wave_fade[i].x, wave_fade[i].y, r);
+		if (gain > 0.0) {
+			disp += gerstner(waves[i], p, amp * gain, tangent, binormal);
+		}
 	}
 	// calm the water inside the lagoon / near the island so it doesn't swallow the shore
-	float r = length(p.xz);
 	float calm = smoothstep(15.0, 45.0, r);
 	disp *= mix(0.35, 1.0, calm);
 	VERTEX += disp;

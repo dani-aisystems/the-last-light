@@ -31,6 +31,9 @@ extends SceneTree
 ##  R27 audit Stage P (C11): sitting down and standing up at the radio never put the body in front of the
 ##      camera (stepped at 30, 60 and 120 fps; reversals mid-blend; after a document and a radio line; the
 ##      console switch; a load while seated)
+##  R28 audit Stage M (M1): one sea. Shader and CPU waves from one table (with the distance fade), the radial
+##      mesh closed, upward and inside budget on every preset, the far plane past the rim, the bolt foot under
+##      the faded sea
 ##   godot --path godot -s res://tests/regress_test.gd            (windowed: all checks)
 ##   godot --headless --path godot -s res://tests/regress_test.gd (R1 mouse checks SKIPPED: the headless
 ##                                                                  display server ignores mouse modes)
@@ -120,6 +123,7 @@ func _run() -> void:
 	await _r25_no_skip()
 	await _r26_stair_door()
 	await _r27_sit_glimpse()
+	await _r28_one_sea()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -3240,3 +3244,104 @@ func _r27_grips() -> void:
 	eq.hold_raise = -1.0
 	pl.give_torch(false)
 	print("R27 grips written to ", dir, " (", written, ")")
+
+
+## R28 audit Stage M (M1): one sea. The ocean material's wave and fade uniforms come from OceanWaves (one
+## source), and OceanWaves.height_at equals the shader's per-vertex code (transliterated below) from the tower
+## to the rim. The radial mesh is one crack-free, upward-facing disc inside its triangle budget on all three
+## presets, and keeps every wave at >= 2.5 vertices per wavelength on Medium wherever it is not faded out. The
+## camera reaches past the rim, and the lightning bolt's foot stays under the faded sea. (Headless runs cannot
+## read the GPU: the visual half is the Stage M capture set.)
+func _r28_one_sea() -> void:
+	print("R28 one sea (audit Stage M, M1)")
+	var SM = load("res://scripts/fp/sea_mesh.gd")
+	var om: ShaderMaterial = g.outside.ocean_mat
+	var wf = om.get_shader_parameter("wave_fade")
+	var fade_ok: bool = wf is PackedVector2Array and wf.size() == OceanWaves.FADE.size()
+	if fade_ok:
+		for i in wf.size():
+			fade_ok = fade_ok and wf[i] == OceanWaves.FADE[i]
+	_check(fade_ok, "the ocean shader's wave_fade is OceanWaves.FADE (%s)" % [wf])
+	_check(om.get_shader_parameter("waves") == OceanWaves.shader_array(), "the ocean shader's waves are OceanWaves.WAVES")
+	var src: String = om.shader.code
+	_check(src.contains("smoothstep(wave_fade[i].x, wave_fade[i].y, r)") and src.contains("smoothstep(15.0, 45.0, r)"),
+		"ocean.gdshader carries the distance fade and the calming that OceanWaves mirrors")
+	var worst := 0.0
+	for r in [0.0, 20.0, 60.0, 120.0, 140.0, 200.0, 300.0, 420.0, 500.0, 800.0, 900.0, 1500.0, 6000.0]:
+		for ang in [0.0, 1.3, 2.9, 4.4]:
+			var p: Vector2 = Vector2(sin(ang), -cos(ang)) * float(r)
+			for st in [0.12, 0.7, 1.0]:
+				worst = maxf(worst, absf(OceanWaves.height_at(p, 37.5, st) - _r28_shader_height(p, 37.5, st, wf)))
+	_check(worst < 1e-4, "OceanWaves.height_at equals the shader's vertex displacement, 0 to 6000 m (worst %.6f m)" % worst)
+	_check(absf(OceanWaves.height_at(Vector2(300.0, -1000.0), 12.0, 1.0)) < 1e-9, "beyond the swell's fade the sea is flat")
+	# the mesh: budget, every triangle up, a closed disc (every edge shared twice except the rim), wave sampling
+	var budget := [130000, 240000, 420000]
+	for q in 3:
+		var mul: float = SM.CELL_MUL[q]
+		_check(SM.triangle_count(mul) <= budget[q], "sea mesh preset %d: %d triangles <= %d" % [q, SM.triangle_count(mul), budget[q]])
+		var rs: Array = SM.rings(mul)
+		var steps_ok := true
+		for j in rs.size() - 1:
+			var ratio: float = rs[j + 1].y / rs[j].y
+			steps_ok = steps_ok and (ratio == 1.0 or ratio == 2.0 or ratio == 0.5)
+		_check(steps_ok and rs[-1].x == SM.RIM, "sea mesh preset %d: rings to the %.0f m rim, segment counts change by 2x at most" % [q, SM.RIM])
+		var min_s := 99.0
+		for i in OceanWaves.WAVES.size():
+			var lam: float = OceanWaves.WAVES[i].w
+			for ring in rs:
+				if OceanWaves.wave_gain(i, ring.x) > 0.0:
+					min_s = minf(min_s, lam / maxf(TAU * ring.x / ring.y, SM.cell(ring.x, mul)))
+		var need: float = [1.45, 2.5, 2.9][q]
+		_check(min_s >= need, "sea mesh preset %d: every wave keeps >= %.2f vertices per wavelength where it is not faded (%.2f)" % [q, need, min_s])
+	var mesh: ArrayMesh = SM.build(1.0)
+	var arr := mesh.surface_get_arrays(0)
+	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+	var down := 0
+	var edges := {}
+	for k in range(0, idx.size(), 3):
+		if (v[idx[k + 1]] - v[idx[k]]).cross(v[idx[k + 2]] - v[idx[k]]).y >= 0.0:
+			down += 1
+		for e in [Vector2i(idx[k], idx[k + 1]), Vector2i(idx[k + 1], idx[k + 2]), Vector2i(idx[k + 2], idx[k])]:
+			var key := Vector2i(mini(e.x, e.y), maxi(e.x, e.y))
+			edges[key] = edges.get(key, 0) + 1
+	var once := 0
+	var over := 0
+	for key in edges:
+		if edges[key] == 1:
+			once += 1
+		elif edges[key] > 2:
+			over += 1
+	var rim_n := int(SM.rings(1.0)[-1].y)
+	_check(down == 0, "sea mesh: every triangle faces up (%d do not)" % down)
+	_check(once == rim_n and over == 0 and v.size() - edges.size() + idx.size() / 3 == 1,
+		"sea mesh: one closed disc, open only at the rim (boundary edges %d, rim %d, overused %d)" % [once, rim_n, over])
+	var q_now := int(root.get_node("Settings").v["quality"])
+	var live: Mesh = g.outside.sea.mesh if g.outside.sea else null
+	_check(live is ArrayMesh and (live as ArrayMesh).surface_get_array_index_len(0) / 3 == SM.triangle_count(SM.CELL_MUL[q_now]),
+		"the game's sea is the radial mesh for its quality preset")
+	_check(is_equal_approx(g.player.camera.far, SM.FAR) and SM.FAR > SM.RIM, "the player camera sees past the rim (far %.0f m)" % g.player.camera.far)
+	# the bolt foot (y BOLT_FOOT_Y) must stay under the sea at strike distances (400 to 900 m) in a full storm
+	var deepest := 0.0
+	for i in OceanWaves.WAVES.size():
+		var w: Vector4 = OceanWaves.WAVES[i]
+		deepest += w.z * OceanWaves.amp_mul(1.0) / (TAU / w.w) * OceanWaves.wave_gain(i, 400.0)
+	_check(g.outside.BOLT_FOOT_Y < -deepest - 0.2, "the bolt foot (%.1f m) is under the deepest trough at 400 m (-%.2f m)" % [g.outside.BOLT_FOOT_Y, deepest])
+
+
+## ocean.gdshader's vertex() height, written out again here: the Gerstner y term per wave, its steepness
+## scaled by the storm and by the distance fade, then the lagoon calming.
+func _r28_shader_height(p: Vector2, t: float, storm: float, wf: PackedVector2Array) -> float:
+	var amp := lerpf(0.35, 1.0, storm)
+	var r := p.length()
+	var y := 0.0
+	for i in 6:
+		var w: Vector4 = OceanWaves.WAVES[i]
+		var gain := 1.0 - smoothstep(wf[i].x, wf[i].y, r)
+		if gain > 0.0:
+			var steep := w.z * amp * gain
+			var k := TAU / w.w
+			var c := sqrt(9.8 / k)
+			var d := Vector2(w.x, w.y).normalized()
+			y += steep / k * sin(k * (d.dot(p) - c * t))
+	return y * lerpf(0.35, 1.0, smoothstep(15.0, 45.0, r))

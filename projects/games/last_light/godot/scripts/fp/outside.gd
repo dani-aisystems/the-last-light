@@ -3,6 +3,11 @@ extends Node3D
 ## exterior and its beam, rain, lightning, ships, and the dawn at the end. Driven by KeeperSim state.
 
 const SHIP_VIEW := preload("res://scripts/fp/ship_view2.gd")
+const SEA_MESH := preload("res://scripts/fp/sea_mesh.gd")
+## Stage M (M1): the bolt's foot. The far skirt (y -0.6) used to cover a foot at -1.5; with one sea, the foot
+## must be under the deepest trough at strike range (400 m, full storm: -1.84 m with the faded wave set). The
+## strip's width reaches about 0.5 m lower, and g5_weather_audio_test wants the bolt's lowest vertex above -3.
+const BOLT_FOOT_Y := -2.2
 const LANTERN_Y := 24.8
 ## Render layer 2 = the watch-room interior (station.gd LAYER_INTERIOR). Exterior lights skip it:
 ## the room is lit only by its own lamps and by what comes in through the windows.
@@ -12,6 +17,7 @@ var sim: KeeperSim
 var env: Environment
 var sky_mat: ShaderMaterial
 var ocean_mat: ShaderMaterial
+var sea: MeshInstance3D                  # Stage M: the ocean surface (radial, or the legacy square)
 var beam_mat: ShaderMaterial
 var moon: DirectionalLight3D
 var bolt_light: DirectionalLight3D
@@ -133,7 +139,7 @@ func _strike_bolt(e: Dictionary) -> void:
 	var side := Vector3(-out.z, 0.0, out.x)
 	var cam_node := get_viewport().get_camera_3d() if is_inside_tree() else null
 	var cam := cam_node.global_position if cam_node else Vector3(0, 21.0, 0)
-	var foot := out * d + Vector3(0, -1.5, 0)          # ends just under the sea surface (far skirt y -0.6)
+	var foot := out * d + Vector3(0, BOLT_FOOT_Y, 0)   # ends under the sea surface (depth-tested: the water hides it)
 	var top := out * d + side * _bolt_rng.randf_range(-60.0, 60.0) + Vector3(0, _bolt_rng.randf_range(260.0, 360.0), 0)
 	var w := d * 0.007                                  # about 3-6 px wide on Medium's render scale
 	var st := {"v": PackedVector3Array(), "uv": PackedVector2Array(), "c": PackedColorArray(), "i": PackedInt32Array()}
@@ -302,15 +308,29 @@ func _environment() -> void:
 
 
 func _ocean() -> void:
+	# Stage M (M1): one radial sea out to a 6 km rim (sea_mesh.gd), the waves fading with distance
+	# (OceanWaves.FADE), no skirt. --sea=legacy keeps the 1100 m square, the skirt and no fade, for A/B.
+	var legacy := String(GameState.user_args.get("sea", "")) == "legacy"
+	OceanWaves.legacy = legacy
 	var mi := MeshInstance3D.new()
-	var pm := PlaneMesh.new()
-	pm.size = Vector2(1100, 1100)
-	pm.subdivide_width = 330
-	pm.subdivide_depth = 330
-	mi.mesh = pm
+	sea = mi
+	if legacy:
+		var pm := PlaneMesh.new()
+		pm.size = Vector2(1100, 1100)
+		pm.subdivide_width = 330
+		pm.subdivide_depth = 330
+		mi.mesh = pm
+	else:
+		var t0 := Time.get_ticks_usec()
+		mi.mesh = SEA_MESH.build(SEA_MESH.CELL_MUL[clampi(int(Settings.v["quality"]), 0, 2)])
+		var rim: float = SEA_MESH.RIM
+		mi.custom_aabb = AABB(Vector3(-rim, -8.0, -rim), Vector3(2.0 * rim, 16.0, 2.0 * rim))   # displaced in the shader
+		print("SEA radial: %d triangles, built in %.0f ms" % [(mi.mesh as ArrayMesh).surface_get_array_index_len(0) / 3,
+			(Time.get_ticks_usec() - t0) / 1000.0])
 	ocean_mat = ShaderMaterial.new()
 	ocean_mat.shader = load("res://shaders/ocean.gdshader")
 	ocean_mat.set_shader_parameter("waves", OceanWaves.shader_array())
+	ocean_mat.set_shader_parameter("wave_fade", OceanWaves.shader_fade_array())
 	ocean_mat.set_shader_parameter("detail_a", _noise(512, 0.03, true))
 	ocean_mat.set_shader_parameter("detail_b", _noise(512, 0.06, true))
 	ocean_mat.set_shader_parameter("foam_noise", _noise(256, 0.05, false))
@@ -319,7 +339,9 @@ func _ocean() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visible = not GameState.user_args.has("noocean")
 	add_child(mi)
-	# far skirt so the horizon never shows the edge
+	if not legacy:
+		return
+	# far skirt so the horizon never shows the edge (legacy sea only)
 	var far := MeshInstance3D.new()
 	var fm := PlaneMesh.new()
 	fm.size = Vector2(6000, 6000)

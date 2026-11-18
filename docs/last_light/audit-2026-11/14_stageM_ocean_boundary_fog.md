@@ -335,6 +335,57 @@ The stage is marked complete only after the after-set has been viewed and Daniel
 
 M6 must reproduce `sim_v2` exactly.
 
+### J.2 M1 one sea (2026-11-18)
+
+**Built:**
+- **New `scripts/fp/sea_mesh.gd`** (`preload` only, no `class_name`):
+  - one radial `ArrayMesh`, a centre fan, then rings to a 6000 m rim;
+  - cells 1.4 m to 120 m, then growing 0.02 m per metre (3.6 m at 230 m, 19 m at 1 km, 119 m at the rim);
+  - power-of-two segment counts, with stitch strips where they double or halve (no T-junctions);
+  - cell scale 1.4 / 1.0 / 0.8 for Low / Medium / High: 108k / 203k / 357k triangles (the old square: 218k), built in about 160 ms on Medium at game start.
+- **`OceanWaves`:**
+  - new `FADE` table, `wave_gain(i, r)`, `calm(r)`, `shader_fade_array()`, and the static `legacy` flag;
+  - `height_at` scales each wave by its gain at the rest position's distance from the tower.
+- **`ocean.gdshader`:** `uniform vec2 wave_fade[6]`; each Gerstner term's steepness is multiplied by `1 - smoothstep(fade.x, fade.y, r)`, so displacement and normal fade together.
+- **`outside.gd` `_ocean()`:** the radial mesh with a custom AABB; no skirt. `--sea=legacy` keeps the 1100 m square, the skirt and no fade.
+- **Bolt foot:** `BOLT_FOOT_Y` −1.5 → **−2.2**. The skirt used to hide the foot; the deepest full-storm trough at 400 m is now −1.84 m. G5's test wants the strip's lowest vertex above −3, and the strip reaches about 0.5 m below the foot.
+- **Far planes** 1200 / 2000 → **6500 m**: `player.gd` (the binoculars too), `game_fp.gd` cine camera, `capture_fp.gd`. Legacy keeps the old values.
+
+**The wave fade** (gain 1 inside x, 0 beyond y, metres from the tower). It was derived from the mesh's real cell size, the larger of ring step and arc:
+
+| λ (m) | 60 | 34 | 21 | 13 | 8 | 5.3 |
+|---|---|---|---|---|---|---|
+| fade | 800–980 | 460–550 | 300–380 | 210–265 | 150–185 | 110–145 |
+
+- Vertices per wavelength wherever a wave is not zero (R28):
+  - Medium ≥ 2.53;
+  - High ≥ 3.00;
+  - Low ≥ 1.49, the 5.3 m chop on the innermost arcs under the island's calming. The old square had 1.6 everywhere for that wave.
+- At 230 m (spawns), the 5.3 m and 8 m waves are gone and the 13 m wave is fading. The surface there is the 60, 34 and 21 m swells.
+
+**For Stage E (merge of `stage-e2`):** every CPU or GPU mirror of the sea must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = the rest position's distance from the tower, inside the calming:
+- `ship_view2.surface_ys()`: in both the horizontal fixed-point loop and the height sum, multiply each wave's `wc[o + 4] * amp` by the gain at `q.length()`;
+- `wake.gdshader`'s copy of `gerstner()`: take `wave_fade` like `ocean.gdshader` (outside.gd passes `OceanWaves.shader_fade_array()`).
+
+The wave set, the calming and the mesh displacement are otherwise unchanged.
+
+**Results:**
+- **R28** (19 checks; regress 468 / 468):
+  - the uniforms come from `OceanWaves`;
+  - the CPU height equals the shader's vertex code from 0 to 6000 m (worst 0.000000 m);
+  - the mesh is closed and faces up on all presets, inside budget;
+  - the far plane is 6500 m;
+  - the bolt foot is under the trough.
+- **Suites:** story, run_tests, opening, interaction 164, qa_sweep 7,703, g5 50 / 50 (after the foot moved to −2.2), save_compat 305, pytest all pass. **`sim_v2` seeds 1 to 5 are identical to M0.**
+- **Captures `m1h_*`, `m1c_*`, `m1L_*`** (sheets `stageM/m1_sheet_*.png`, viewed):
+  - the M2 underlay patches are gone at every bearing;
+  - the pale 550 m seam through the binoculars at dawn is gone;
+  - ships at 750 and 1000 m now sit below the horizon, in the sea's haze, not against the sky;
+  - interior close-ups at a 6.5 km far plane show no z-fighting;
+  - `--sea=legacy` reproduces the old look.
+- **H1 is still FAIL, as expected before M2.** The step moved from the clip (−0.63° to −1.07°) to the 6 km rim (−0.17° to −0.24°): `ext_b` at storm 0.12 is 31 to 44 (M0: 45 to 52). The far sea and the sky still disagree in colour, and the sky is still drawn below the rim. Both are M2.
+- **Open:** `ext_far!storm_12` (52.9 at −0.86°) and `ext_b045` (43.7 at −0.63°) still step at about 2000 m. Their far plane was 6500 m (camera sidecar), so it is not a clip. To be traced at the start of M2.
+
 **Decisions for Daniel** (answers in DECISIONS Q22: 1 yes; 2 keep; 3 build and judge on captures; 4 open until M5; 5 in M4; 6 paired bench at M6):
 1. Stage M takes M2, M4 and the horizon blend from Stage E and runs before it (recommended), or folds into E.
 2. Fog density: keep today's visibility (0.6 to 1.3 km, recommended; the fix is geometry and colour), or make it thicker or thinner.

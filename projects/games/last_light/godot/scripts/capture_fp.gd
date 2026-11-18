@@ -722,7 +722,7 @@ func _place(g, vname: String) -> void:
 func _body_3p(g) -> void:
 	if cam == null:
 		cam = Camera3D.new()
-		cam.far = 2000.0
+		cam.far = 2000.0 if String(GameState.user_args.get("sea", "")) == "legacy" else preload("res://scripts/fp/sea_mesh.gd").FAR   # Stage M
 		add_child(cam)
 	await _frames(30)
 	var pb: Node3D = g.player.body
@@ -750,7 +750,7 @@ func _body_3p(g) -> void:
 func _place_view(g, v: Array) -> void:
 	if cam == null:
 		cam = Camera3D.new()
-		cam.far = 2000.0
+		cam.far = 2000.0 if String(GameState.user_args.get("sea", "")) == "legacy" else preload("res://scripts/fp/sea_mesh.gd").FAR   # Stage M
 		add_child(cam)
 	cam.near = v[4]
 	cam.global_position = v[0]
