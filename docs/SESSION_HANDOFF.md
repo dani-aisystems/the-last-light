@@ -1,5 +1,27 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## NEW (2026-11-18): audit Stage R (Ross) finalized and committed locally (part 2: Ross in the game; DECISIONS Q24)
+- **Record:** `docs/last_light/audit-2026-11/17_stageR_evidence.md`, sections 7 to 12. Daniel said "You determine" on the stills, then sent the full upgrade brief.
+- **Claude's call:** the v009 figure was not yet a man up close (a latex gown: a bust, muscle sleeves, a grin at B, a torn cuff at A). It is now fixed, in figure v012, actions v017, `ross_v006.glb`.
+- **Before and after:** `renders/last_light/stageR/stageR_before_after_stills.png` (Blender, game lights); `stageR_godot_before_after.png` and `r1_dark_dawn.png` (in Godot).
+- **Godot:** `visitor_figure.gd` rewritten, its contract with `game_fp` unchanged. It loads `ross.glb` and stages him from the story state:
+  - he walks in after the door swings (A to B), hand on the jamb;
+  - to the wheel on `ross_wheel` (D);
+  - behind the chair from the `rescue` beat through the dawn (C);
+  - a loaded save puts him straight on his mark; a black fade hides a move.
+- **Test:** new `tests/ross_test.gd`, 35/35. All suites pass except `portrait_test` (3, the other session's untracked file, Mary Ellen speaker).
+- **Workflow:** Blender only. No Meshy, AI images or Mixamo: CLAUDE.md, Q11, and they need logins and uploads. No downloads.
+- **Not touched:** `game_fp.gd`, `capture_fp.gd`, `.dlg`, `chapters.json`, the Stage M files and lines.
+- **Later ("Continue"):** new `tests/ross_shots.gd` (windowed, silent, the real game) shows the walk-in and the ch6 moves in-game (`renders/last_light/stageR/r5_entrance.png`, `r5_ch6.png`). Fixed what close-ups showed:
+  - plastic-looking wet shoulders: Godot clear coat [0.6, 0.6], normal scale 1.6, bake wet roughness −0.18;
+  - a smooth young jaw: the stubble also baked into the skin albedo.
+- **Final assets:** figure v020, actions v021, `ross_v008.glb`. The seated-view finding is withdrawn: the radio is focus mode, where look is locked.
+- **Later still:** he turns his head toward the keeper (`HeadTurn`, a skeleton modifier: within 3.5 m, in front of him, 35 degrees at most, yaw only so the brim stays down); `ross_test` 42/42; seen in-game (`stageR/r6_head.png`).
+- **Open:**
+  - the Ross light layer (not needed in the captures so far);
+  - deleting the superseded Ross `.blend` versions (v010, v011, v013 to v016, v018, v019), on Daniel's OK;
+  - the next Stage R steps, if wanted: a capture state in `capture_fp.gd` for the entrance and the ch6 marks (a stair-climb into A; the mug at E).
+
 ## LATEST (2026-11-18): audit Stage M (ocean boundary and fog) approved, in progress at M0
 - **Record:** `docs/last_light/audit-2026-11/14_stageM_ocean_boundary_fog.md` (plan in sections D to J; progress in J). Decisions: DECISIONS Q22. Session plan: `~/.claude/plans/pasted-content-id-b67c-continue-the-soft-glacier.md`.
 - **Daniel:** approved 2026-11-17 (M0 to M6, before the rest of Stage E). 2026-11-18: keep today's fog density; build the loom and judge it on captures; vessel fades in M4; a paired bench at M6 only (`--sea=legacy` against the new sea, on a quiet Mac when he says so). **M5 scud is still his call** (ask at M5).
@@ -34,6 +56,26 @@
   - capture ships beyond 310 m need `far_ships`;
   - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off.
 - **For the Stage E merge:** `ship_view2.surface_ys()` (both loops) and `wake.gdshader`'s `gerstner()` must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = |rest position| (record J.2).
+
+## NEW (2026-11-17): audit Stage R, part 1 (Ross: marks, figure, three lit stills); Daniel delegated the judgement, see part 2 above
+- **Record:** `docs/last_light/audit-2026-11/17_stageR_evidence.md` (17, since 16 is Stage E's). Plan: `~/.claude/plans/pasted-content-id-4bbf-continue-the-scalable-patterson.md`.
+- **For Daniel:** `renders/last_light/stageR/stageR_checkpoint_sheet.png` (the game's figure today, then A, B, C) and `stageR_checkpoint_crops.png`. Does he read as a man? Claude: A and C yes; B weakest (lip and stubble under the brim; the coat's chest).
+- **Built:** new `blender/ross.py` (modes: `--marks`, the figure build, `--calibrate`, `--stills`, `--sweep`); `spec.py` `ross_marks` (A to E, all PASS); figure `last_light_ross_v009.blend`: 20,909 triangles, 2 materials, one 2k set (`blender/textures/ross/`), 49 bones (`body.py`'s rig plus `hands.py`'s fingers); export `exports/last_light/gltf/ross_v001.glb` (validate FAIL 0, reimport ok), not synced.
+- **Findings for the Godot session:**
+  - the storyboard's light at A (pendant rim, lamp 2 key) is impossible with the game's lights: Ross on his own light layer is the proposal;
+  - seated at the radio, the player sees under the brim at C;
+  - B's boots cover the slid photograph's spot (R-14 path);
+  - D: the console stool stands in front of the 0.5 m handwheel;
+  - B 6.3's "lights sag" during the lock is not in `station.gd`.
+- **Proposed fixes before animation:** B's lip region, the coat chest, the cuffs weighted to the hand (section 5 of the record).
+- **Gotchas:**
+  - parented objects from `libraries.load` need `view_layer.update()` before reading `matrix_world`;
+  - Godot light colours are sRGB (linearise them in Blender);
+  - EEVEE lets lamp globes shadow their own bulb;
+  - Blender's lights fall off as 1/d² (Godot d^-1.2), so the lamps and the door fill need separate factors (`ross.py` `CAL`);
+  - tell arm from hip by the rig's weights, not by distance;
+  - the machine was heavily loaded: EEVEE stills took up to 80 min a set.
+- **Not touched:** `godot/`, `.dlg`, `chapters.json`, `CLAUDE.md`, `.claude/settings.json`, `ROADMAP.md`, the Stage M lines, `capture_fp.gd`.
 
 ## LATEST (2026-11-17, latest): audit Stage C (narrative) done, merged locally; next is Stage R (Ross)
 - **Record:** `projects/games/last_light/SCRIPT_REVISION_2026-11.md`. It is the approved script; section 15 records how it was built and verified. Decisions are DECISIONS Q20.

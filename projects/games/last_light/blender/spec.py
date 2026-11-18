@@ -153,4 +153,36 @@ SPEC = {
         "mug_v": {"rim_v0": 0.70, "rim_v1": 0.85, "inner_top": 0.86, "inner_bottom": 0.97,
                   "inner_z": [0.079, 0.006], "tide_z": [0.072, 0.060, 0.046]},
     },
+
+    # ---------------- audit Stage R (2026-11-17): Ross's staging marks (Addendum B 20.4) ----------------
+    # Room polar coordinates like the device bearings above: pos = feet centre [bearing deg, dist from the room
+    # centre m]; face = the compass bearing he faces; hand = the hand's target [bearing, dist, z above the
+    # floor] and which hand; view = where the checkpoint camera stands [bearing, dist] (eye 1.65 m).
+    # Verified by ross.py --marks against the built room with the door open (renders/last_light/stageR/marks).
+    # godot/scripts/fp/visitor_figure.gd MARKS mirrors A to D (the held poses in ross.glb are solved at these marks).
+    "ross_marks": {
+        # landing (chequer plate, 6 mm proud): 0.365 m clear between the housing's side plate and the hatch coaming,
+        # so he fills it: right side against the side plate, coat against the drop chain on the hatch side (designed
+        # contacts), upper body swayed 9 cm left over the newel his left hand rests on; turned 5 deg toward the latch
+        # side, where the player stands aside
+        "A": {"pos": [160.7, 2.878, 0.006], "face": 345.0, "sway": 0.09, "hand": [164.77, 2.635, 1.02], "hand_side": "L",
+              "contacts": ["SM_Stair_SteelPaint", "SM_Well_Iron"], "view": [187.24, 1.518]},
+        # 0.6 m inside the door plane (his toes; feet centre 0.45 m: at 0.6 m the jamb was 0.6 m behind his
+        # shoulders and the arm could not reach it), left hand resting on the latch-side jamb trim at hip height
+        # His boots stand where the slid 1953 photograph lies on the door-shut path (PROP_photo53door): hidden on
+        # this path (game_fp._update_story_props), but shown if the door is opened only in ch6 (R-14) after the slide
+        "B": {"pos": [176.74, 2.129], "face": 330.0, "hand": [182.4, 2.585, 1.05], "hand_side": "L",
+              "contacts": ["PROP_photo53door"], "view": [223.75, 0.93]},
+        # behind the desk chair (room side), right hand on its top rail
+        "C": {"pos": [0.0, 1.16], "face": 0.0, "hand": [7.42, 1.548, 0.94], "hand_side": "R",
+              "view": [67.83, 1.458]},
+        # at the console's manual handwheel (centre 0.5 m up, axis east-west), right hand on the rim. The console
+        # stool (0.64 m high, x 1.43-1.82, y 0.67-1.04) stands in front of the wheel, so he is beside it, bending
+        # (sitting on it is the clip session's choice)
+        "D": {"pos": [76.91, 1.766], "face": 60.0, "hand": [72.78, 2.094, 0.70], "hand_side": "R", "lean": 42.0,
+              "view": [296.57, 0.447]},
+        # by the desk, east of the chair: the mug set down on bare desk (top 0.78 m)
+        "E": {"pos": [17.64, 2.046], "face": 0.0, "hand": [15.4, 2.334, 0.80], "hand_side": "R", "lean": 25.0,
+              "view": [330.95, 1.03]},
+    },
 }
