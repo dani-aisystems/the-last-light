@@ -14,7 +14,14 @@
   - the per-wave distance fade (`OceanWaves.FADE` / `wave_gain`);
   - far planes 6500 m; bolt foot −2.2; `--sea=legacy` for A/B;
   - regress R28; all suites green; `sim_v2` identical.
-  - H1 still fails until M2. **M2 (one atmosphere) is next.**
+  - H1 still fails until M2.
+- **M2 done 2026-11-18** (J.3; DECISIONS Q23, Daniel: "A + bring the clouds back"):
+  - `scripts/fp/atmosphere.gd`: the fog colour and the sky's `murk` are one colour, flash included;
+  - the fog bank in `sky.gdshader`; no height veil; no aerial perspective;
+  - volumetric sky affect 1.0, with `sky_gain` restoring the cloud deck;
+  - H1 0.3 to 3.4 on all presets; regress R29; all suites green; `sim_v2` identical.
+  - `--volsky=` gives the A/B. **M3 (the loom) is next.**
+  - `qa_sweep` took 62 min under load 13 (a Codex renderer at 97 % CPU); the clean figure is 105 s.
 - **Gotchas:**
   - the windows only see bearings −51° to +51°;
   - capture ships beyond 310 m need `far_ships`;

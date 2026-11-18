@@ -4,6 +4,7 @@ extends Node3D
 
 const SHIP_VIEW := preload("res://scripts/fp/ship_view2.gd")
 const SEA_MESH := preload("res://scripts/fp/sea_mesh.gd")
+const ATMOS := preload("res://scripts/fp/atmosphere.gd")
 ## Stage M (M1): the bolt's foot. The far skirt (y -0.6) used to cover a foot at -1.5; with one sea, the foot
 ## must be under the deepest trough at strike range (400 m, full storm: -1.84 m with the faded wave set). The
 ## strip's width reaches about 0.5 m lower, and g5_weather_audio_test wants the bolt's lowest vertex above -3.
@@ -18,6 +19,7 @@ var env: Environment
 var sky_mat: ShaderMaterial
 var ocean_mat: ShaderMaterial
 var sea: MeshInstance3D                  # Stage M: the ocean surface (radial, or the legacy square)
+var sea_legacy := false                  # Stage M: --sea=legacy (the old square sea, fog and sky, for A/B)
 var beam_mat: ShaderMaterial
 var moon: DirectionalLight3D
 var bolt_light: DirectionalLight3D
@@ -274,6 +276,19 @@ func _environment() -> void:
 	env.volumetric_fog_length = 180.0
 	env.volumetric_fog_detail_spread = 2.0
 	env.volumetric_fog_sky_affect = 0.4
+	sea_legacy = String(GameState.user_args.get("sea", "")) == "legacy"
+	if not sea_legacy:
+		# Stage M (M2): no flat height-fog veil (it put 45 % on every sea pixel, near or far); the depth fog and
+		# the sky's bank share one colour (atmosphere.gd), so aerial perspective (the radiance map) is not used
+		env.fog_height_density = 0.0
+		env.fog_aerial_perspective = 0.0
+		# the volumetric fog lays its last froxel slice (180 m of it) over every pixel beyond, sea and sky alike,
+		# but only sky_affect of it over the sky: at 0.4 the far sea came out 7 to 14 / 255 darker than the sky
+		# at the rim on Medium (Low, without volumetrics, matched to 1 / 255). 1.0 treats both the same.
+		env.volumetric_fog_sky_affect = float(GameState.user_args.get("volsky", "1.0"))   # --volsky: A/B for Daniel
+		sky_mat.set_shader_parameter("bank", 1.0)
+	else:
+		sky_mat.set_shader_parameter("bank", 0.0)
 	env.adjustment_enabled = true
 	env.adjustment_saturation = 0.88
 	# perf bisect flags: --novolfog --nossao --nossil --halfao --norain --noglow --noshadows
@@ -1131,8 +1146,15 @@ func _process_body(delta: float) -> void:
 	beam_mat.set_shader_parameter("time_s", _t)
 	env.tonemap_exposure = 1.35 * float(Settings.v["brightness"])
 	env.volumetric_fog_density = lerpf(0.006, 0.016, storm) * (1.0 - 0.7 * dawn) * (0.3 if attract else 1.0)
-	env.fog_density = lerpf(0.0025, 0.0065, storm) * (1.0 - 0.6 * dawn)
-	env.fog_light_color = Color(0.05, 0.065, 0.085).lerp(Color(0.45, 0.42, 0.42), dawn)
+	env.fog_density = ATMOS.fog_density(storm, dawn)
+	if sea_legacy:
+		env.fog_light_color = Color(0.05, 0.065, 0.085).lerp(Color(0.45, 0.42, 0.42), dawn)
+	else:                                       # Stage M (M2): the fog and the sky's bank share the murk
+		var murk := ATMOS.horizon_color(maxf(dawn, dusk * 0.55), f)
+		env.fog_light_color = murk
+		sky_mat.set_shader_parameter("murk", murk)
+		sky_mat.set_shader_parameter("sky_gain", ATMOS.sky_gain(env.volumetric_fog_density, env.volumetric_fog_enabled)
+			if env.volumetric_fog_sky_affect > 0.41 else 1.0)     # (--volsky=0.4, option B: the old share, no gain)
 	env.ambient_light_energy = 0.9 + 1.6 * dawn + 2.0 * f
 	moon.light_energy = 0.45 + 0.9 * dawn
 	moon.light_color = Color(0.55, 0.64, 0.82).lerp(Color(1.0, 0.8, 0.66), dawn)

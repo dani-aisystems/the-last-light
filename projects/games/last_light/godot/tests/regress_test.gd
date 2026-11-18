@@ -34,6 +34,8 @@ extends SceneTree
 ##  R28 audit Stage M (M1): one sea. Shader and CPU waves from one table (with the distance fade), the radial
 ##      mesh closed, upward and inside budget on every preset, the far plane past the rim, the bolt foot under
 ##      the faded sea
+##  R29 audit Stage M (M2): one atmosphere. The depth fog and the sky's bank take one colour (atmosphere.gd),
+##      lightning included; today's density; no flat height veil; the volumetric fog treats sky and sea alike
 ##   godot --path godot -s res://tests/regress_test.gd            (windowed: all checks)
 ##   godot --headless --path godot -s res://tests/regress_test.gd (R1 mouse checks SKIPPED: the headless
 ##                                                                  display server ignores mouse modes)
@@ -124,6 +126,7 @@ func _run() -> void:
 	await _r26_stair_door()
 	await _r27_sit_glimpse()
 	await _r28_one_sea()
+	await _r29_one_atmosphere()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -3345,3 +3348,42 @@ func _r28_shader_height(p: Vector2, t: float, storm: float, wf: PackedVector2Arr
 			var d := Vector2(w.x, w.y).normalized()
 			y += steep / k * sin(k * (d.dot(p) - c * t))
 	return y * lerpf(0.35, 1.0, smoothstep(15.0, 45.0, r))
+
+
+## R29 audit Stage M (M2): one atmosphere. The far sea and the sky at the horizon converge to one colour because
+## the depth fog's colour and the sky shader's murk come from Atmosphere.horizon_color in the same frame, with the
+## flash; the density is today's (Daniel's decision 2); the flat height veil is gone; aerial perspective (the
+## radiance map, which can lag a flash) is not used; the volumetric fog lays the same share over sky and sea.
+func _r29_one_atmosphere() -> void:
+	print("R29 one atmosphere (audit Stage M, M2)")
+	var AT = load("res://scripts/fp/atmosphere.gd")
+	var o = g.outside
+	var env: Environment = o.env
+	_check(not o.sea_legacy and float(o.sky_mat.get_shader_parameter("bank")) == 1.0, "the sky draws the fog bank (not the legacy sky)")
+	_check(env.fog_height_density == 0.0 and env.fog_aerial_perspective == 0.0,
+		"no flat height-fog veil, no aerial perspective (height %.3f, aerial %.2f)" % [env.fog_height_density, env.fog_aerial_perspective])
+	_check(is_equal_approx(env.volumetric_fog_sky_affect, 1.0), "the volumetric fog lays the same share over sky and sea (%.2f)" % env.volumetric_fog_sky_affect)
+	for case in [[0.12, 0.0], [0.55, 0.0], [1.0, 0.0], [0.25, 1.0]]:
+		_check(is_equal_approx(AT.fog_density(case[0], case[1]), lerpf(0.0025, 0.0065, case[0]) * (1.0 - 0.6 * case[1])),
+			"fog density at storm %.2f, dawn %.0f is today's (%.5f)" % [case[0], case[1], AT.fog_density(case[0], case[1])])
+	_check(absf(AT.visibility_m(1.0, 0.0) - 602.0) < 2.0 and absf(AT.visibility_m(0.25, 1.0) - 2794.0) < 5.0,
+		"visibility 0.6 km in a full gale, 2.8 km at dawn (%.0f, %.0f m)" % [AT.visibility_m(1.0, 0.0), AT.visibility_m(0.25, 1.0)])
+	var flash_was: float = o.flash
+	for fl in [0.0, 1.0]:
+		o.flash = fl
+		await _frames(2)
+		var want: Color = AT.horizon_color(maxf(o.dawn, o.dusk * 0.55), o.flash_now)
+		var murk: Color = o.sky_mat.get_shader_parameter("murk")
+		_check(env.fog_light_color.is_equal_approx(want) and murk.is_equal_approx(want),
+			"flash %.0f: the fog colour and the sky's murk are the same horizon colour (%s / %s / %s)" % [fl, env.fog_light_color, murk, want])
+	o.flash = flash_was
+	_check(AT.horizon_color(0.0, 1.0).r > AT.horizon_color(0.0, 0.0).r, "a flash lights the murk (the fog and the bank together)")
+	var src: String = o.sky_mat.shader.code
+	_check(src.contains("col = mix(col, murk, bank)") and src.contains("uniform vec3 murk"), "below the horizon the sky is exactly the murk")
+	# Daniel 2026-11-18 ("A + bring the clouds back"): the sky above the bank gets back the light the fuller
+	# volumetric cover takes (1 - 0.4 a over 1 - a); 1 without volumetric fog (Low)
+	var want_gain: float = AT.sky_gain(env.volumetric_fog_density, env.volumetric_fog_enabled)
+	_check(is_equal_approx(float(o.sky_mat.get_shader_parameter("sky_gain")), want_gain), "the cloud deck's gain is Atmosphere.sky_gain (%.2f)" % want_gain)
+	_check(AT.sky_gain(0.016, false) == 1.0 and AT.sky_gain(0.0, true) == 1.0 and AT.sky_gain(0.0072, true) > 1.5 and AT.sky_gain(0.0072, true) < 2.5,
+		"sky gain: 1 on Low and without fog, about 1.8 at the ch1 storm (%.2f)" % AT.sky_gain(0.0072, true))
+	_check(src.contains("col = mix(col * sky_gain, bank_col, b * bank)"), "the gain lifts only the sky above the bank (the horizon match holds)")

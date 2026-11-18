@@ -384,7 +384,67 @@ The wave set, the calming and the mesh displacement are otherwise unchanged.
   - interior close-ups at a 6.5 km far plane show no z-fighting;
   - `--sea=legacy` reproduces the old look.
 - **H1 is still FAIL, as expected before M2.** The step moved from the clip (−0.63° to −1.07°) to the 6 km rim (−0.17° to −0.24°): `ext_b` at storm 0.12 is 31 to 44 (M0: 45 to 52). The far sea and the sky still disagree in colour, and the sky is still drawn below the rim. Both are M2.
-- **Open:** `ext_far!storm_12` (52.9 at −0.86°) and `ext_b045` (43.7 at −0.63°) still step at about 2000 m. Their far plane was 6500 m (camera sidecar), so it is not a clip. To be traced at the start of M2.
+- **Corrected 2026-11-18 (start of M2):** the "about 2000 m" steps first listed here for `ext_far!storm_12` and `ext_b045` were a table bug: the comparison keyed files by name without their prefix, so the legacy A/B shots (`m1L_*`, which correctly show the old 2000 m clip: 52.9 and 43.7) overwrote the M1 rows. The M1 values are `ext_far` 35.6 at −0.27° and `ext_b045` 32.2 at −0.19°, both at the rim. `--sea=legacy` is confirmed to reproduce M0.
+
+### J.3 M2 one atmosphere (2026-11-18, awaiting Daniel's choice on the sky)
+
+**Built:**
+- **New `scripts/fp/atmosphere.gd`** (`preload`, static):
+  - `fog_density()` (today's formula, decision 2), `visibility_m()`, `transmittance()`;
+  - `horizon_color(sky_dawn, flash)`: the murk. Night sRGB (0.12, 0.135, 0.16), dawn (0.55, 0.5, 0.48), plus `FLASH_TINT` × flash × 0.12.
+- **`outside.gd`:**
+  - `_process_body` sets `fog_light_color` and the sky's `murk` uniform to that one colour every frame, the flash included;
+  - `_environment` sets `fog_height_density` 0 (the flat veil goes; it also gave the room a 16 % veil), `fog_aerial_perspective` 0, and `volumetric_fog_sky_affect` 1.0 (see the choice below; `--volsky=` for A/B);
+  - `--sea=legacy` keeps the old fog, sky and veil.
+- **`sky.gdshader`:**
+  - the fog bank: the lowest 1.6° to 4° fade into the murk;
+  - its top edge undulates on two low-frequency noises along the azimuth and drifts with `time_s`. A first, jagged edge read as a skyline of trees or roofs and was replaced;
+  - below the horizon the sky is exactly the murk;
+  - `bank = 0` gives the legacy sky.
+- **Deviation from section D.1: aerial perspective is not used.** One colour sent to both the fog and the bank matches by construction, with no dependence on the 64 px radiance map lagging a flash (risk I.2). Measured: the flash frame passes H1.
+- **Why `volumetric_fog_sky_affect` 1.0:** the volumetric fog lays its last froxel slice over every pixel beyond 180 m. At 0.4 the far sea got all of it but the sky only 40 %, which left a 7 to 14 / 255 line on Medium (Low, without volumetrics, matched to about 1).
+- **Regress R29** (12 checks; regress 480 / 480): the fog colour equals the sky's murk equals `horizon_color` at flash 0 and 1; today's densities and visibilities; no veil; no aerial perspective; sky affect 1.0.
+
+**Results (H1, largest step within ±3° of the horizon; M0 → M2):**
+- **Medium `m2h`, the full M0 set:**
+  - `ext_far` at storm 0.12 / 0.55 / 1.0 / dawn: 51.4 / 46.1 / 24.5 / 41.0 → **0.8 / 0.4 / 1.6 / 1.3**;
+  - `ext_b000` to `ext_b315`: 45 to 52 → **0.6 to 0.8**;
+  - the window, naked eye: 15 to 29 → **0.5 to 1.8**;
+  - binoculars (strip 300:1150, clear of the mullion and latch bar): 19 to 35 → **0.4 to 3.4**, dawn included;
+  - the flash: **0.5**.
+- **Low `m2q0`:** 0.9 to 2.9 (binoculars 4.2, at −2.7°: the sea's texture, not the horizon).
+- **High `m2q2`:** 0.3 to 2.8, and the lightning frame 4.4 (≤ 6 allowed). **H1 PASS** on all three presets.
+- **H2:** no step anywhere between the tower and the horizon at the eight bearings; at dawn, T(6 km) = exp(−0.0014 × 6000) = 0.02 % (≤ 0.1 %). **PASS.**
+- **H4** (the bank's top edge from per-column profiles): it varies 1.1 to 1.3° across about 85° in three frames, 0.38° in one; it moves 0.27 to 0.40° on average (up to 1.1°) in 30 s. **PARTIAL**, pending Daniel's eye.
+- **H6:** through the binoculars the eyepiece vignette darkens the view by about 32 / 255 on average in M0 and M2 alike, so absolute levels cannot be compared; both views pass H1 on their own. **PARTIAL** (the method, not the fog).
+- **Room** (`m1t` legacy against `m2t`, same shots): mean luminance +1 to +3 on the close views and +5.6 on `fp_window`, mostly the sea through the glass. Unchanged to the eye.
+- **Look, for Daniel** (sheets `stageM/m2_sheet_*.png`):
+  - the sea fades into a dark bank, darkest at the sea and thinning into the cloud deck;
+  - ships at 750 to 1000 m sit in it;
+  - objects fade toward the grey murk instead of near-black, so the scene reads foggier: the tower at 160 m in `ext_far` is visibly veiled;
+  - with sky affect 1.0 the sky above is darker and flatter, with less cloud definition;
+  - the approved title loses its lighter horizon band and sea line: sea and sky become one dark murk.
+- **Option B (`--volsky=0.4`):** keeps more of today's sky, but the line comes back on Medium and High (`m2B`: 9.0 to 16.8). **H1 FAIL.**
+
+**Daniel (2026-11-18): "A + bring the clouds back."**
+- **The model:**
+  - with sky affect 1.0, the sky above the bank gets (1 − a) of its light, where a is the volumetric cover;
+  - under the old 0.4 it got (1 − 0.4a);
+  - the fog's own light is near black at night (Low against Medium: in-scatter about 0);
+  - so `Atmosphere.sky_gain() = (1 − 0.4a) / (1 − a)` gives the cloud deck its old brightness and contrast.
+- **The parameters:** a = 1 − exp(−120 × volumetric density) (K calibrated on M0's sky), capped at 6, and 1 on Low.
+- **Where it applies:** `sky.gdshader` multiplies only the sky above the bank (`mix(col * sky_gain, bank_col, b)`), so the horizon match holds.
+- **Sky 5° to 25°, mean / std, M0 → with the gain:**
+  - storm 0.12: 73.6 / 4.3 → 74.1 / 3.3;
+  - 0.55: 63.7 / 3.5 → 61.3 / 2.3;
+  - 1.0: 62.2 / 7.9 → 50.4 / 4.2 (a darker sky in a full gale);
+  - dawn: 144.2 / 3.8 → 147.2 / 4.2.
+  - H1 with the gain: 0.5 to 1.5 (metric shots), 0.6 to 2.8 as played.
+- **Seen** (`stageM/m2_sheet_today_A_Aclouds.png`):
+  - the cloud deck is back to about today's look;
+  - the bank reads as a dark band on the sea, thinning upward;
+  - the title is back to today's brightness, without the hard sea line.
+- **R29** gains three checks: the uniform equals `sky_gain`; the gain is 1 on Low; it lifts only above the bank.
 
 **Decisions for Daniel** (answers in DECISIONS Q22: 1 yes; 2 keep; 3 build and judge on captures; 4 open until M5; 5 in M4; 6 paired bench at M6):
 1. Stage M takes M2, M4 and the horizon blend from Stage E and runs before it (recommended), or folds into E.
