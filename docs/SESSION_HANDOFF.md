@@ -20,7 +20,14 @@
   - the fog bank in `sky.gdshader`; no height veil; no aerial perspective;
   - volumetric sky affect 1.0, with `sky_gain` restoring the cloud deck;
   - H1 0.3 to 3.4 on all presets; regress R29; all suites green; `sim_v2` identical.
-  - `--volsky=` gives the A/B. **M3 (the loom) is next.**
+  - `--volsky=` gives the A/B.
+- **M3 (the loom):** built, judged on captures, **dropped by Daniel** (J.4); the code was removed and the beam is as approved.
+- **M4 DONE 2026-11-18 (J.5): Stage E can now merge `stage-e2`.**
+  - Vessels fade in over 3 s and out over the 10 s SAVED fade; the lamps read before the hull (fog-dimmed by √T); regress R30; H5 PASS; all suites green; `sim_v2` identical.
+  - Merge notes are in J.5: keep the Stage M (M4) section of `ship_view2.gd` and its call lines; mirror `wave_gain` in `surface_ys()` and `wake.gdshader`.
+- **Next:**
+  - **M5** (near-field scud on High): Daniel's decision 4 is still open; ask him with the frame-time headroom;
+  - **M6** (QA, after-set, the paired bench `--sea=legacy` against the new sea when Daniel says the Mac is free, the checkpoint).
   - `qa_sweep` took 62 min under load 13 (a Codex renderer at 97 % CPU); the clean figure is 105 s.
 - **Gotchas:**
   - the windows only see bearings −51° to +51°;

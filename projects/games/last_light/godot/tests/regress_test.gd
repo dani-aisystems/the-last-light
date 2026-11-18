@@ -36,6 +36,8 @@ extends SceneTree
 ##      the faded sea
 ##  R29 audit Stage M (M2): one atmosphere. The depth fog and the sky's bank take one colour (atmosphere.gd),
 ##      lightning included; today's density; no flat height veil; the volumetric fog treats sky and sea alike
+##  R30 audit Stage M (M4): vessels in fog. A new vessel fades in over 3 s and a SAVED one out over 10 s, never by
+##      more than H5 allows in a 60 fps frame; the view never writes to the sim; lamps dim by the fog's square root
 ##   godot --path godot -s res://tests/regress_test.gd            (windowed: all checks)
 ##   godot --headless --path godot -s res://tests/regress_test.gd (R1 mouse checks SKIPPED: the headless
 ##                                                                  display server ignores mouse modes)
@@ -127,6 +129,7 @@ func _run() -> void:
 	await _r27_sit_glimpse()
 	await _r28_one_sea()
 	await _r29_one_atmosphere()
+	await _r30_vessels_in_fog()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -3387,3 +3390,71 @@ func _r29_one_atmosphere() -> void:
 	_check(AT.sky_gain(0.016, false) == 1.0 and AT.sky_gain(0.0, true) == 1.0 and AT.sky_gain(0.0072, true) > 1.5 and AT.sky_gain(0.0072, true) < 2.5,
 		"sky gain: 1 on Low and without fog, about 1.8 at the ch1 storm (%.2f)" % AT.sky_gain(0.0072, true))
 	_check(src.contains("col = mix(col * sky_gain, bank_col, b * bank)"), "the gain lifts only the sky above the bank (the horizon match holds)")
+
+
+## R30 audit Stage M (M4): vessels in fog (H5). The view is ticked here at 60 fps by hand (no frames awaited inside
+## the loops, so outside.gd's own tick does not interleave): she comes out of the murk over 3 s after spawning and
+## goes back into it over the 10 s SAVED fade, never changing by more than 15 % (H5) in one frame; the view never
+## writes to the sim; her lamps keep more of their light through the fog than her hull keeps of its contrast.
+func _r30_vessels_in_fog() -> void:
+	print("R30 vessels in fog (audit Stage M, M4)")
+	var k: KeeperSim = g.sim
+	g._route(k.spawn_story_ship({"name": "R30 Fade", "kind": "fishing", "bearing": 0, "aim": 90, "range": 230.0,
+		"hold": true, "protected": true}))
+	await _frames(1)
+	var s: FleetShip = k.find_ship_named("R30 Fade")
+	var v = g.outside.ship_views.get(s.id) if s else null
+	_check(v != null, "a spawned vessel gets a view")
+	if v == null:
+		return
+	_check(v.fade_alpha() < 0.05, "she is not drawn on the frame she is made (alpha %.3f)" % v.fade_alpha())
+	var pos0: Vector2 = s.pos
+	var head0: float = s.heading
+	var state0: int = s.state
+	var dt := 1.0 / 60.0
+	var t := 0.0
+	var prev: float = v.fade_alpha()
+	var worst := 0.0
+	var half_at := -1.0
+	for i in int(3.2 * 60):
+		t += dt
+		v.tick(t, dt, k.storm, k)
+		var a: float = v.fade_alpha()
+		worst = maxf(worst, absf(a - prev))
+		if half_at < 0.0 and a >= 0.5:
+			half_at = t
+		prev = a
+	_check(is_equal_approx(v.fade_alpha(), 1.0) and absf(half_at - 1.5) < 0.1,
+		"she comes out of the murk over 3 s (half at %.2f s, %.2f at 3.2 s)" % [half_at, v.fade_alpha()])
+	_check(worst <= 0.15 and worst < 0.02, "fade in: largest change in one 60 fps frame %.4f (H5: <= 0.15)" % worst)
+	var hull_tr := 1.0
+	for n in v.find_children("*", "GeometryInstance3D", true, false):
+		hull_tr = minf(hull_tr, (n as GeometryInstance3D).transparency)
+	_check(hull_tr == 0.0, "fully there: the meshes are opaque again (no lasting alpha pass)")
+	_check(s.pos == pos0 and s.heading == head0 and s.state == state0, "the view never writes to the sim (position, heading, state)")
+	var bulb_ok := true
+	for m in v._bulbs:
+		bulb_ok = bulb_ok and (m as StandardMaterial3D).disable_fog
+	_check(bulb_ok and v._bulbs.size() > 0, "her lamps skip the depth fog (dimmed by its square root instead)")
+	var d := 230.0
+	var T: float = load("res://scripts/fp/atmosphere.gd").transmittance(d, k.storm, 0.0)
+	_check(sqrt(T) > T, "at %.0f m a lamp keeps %.0f %% of its light, her hull %.0f %% of its contrast" % [d, sqrt(T) * 100.0, T * 100.0])
+	var ev: Array = []
+	k._resolve(s, FleetShip.State.SAVED, ev)
+	g._route(ev)
+	prev = v.fade_alpha()
+	worst = 0.0
+	var mid := -1.0
+	var mid_energy := -1.0
+	for i in int(10.2 * 60):
+		t += dt
+		v.tick(t, dt, k.storm, k)
+		var a2: float = v.fade_alpha()
+		worst = maxf(worst, absf(a2 - prev))
+		prev = a2
+		if i == 300:
+			mid = a2
+			mid_energy = v._lights[0].light_energy / float(v._lights[0].get_meta("e0"))
+	_check(mid > 0.3 and mid < 0.7 and v.done, "SAVED: she fades over 10 s (alpha %.2f at 5 s, done at the end: %s)" % [mid, v.done])
+	_check(worst < 0.02, "fade out: largest change in one 60 fps frame %.4f (H5: <= 0.15)" % worst)
+	_check(absf(mid_energy - mid) < 0.02, "her lamps fade with her (energy share %.2f at alpha %.2f)" % [mid_energy, mid])

@@ -17,6 +17,7 @@ var _bulbs: Array[StandardMaterial3D] = []
 
 
 func setup(s: FleetShip) -> void:
+	_fog_fade.call_deferred(0.0, 0.5)         # Stage M (M4): invisible before her first drawn frame (she fades in)
 	ship = s
 	name = "Ship_%s" % s.name.replace(" ", "_")
 	_prev_heading = s.heading
@@ -143,6 +144,7 @@ func _nav(c: Color, p: Vector3, energy: float, rng_m: float, deck := false) -> v
 	l.position = p
 	l.shadow_enabled = false
 	l.light_volumetric_fog_energy = 0.6 if not deck else 0.2
+	l.set_meta("e0", energy)                  # Stage M (M4): _fog_fade scales from these
 	add_child(l)
 	_lights.append(l)
 	var b := MeshInstance3D.new()
@@ -155,6 +157,8 @@ func _nav(c: Color, p: Vector3, energy: float, rng_m: float, deck := false) -> v
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.albedo_color = c * 1.6
+	m.disable_fog = true                      # Stage M (M4): _fog_fade dims it by the fog itself (lights read first)
+	m.set_meta("c0", c * 1.6)
 	b.material_override = m
 	b.position = p
 	b.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -189,3 +193,43 @@ func tick(t: float, dt: float, storm: float, _k: KeeperSim) -> void:
 		l.visible = lights_on and _fade < 1.0
 	visible = _sink < 1.0 and _fade < 1.0
 	done = (_sink >= 1.0) or (_fade >= 1.0)
+	_fog_fade(dt, storm)
+
+
+# ------------------------------------------------------------------ Stage M (M4): vessels in fog
+# Self-contained so it survives Stage E2's rewrite of this file: E2's tick() keeps one call to _fog_fade(dt,
+# storm), and its lights and bulbs (from the model's NAV_* / DECK_* empties) keep the same _lights / _bulbs
+# arrays with the "e0" / "c0" metas set where they are made.
+
+const APPEAR_S := 3.0                     # a new vessel comes out of the murk over 3 s
+const ATMOS := preload("res://scripts/fp/atmosphere.gd")
+var _appear := 0.0
+var _alpha_set := -1.0                    # the instance transparency last written (written on change only)
+
+
+## 0 = not drawn, 1 = fully there: in over APPEAR_S after she is made, out over the SAVED fade (10 s). Eased,
+## so no 60 fps frame changes her by more than about 1 % of her contrast (H5's limit is 15 %).
+func fade_alpha() -> float:
+	return smoothstep(0.0, 1.0, _appear) * (1.0 - smoothstep(0.0, 1.0, _fade))
+
+
+func _fog_fade(dt: float, storm: float) -> void:
+	_appear = minf(1.0, _appear + dt / APPEAR_S)
+	var a := fade_alpha()
+	var tr := 1.0 - a
+	if absf(tr - _alpha_set) > 0.002 or (tr == 0.0 and _alpha_set != 0.0):
+		_alpha_set = tr
+		for n in find_children("*", "GeometryInstance3D", true, false):
+			(n as GeometryInstance3D).transparency = tr      # any material, GLB or stand-in; 0 = opaque pass again
+	for l in _lights:
+		l.light_energy = float(l.get_meta("e0", l.light_energy)) * a
+	# the bulbs skip the depth fog and are dimmed by its square root instead: a lamp keeps much more of its light
+	# through the murk than a hull keeps of its contrast, so at range the lights read before the hull
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var d := cam.global_position.distance_to(global_position) if cam else 230.0
+	var o := get_parent()
+	var dawn: float = o.dawn if o and "dawn" in o else 0.0
+	var k := sqrt(ATMOS.transmittance(d, storm, dawn)) * a
+	for m in _bulbs:
+		var c0: Color = m.get_meta("c0", m.albedo_color)
+		m.albedo_color = Color(c0.r * k, c0.g * k, c0.b * k, 1.0)

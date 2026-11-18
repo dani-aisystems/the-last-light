@@ -446,6 +446,58 @@ The wave set, the calming and the mesh displacement are otherwise unchanged.
   - the title is back to today's brightness, without the hard sea line.
 - **R29** gains three checks: the uniform equals `sky_gain`; the gain is 1 on Low; it lifts only above the bank.
 
+### J.4 M3 the loom (2026-11-18): built, judged on captures, dropped (Daniel)
+
+**Built:**
+- a `loom` uniform in `sky.gdshader`: the beam's world direction and strength;
+- a lobe of cos^60 (about 18°) along the beam's bearing in the bank, rising from 0 at the horizon (so no line at the horizon) to a peak a third of the way up;
+- tinted warm, `LOOM_GAIN` 0.025;
+- strength from the lamp (lit, intensity, focused, less at dawn); `--loom=off`.
+
+**Judged:**
+- Sweep series of 8 outward frames at bearing 0 plus 4 window frames, on and off (`m3s_*`), and a stronger, wider variant (gain 0.08, cos^30, about 25°; `m3x_*`). Sheets: `stageM/m3_sheet_loom_on.png`, `_off.png`, `m3_sheet_off_soft_strong.png`. All viewed.
+- The beam's own volumetric shaft already lights the horizon wherever the beam points, so the loom only widens that glow slightly at the bank.
+- The title is unaffected. H1 with the loom on: 1.1 to 1.8.
+
+**Daniel (2026-11-18): drop it.** The loom code was removed: `sky.gdshader` and `outside.gd` are back to the M2 commit `f88a923`. The beam is exactly as approved (H8 holds by construction). Nothing to commit for M3 beyond this record.
+
+### J.5 M4 vessels in fog (2026-11-18)
+
+**Built** (`scripts/fp/ship_view2.gd`, self-contained):
+- `fade_alpha()` = smoothstep(`_appear`) × (1 − smoothstep(`_fade`)): in over `APPEAR_S` = 3 s after she is made, out over the existing 10 s SAVED fade. That fade was counted but never shown before; she vanished in one frame at its end.
+- `_fog_fade(dt, storm)`, called at the end of `tick()`:
+  - sets `GeometryInstance3D.transparency` on every mesh under the view (any material: the GLB, the stand-in, E2's wake and spray), only on change, and back to 0 when she is fully there (no lasting alpha pass);
+  - scales each light from its `e0` meta;
+  - dims each bulb by √T(d) × alpha. The bulbs now skip the depth fog (`disable_fog`), so at range a lamp keeps more of its light than the hull keeps of its contrast: lights read first (at 230 m, storm 0.12: 71 % against 50 %).
+- `setup()` calls `_fog_fade` deferred, so she is never drawn at full strength on her first frame.
+- **Deviation from section E:** no separate halo billboards. The bulbs themselves, fog-dimmed by √T and above the glow threshold, give the halo.
+
+**Regress R30** (11 checks; regress 494 / 494):
+- alpha 0.003 on her first frame; half at about 1.5 s; full at 3 s;
+- the largest change in one 60 fps frame is 0.8 % in and 0.25 % out (H5 ≤ 15 %);
+- opaque again when she is fully there;
+- the view never writes to the sim (position, heading, state);
+- the bulbs skip the fog; the lamps fade with her.
+
+**Captures** (`m4s` series with the still camera; `m4c_*` ranges; sheets `stageM/m4_sheet_shipseq.png`, `m4_sheet_ships.png`; viewed):
+- **Arrival:** nothing at f000, a ghost at f004, half at f009, complete by f013. The measured contrast steps are ≤ 2.4 per 1/6 s sample (about 0.24 % per 60 fps frame). M0 was about 108 % in one frame.
+- **Departure:** a gradual fade; nearly gone at f069, gone at f074. M0 was about 101 % in one frame.
+- One spike at f075 is the beam sweeping into the view: the expert bot turned the lamp back on during the series. It is not the vessel.
+- **H5: PASS.**
+- **Ranges:** at 1000 m a faint hint at most; at 750 m the fishing boat's lamps before her hull; at 400 m the hull and lights. Each shot is taken a few seconds after its ship spawns, so the farthest may not be fully faded in.
+
+**Suites:** story, run_tests, opening, interaction 164, qa_sweep 7,703 (96 s), g5 50, save_compat 305, pytest all pass; **`sim_v2` seeds 1 to 5 identical to M0.**
+
+**For the Stage E merge of `stage-e2` (after this commit):**
+- **`ship_view2.gd`:**
+  - keep the `# Stage M (M4)` section at the end of the file unchanged;
+  - E2's `tick()` must end with `_fog_fade(dt, storm)`;
+  - E2's `setup()` must start with `_fog_fade.call_deferred(0.0, 0.5)`;
+  - E2's `_nav()` must set `l.set_meta("e0", energy)` on each light and, on each bulb material, `disable_fog = true` and `set_meta("c0", <its colour>)`;
+  - `visible` and `done` keep their logic.
+- **Surface mirrors (from M1):** `surface_ys()` (both loops) and `wake.gdshader`'s `gerstner()` must scale wave i by `OceanWaves.wave_gain(i, r)`.
+- **Whitecaps, shore and reef foam, and depth tint** go into `ocean.gdshader` as Stage E's work. The shader now has the `wave_fade` uniform and the per-wave gain in `vertex()`; crest foam already fades with the displacement (`crest` uses the faded `disp`).
+
 **Decisions for Daniel** (answers in DECISIONS Q22: 1 yes; 2 keep; 3 build and judge on captures; 4 open until M5; 5 in M4; 6 paired bench at M6):
 1. Stage M takes M2, M4 and the horizon blend from Stage E and runs before it (recommended), or folds into E.
 2. Fog density: keep today's visibility (0.6 to 1.3 km, recommended; the fix is geometry and colour), or make it thicker or thinner.
