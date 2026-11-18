@@ -35,7 +35,8 @@ extends Node
 ##   take effect on scene load, so it cannot change per shot).
 ##   --novsync: bench without vsync (true frame cost). Perf bisect flags: --noshadows --nossao --nossil --halfao
 ##     --novolfog --norain --noglow --noroom --probe=off
-##   --bench [--bench_secs=60] [--bench_shots=fp_desk,fp_window,fp_gen]: worst case (storm 1.0, lightning
+##   Stage M: storm_<percent> (storm_55 = 0.55, not restored); every shot's camera is written to NAME_cams.json.
+##   --bench [--bench_secs=60] [--bench_shots=fp_desk,fp_window,fp_gen[,fp_bino]]: worst case (storm 1.0, lightning
 ##     every 3 s, generator running, all breakers on, one ship) at 1x speed; writes NAME_bench.json with
 ##     median / p95 frame time, GPU time, draw calls, primitives and memory per shot.
 ##   --bench_menu [--bench_secs=30]: the title's frame cost (G6d stage D), a bolt forced every 4 s.
@@ -153,6 +154,12 @@ func view(name_: String) -> Array:
 		"iso": return [Vector3(-6.5, F + 8.5, 7.0), Vector3(0.2, F + 0.6, -0.4), 40.0, true, 0.03]
 		"ext": return [Vector3(26, 14, 40), Vector3(0, 17, 0), 42.0, false, 0.03]
 		"ext_far": return [Vector3(-60, 30, -150), Vector3(0, 14, 0), 40.0, false, 0.03]
+	if name_.begins_with("ext_b") and name_.substr(5).is_valid_float():
+		# Stage M: from 7 m out at the keeper's eye height, outward along bearing <deg>, 2 degrees down (H2:
+		# the sea to the horizon at every bearing, not only the three window bays)
+		var bd := Geo.dir(deg_to_rad(float(name_.substr(5))))
+		return [Vector3(bd.x * 7.0, F + 1.65, bd.y * 7.0),
+			Vector3(bd.x * 1007.0, F + 1.65 - 1000.0 * tan(deg_to_rad(2.0)), bd.y * 1007.0), 60.0, false, 0.05]
 	return []
 
 
@@ -250,6 +257,9 @@ func _run() -> void:
 				await _frames(10)
 			Engine.time_scale = 1.0
 			continue
+		if vname == "shipseq":                  # audit Stage M (H5): a vessel spawned at 230 m north, 4 s of frames,
+			await _shipseq(g, name_, int(target), states)   # then made SAVED, 11 s more (the pop or the fade)
+			continue
 		_place(g, vname)
 		for st in states:
 			_force(g, st)
@@ -297,6 +307,47 @@ func _run() -> void:
 		_restore(g)
 	print("CAPTURE_RESULT ", JSON.stringify({"files": results, "perf": perf}))
 	get_tree().quit(0)
+
+
+## Stage M (H5): the player at the radio (states as given, e.g. take_kit!binoculars!face_north!pitch_m5.4), a
+## fishing boat spawned 230 m due north and held; a frame every 1/6 s of the outside view's clock for 4 s, then
+## she is resolved SAVED and framed for 11 s more. Time runs at 0.25x so a slow PNG write is a short step; each
+## frame's clock is in NAME_cams.json ("t_outside").
+func _shipseq(g, name_: String, t0: int, states: PackedStringArray) -> void:
+	# a still camera 6 m out from the tower axis (clear of the window's centre mullion, which is on bearing 0),
+	# at eye height, the binoculars' 10 degrees, on the spawn point: the glasses' sway, vignette and mullion
+	# would swamp the hull's luminance
+	var aim := Geo.dir(0.0) * 230.0
+	var at := Geo.dir(0.0) * 6.0
+	_place_view(g, [Vector3(at.x, F + 1.65, at.y), Vector3(aim.x, 1.0, aim.y), 10.0, false, 0.05])
+	for st in states:
+		_force(g, st)
+	var mode_was = g.sim.mode
+	g.sim.mode = KeeperSim.Mode.OFF                   # the beam's sweep would swamp the hull's luminance (restored)
+	await _frames(150)
+	_save("%s_t%03d_shipseq_a_pre" % [name_, t0])     # the empty sea, as the in-leg's starting value
+	Engine.time_scale = 0.25
+	g._route(g.sim.spawn_story_ship({"name": "Capture Seq", "kind": "fishing", "bearing": 0, "aim": 90, "range": 230.0,
+		"hold": true, "protected": true}))
+	var s: FleetShip = g.sim.find_ship_named("Capture Seq")
+	var fi := 0
+	for leg in [["in", 4.0], ["out", 11.0]]:
+		if leg[0] == "out" and s:
+			var ev: Array = []
+			g.sim._resolve(s, FleetShip.State.SAVED, ev)
+			g._route(ev)
+		var start: float = g.outside._t
+		var next := start
+		while g.outside._t - start <= float(leg[1]):
+			await _frames(1)
+			if g.outside._t >= next:
+				_save("%s_t%03d_shipseq_%s_f%03d" % [name_, t0, leg[0], fi])
+				fi += 1
+				next += 1.0 / 6.0
+	Engine.time_scale = 1.0
+	g.sim.mode = mode_was
+	_unforce(g)
+	_restore(g)
 
 
 func _ensure_game(args: Dictionary) -> void:
@@ -411,6 +462,10 @@ func _force(g, st: String) -> void:
 			g._update_story_props()
 		"storm_full":                            # audit stage 0: storm 1.0 from this shot on (not restored)
 			g.sim.storm_override = 1.0
+		_ when st.begins_with("storm_") and st.substr(6).is_valid_int():   # Stage M: storm_<percent> (storm_12 =
+			g.sim.storm_override = float(st.substr(6)) / 100.0               # 0.12) from this shot on (not restored)
+		"far_ships":                             # Stage M: capture ships beyond 310 m are not resolved "stood out to
+			g.sim.cfg.spawn_radius = 2000.0      # sea" (SAVED) at once, so they hold for the shot (not restored)
 		"door_open":                             # audit stage 0: the stair door open, nobody in it (restored)
 			_restore_state["door_only"] = g.station.door_open
 			g.station.door_open = true
@@ -873,7 +928,13 @@ func _bench(name_: String, args: Dictionary) -> void:
 		await _bench_toggle(g, shots[0], float(args.get("bench_toggle_secs", "6")), report)
 		shots = PackedStringArray()
 	for vname in shots:
-		_place(g, vname)
+		if vname == "fp_bino":            # Stage M: through the binoculars, north, 3 degrees down (the horizon)
+			_place(g, "pp_radio")
+			for st in ["binoculars", "face_north", "pitch_m3"]:
+				_force(g, st)
+			await _frames(90)             # the raise and zoom
+		else:
+			_place(g, vname)
 		var ft: Array[float] = []
 		var gpu: Array[float] = []
 		var proc: Array[float] = []        # script _process time (Performance.TIME_PROCESS)
@@ -910,6 +971,7 @@ func _bench(name_: String, args: Dictionary) -> void:
 			"focused": DisplayServer.window_is_focused()}
 		report["shots"].append(r)
 		print("BENCH ", JSON.stringify(r))
+		_unforce(g)
 		_restore(g)
 	var path := out_dir.path_join("%s_bench.json" % name_)
 	var f := FileAccess.open(path, FileAccess.WRITE)
@@ -1088,3 +1150,27 @@ func _save(file_name: String) -> void:
 	img.save_png(path)
 	results.append(path)
 	print("CAPTURED ", path)
+	_save_cam(file_name)
+
+
+## Audit Stage M (M0): each shot's camera goes into <capture>_cams.json (fov, pitch, yaw, roll, eye), so
+## blender/measure_horizon.py can find the horizon row without hand-entered angles.
+var _cams := {}
+
+
+func _save_cam(file_name: String) -> void:
+	var c := get_viewport().get_camera_3d()
+	if c == null:
+		return
+	var b := c.global_transform.basis
+	var fwd := -b.z.normalized()
+	_cams[file_name + ".png"] = {"fov": c.fov, "keep_height": c.keep_aspect == Camera3D.KEEP_HEIGHT,
+		"pitch_deg": rad_to_deg(asin(clampf(fwd.y, -1.0, 1.0))), "yaw_deg": rad_to_deg(atan2(fwd.x, -fwd.z)),
+		"roll_deg": rad_to_deg(asin(clampf(b.x.normalized().y, -1.0, 1.0))),
+		"eye": [c.global_position.x, c.global_position.y, c.global_position.z], "near": c.near, "far": c.far,
+		"size": [get_viewport().get_visible_rect().size.x, get_viewport().get_visible_rect().size.y],
+		"t_outside": main.game.outside._t if main and main.game and main.game.outside else -1.0}
+	var f := FileAccess.open(out_dir.path_join(String(GameState.user_args.get("capture", "fp")) + "_cams.json"), FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(_cams, "  "))
+		f.close()

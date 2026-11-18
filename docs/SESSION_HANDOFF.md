@@ -1,5 +1,21 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## LATEST (2026-11-18): audit Stage M (ocean boundary and fog) approved, in progress at M0
+- **Record:** `docs/last_light/audit-2026-11/14_stageM_ocean_boundary_fog.md` (plan in sections D to J; progress in J). Decisions: DECISIONS Q22. Session plan: `~/.claude/plans/pasted-content-id-b67c-continue-the-soft-glacier.md`.
+- **Daniel:** approved 2026-11-17 (M0 to M6, before the rest of Stage E). 2026-11-18: keep today's fog density; build the loom and judge it on captures; vessel fades in M4; a paired bench at M6 only (`--sea=legacy` against the new sea, on a quiet Mac when he says so). **M5 scud is still his call** (ask at M5).
+- **State:** the first M session (2026-11-17) left nothing behind; M0 restarted 2026-11-18. Work is in main; E2 stays on `stage-e2` and **merges after M4** (this entry will say when M4 is done).
+- **M0 done 2026-11-18** (record section J.1):
+  - new `blender/measure_horizon.py` and its pytest;
+  - capture states `storm_<pct>`, `far_ships`, `ext_b<deg>`, `shipseq`, the `fp_bino` bench shot, and `<capture>_cams.json`;
+  - the before-set: horizon step 10 to 52/255, always at the far-plane clip; the vessels pop both ways;
+  - suites all green; the `sim_v2` reference is `renders/last_light/stageM/m0_sim_v2_seeds_1_5.json`.
+- **M1 is next.** `scripts/fp/sea_mesh.gd` (the radial mesh) is written and checked headless, but not wired in yet.
+- **Gotchas:**
+  - the windows only see bearings −51° to +51°;
+  - capture ships beyond 310 m need `far_ships`;
+  - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off.
+- **For the Stage E merge:** if M1 adds a per-wave distance fade, `ship_view2.surface_ys()` and `wake.gdshader` must mirror it (written up in section J when it lands).
+
 ## LATEST (2026-11-17, latest): audit Stage C (narrative) done, merged locally; next is Stage R (Ross)
 - **Record:** `projects/games/last_light/SCRIPT_REVISION_2026-11.md`. It is the approved script; section 15 records how it was built and verified. Decisions are DECISIONS Q20.
 - **Done:**
