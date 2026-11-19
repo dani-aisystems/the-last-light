@@ -17,6 +17,10 @@ values (the same as the Stage 0 measurements in section A.2).
   series GLOB --box x0:y0:x1:y1 [--ref ...]  H5: a region's luma per frame (minus a reference patch's: the
              [--dark-pct P]                  contrast; or its P-th percentile minus its median, for a dark
                                              hull in a swaying view); steps as a share of the total change
+  flat PNG... [--strip x0:x1] [--near 1.0]    audit E3 (Stage M's H7 item): the far sea's pale flat patches.
+            [--far 2.4]                      In the band from --near to --far degrees below the horizon, the
+                                             share of pixels with no texture (9x9 luma std < 0.6) that are more
+                                             than 3/255 above their row's median, and the longest such run (px)
 Camera overrides for files without a sidecar: --fov --pitch [--eye-y]. Output is JSON on stdout.
 """
 from __future__ import annotations
@@ -197,6 +201,30 @@ def series_metric(values: list[float]) -> dict:
             "values": [round(float(x), 2) for x in v]}
 
 
+def flat_metric(lum: np.ndarray, fov: float, pitch: float, strip: tuple[int, int], near_deg: float = 1.0,
+                far_deg: float = 2.4, k: int = 4, sd_max: float = 0.6, above: float = 3.0) -> dict:
+    """Pale flat patches on the sea between near_deg and far_deg below the horizon (1.0 to 2.4 deg is about
+    1.3 km to 0.5 km from the keeper's eye at 22 m): a pixel counts when its (2k+1)^2 neighbourhood has a luma
+    std below sd_max (flat) and it is more than `above` over its row's median (pale)."""
+    h = lum.shape[0]
+    r0 = max(int(round(row_of(-near_deg, h, fov, pitch))), k)
+    r1 = min(int(round(row_of(-far_deg, h, fov, pitch))), h - k - 1)
+    if r1 <= r0:
+        return {"rows": [r0, r1], "patch_pct": None, "longest_run_px": None}
+    a = lum[:, strip[0]:strip[1]]
+    pad = np.pad(a, k, mode="edge")
+    win = np.lib.stride_tricks.sliding_window_view(pad, (2 * k + 1, 2 * k + 1))[r0:r1]
+    sd = win.std(axis=(2, 3))
+    band = a[r0:r1]
+    m = (sd < sd_max) & (band > np.median(band, axis=1, keepdims=True) + above)
+    longest = 0
+    for row in m:
+        edges = np.flatnonzero(np.diff(np.concatenate(([0], row.astype(np.int8), [0]))))
+        if edges.size:
+            longest = max(longest, int((edges[1::2] - edges[0::2]).max()))
+    return {"rows": [r0, r1], "patch_pct": round(float(m.mean()) * 100.0, 2), "longest_run_px": longest}
+
+
 # ------------------------------------------------------------------ CLI
 
 def _cmd_band(args) -> list:
@@ -246,18 +274,31 @@ def _cmd_series(args) -> dict:
     return {"files": [Path(f).name for f in files], "ref": args.ref, **series_metric(vals)}
 
 
+def _cmd_flat(args) -> list:
+    res = []
+    for p in args.png:
+        lum = luma(p)
+        cam = camera(p, args)
+        r = flat_metric(lum, cam["fov"], cam["pitch_deg"], parse_strip(args.strip, lum.shape[1]), args.near, args.far)
+        res.append({"file": Path(p).name, **r})
+    return res
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("band", "contrast"):
+    for name in ("band", "contrast", "flat"):
         s = sub.add_parser(name)
-        s.add_argument("png", nargs="+" if name == "band" else None)
+        s.add_argument("png", nargs="+" if name in ("band", "flat") else None)
         s.add_argument("--strip")
         s.add_argument("--fov", type=float)
         s.add_argument("--pitch", type=float)
         s.add_argument("--eye-y", type=float, dest="eye_y")
         if name == "band":
             s.add_argument("--deg", type=float, default=3.0)
+        if name == "flat":
+            s.add_argument("--near", type=float, default=1.0)
+            s.add_argument("--far", type=float, default=2.4)
     s = sub.add_parser("compare")
     s.add_argument("a")
     s.add_argument("b")
@@ -269,7 +310,8 @@ def main(argv=None) -> int:
     s.add_argument("--dark-pct", type=float, dest="dark_pct",
                    help="value = this percentile of the box minus its median (a dark object in a swaying view)")
     args = ap.parse_args(argv)
-    out = {"band": _cmd_band, "contrast": _cmd_contrast, "compare": _cmd_compare, "series": _cmd_series}[args.cmd](args)
+    out = {"band": _cmd_band, "contrast": _cmd_contrast, "compare": _cmd_compare, "series": _cmd_series,
+           "flat": _cmd_flat}[args.cmd](args)
     json.dump(out, sys.stdout, indent=1)
     sys.stdout.write("\n")
     return 0

@@ -322,6 +322,15 @@ func _environment() -> void:
 	add_child(bolt_light)
 
 
+## Stage E (E3): the ocean shader's feature level, 0 (the pre-E3 sea) to SEAFX_MAX (all of E3).
+## --seafx=<n> picks one for captures and the paired bench; --sea=legacy is always 0.
+const SEAFX_MAX := 5
+static func seafx_level() -> int:
+	if String(GameState.user_args.get("sea", "")) == "legacy":
+		return 0
+	return clampi(int(GameState.user_args.get("seafx", str(SEAFX_MAX))), 0, SEAFX_MAX)
+
+
 func _ocean() -> void:
 	# Stage M (M1): one radial sea out to a 6 km rim (sea_mesh.gd), the waves fading with distance
 	# (OceanWaves.FADE), no skirt. --sea=legacy keeps the 1100 m square, the skirt and no fade, for A/B.
@@ -350,6 +359,7 @@ func _ocean() -> void:
 	ocean_mat.set_shader_parameter("detail_b", _noise(512, 0.06, true))
 	ocean_mat.set_shader_parameter("foam_noise", _noise(256, 0.05, false))
 	ocean_mat.set_shader_parameter("shore_field", _shore_field())
+	ocean_mat.set_shader_parameter("seafx", seafx_level())
 	mi.material_override = ocean_mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visible = not GameState.user_args.has("noocean")
@@ -370,9 +380,12 @@ func _ocean() -> void:
 
 
 ## Foam proximity field: 1 at rocks/shore, fading out over ~10 m. 256 px over 520 m.
+## R: the 11 m surf field (unchanged since G6d). G (audit E3): the same distance over SHELF_M, for the lee foam
+## trail and the shelf tint (ocean.gdshader levels 2 and 3).
+const SHELF_M := 48.0
 func _shore_field() -> ImageTexture:
 	var N := 256
-	var img := Image.create(N, N, false, Image.FORMAT_R8)
+	var img := Image.create(N, N, false, Image.FORMAT_RG8)
 	var rect := Vector4(-260, -260, 520, 520)
 	var circles: Array = []
 	for r in sim.layout.reefs:
@@ -388,7 +401,7 @@ func _shore_field() -> ImageTexture:
 			if not _coast.is_empty():                # the real coastline (island.glb), not a circle
 				var bi := int(fposmod(rad_to_deg(atan2(p.x, -p.y)), 360.0)) % 360
 				best = minf(best, p.length() - _coast[bi])
-			img.set_pixel(x, y, Color(clampf(1.0 - best / 11.0, 0.0, 1.0), 0, 0))
+			img.set_pixel(x, y, Color(clampf(1.0 - best / 11.0, 0.0, 1.0), clampf(1.0 - best / SHELF_M, 0.0, 1.0), 0))
 	return ImageTexture.create_from_image(img)
 
 
@@ -1143,6 +1156,7 @@ func _process_body(delta: float) -> void:
 	ocean_mat.set_shader_parameter("storm", storm)
 	ocean_mat.set_shader_parameter("time_s", _t)
 	ocean_mat.set_shader_parameter("flash", f)
+	ocean_mat.set_shader_parameter("night", 1.0 - maxf(dawn, dusk * 0.55))   # audit E3 level 4 (the sky's dawn)
 	beam_mat.set_shader_parameter("time_s", _t)
 	env.tonemap_exposure = 1.35 * float(Settings.v["brightness"])
 	env.volumetric_fog_density = lerpf(0.006, 0.016, storm) * (1.0 - 0.7 * dawn) * (0.3 if attract else 1.0)

@@ -1,5 +1,30 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## NEW (2026-11-19): audit Stage E, part E3 (the sea's look) approved by Daniel and committed locally (DECISIONS Q25); Stage D next
+- **Record:** `docs/last_light/audit-2026-11/16_stageE_evidence.md`, Part E3. Plan: `~/.claude/plans/pasted-content-id-4c59-continue-the-temporal-thompson.md` (E3, then Stage D audio, then the music; one checkpoint each).
+- **Built:**
+  - `ocean.gdshader` levels 1 to 5 (whitecaps, shore and reef foam, shelf tint, night palette, far-sea floor), each behind `seafx` (`--seafx=<n>`, `outside.seafx_level()`; legacy = 0), fragment only;
+  - `shore_field` RG8 (G = 48 m);
+  - `night` uniform set every frame;
+  - regress R31;
+  - capture states `seafx_<n>`, `nobeam`, `freeze`, `nospec`;
+  - `measure_horizon.py flat` (the far-sea patch metric).
+- **Results:**
+  - vessel sheets `renders/last_light/stageE/e3_sheet_<kind>.png` PASS;
+  - H1 horizon PASS;
+  - H5 PASS (about 3.4 % per frame);
+  - suites green, `sim_v2` identical to M0;
+  - the far-sea patches PARTIAL: patch share 3.8 → 1.35 %, longest run 272 → 89 px. The remainder involves the volumetric fog (record: diagnosis).
+- **Open:**
+  - the paired bench (all levels, quiet Mac, when Daniel says);
+  - Daniel's eye on levels 3 and 4 (subtle by design);
+  - `--sea=legacy` (kept until the bench);
+  - the far-sea patches (PARTIAL: try the volumetric fog's range on the binocular camera).
+- **Done at the checkpoint:** `stage-e2` and its worktree deleted; E2's sheets are in `renders/last_light/stageE/e2/`.
+- **Gotchas:**
+  - Freeze a pair to A/B a shader (`!freeze` on both shots at the same time), but not binocular views: their raise is animated.
+  - Unfrozen dawn binocular H1 values move about ±1 from run to run.
+
 ## NEW (2026-11-18): audit Stage R (Ross) finalized and committed locally (part 2: Ross in the game; DECISIONS Q24)
 - **Record:** `docs/last_light/audit-2026-11/17_stageR_evidence.md`, sections 7 to 12. Daniel said "You determine" on the stills, then sent the full upgrade brief.
 - **Claude's call:** the v009 figure was not yet a man up close (a latex gown: a bust, muscle sleeves, a grin at B, a torn cuff at A). It is now fixed, in figure v012, actions v017, `ross_v006.glb`.

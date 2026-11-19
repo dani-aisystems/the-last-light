@@ -181,8 +181,8 @@ E2 runs on its own branch. Stage M has recorded no milestone yet, so the main tr
 | `regress_test` | **PASS** 449 / 449 (4 headless skips), the same as Stage P |
 | `story`, `opening`, `run_tests`, `interaction`, `qa_sweep`, `g5`, `save_compat` | **PASS**: 0 failed; 31 / 95 / 164 / 7,703 / 50 / 305 checks |
 | `sim_v2`, seeds 1 to 5 | **PASS**, no gate failures |
-| In-game look (Daniel's OK, 2026-11-17) | **PASS** for the four kind files. Binoculars from `pp_radio`, facing north at 120 / 230 / 400 m (pitch −10 / −5 / −3°), dawn and night, with the glass and with `--noglass`: 8 windowed runs, 48 frames, viewed. Every hull is closed and upright on the water; no inward faces, no sliding texture (M1 fixed on screen). Sidelights show on the correct side (the coaster heading west shows red); windows glow at night. Sheets: `exports/worktrees/last_light_e2/renders/last_light/sheet_e2_<kind>_<glass\|noglass>.png`. The capture ship `Capture launch` is spawned lit, so its lamps show; the story's Visitor is spawned unlit (0 lights, covered by `ship_view_test`). |
-| In-game look: the name variants under way | **PASS**: new capture state `vessel_<name>_<range>`. It spawns the named vessel 6° east of north, under way across the view, protected. It lives in the branch's `capture_fp.gd`: one additive hunk next to `ship_`, to merge with Stage M's file. *Hendrika* shows her own model (grey hull, timber deck cargo, HENDRIKA on the quarter); *Lowestoft Star* her counter stern and mizzen; *Corrie May* BRD 9 and her house; the Visitor is small and dark. All ride a full-storm swell. Sheet: `…/renders/last_light/sheet_e2v_named.png`. |
+| In-game look (Daniel's OK, 2026-11-17) | **PASS** for the four kind files. Binoculars from `pp_radio`, facing north at 120 / 230 / 400 m (pitch −10 / −5 / −3°), dawn and night, with the glass and with `--noglass`: 8 windowed runs, 48 frames, viewed. Every hull is closed and upright on the water; no inward faces, no sliding texture (M1 fixed on screen). Sidelights show on the correct side (the coaster heading west shows red); windows glow at night. Sheets: `renders/last_light/stageE/e2/sheet_e2_<kind>_<glass\|noglass>.png`. The capture ship `Capture launch` is spawned lit, so its lamps show; the story's Visitor is spawned unlit (0 lights, covered by `ship_view_test`). |
+| In-game look: the name variants under way | **PASS**: new capture state `vessel_<name>_<range>`. It spawns the named vessel 6° east of north, under way across the view, protected. It lives in the branch's `capture_fp.gd`: one additive hunk next to `ship_`, to merge with Stage M's file. *Hendrika* shows her own model (grey hull, timber deck cargo, HENDRIKA on the quarter); *Lowestoft Star* her counter stern and mizzen; *Corrie May* BRD 9 and her house; the Visitor is small and dark. All ride a full-storm swell. Sheet: `renders/last_light/stageE/e2/sheet_e2v_named.png`. |
 | Wake in a window | **PASS, subtle by design**. Found and fixed in three captures:<br>• A red unlit diagnostic showed the ribbon placed correctly behind the stern.<br>• At a 5 cm lift it sat under the drawn sea, because the ocean mesh's 3.33 m cells interpolate between vertices (M4). The lift is now 0.25 m.<br>• Lit, diffuse-only foam read no brighter than the sky-reflecting sea at the tower's grazing angle. The mask was widened and a daylight glow added (0.05 at night, 0.55 at dawn, read from `outside.gd` `dawn` without editing it).<br>Result: a pale streak from the stern at dawn, a faint one at night (`e2w_fix2`, `e2w_fix3`). |
 | Bow spray in a window | **NOT CONFIRMED on screen**. It fires only when the bow plunges under way in a storm; no storm frame caught a burst. Covered headless (`ship_view_test`). |
 | CPU cost per ship | **PASS**: the sea is sampled at 20 Hz with ships out of step, the wave constants are packed, and the wake parameters are set only on change. Mean 35 to 54 µs a ship under `taskpolicy -b` (efficiency cores), so four ships take 0.14 to 0.22 ms a frame, under the 0.4 ms budget checked by `ship_view_test`. It was 60 to 128 µs before. |
@@ -202,3 +202,105 @@ Results:
 - `surface_y` is now within 7 mm of the GPU surface (14 mm before).
 - In-game captures of both kinds and two named vessels are viewed. Details, sheets and the H5 fade check are in `14_stageM_ocean_boundary_fog.md` J.8.
 - The bench is still deferred.
+
+---
+
+# Part E3 (main, 2026-11-19): the sea's look
+
+Daniel's brief (2026-11-19): section 9.2's ocean items one at a time, each captured (and benched) before the next. Then Stage M's handed-over item, the pale flat far-sea patches through the binoculars at dawn. Then the acceptance set. The paired bench waits for a quiet Mac, with every level benched in one session (Daniel's choice this session). Plan: `~/.claude/plans/pasted-content-id-4c59-continue-the-temporal-thompson.md`.
+
+## E3.0 Method
+
+- **One switch per feature.** `ocean.gdshader` gains `uniform int seafx` (default 5). Every E3 term sits inside `if (seafx >= n)`, so level 0 is the pre-E3 fragment line for line. `outside.gd` reads `--seafx=<0..5>` (`seafx_level()`, `SEAFX_MAX`); `--sea=legacy` is always level 0. The levels are:
+  1. whitecaps;
+  2. shore and reef foam;
+  3. shelf tint;
+  4. night palette;
+  5. the far-sea fix.
+- **Fragment only.** `vertex()` is untouched, so the J.2 mirrors (`OceanWaves.height_at`, `ship_view2.surface_ys()`, `wake.gdshader`) need no change; R31 checks this.
+- **Capture-only states** (`capture_fp.gd`, one additive hunk beside `ship_` / `vessel_`, away from the other session's `--film` lines):
+  - `seafx_<n>`: the level for one shot;
+  - `nobeam`: the beam hidden for one shot, visually only;
+  - `freeze`: `Engine.time_scale` 0 for one shot. Two frozen shots at the same time render the same waves, cloud and bolt state, so a pair differs only by its level. Binocular views can't be frozen: their raise is animated.
+  - `nospec`: diagnostic, the moon / dawn light's specular off.
+- **A/B pairs.** Each step was compared on frozen pairs (`e3ab<n>_*`), level n−1 against level n, beam hidden. The views were `ext_far`, `ext_b045`, the window at pitch −3 and −12, and `ext`, at storm 0.12, 0.55 and 1.0, plus a dawn set for level 3. For each pair: the share of pixels changed, and the pair plus a ×6 difference image (viewed). The level-0 proof is by construction (no line outside a level branch changes); `e3r` (level 0, the m6h list) sits in M6's H1 range.
+
+## E3a to E3e: the five levels
+
+Each was built, A/B captured, viewed, critiqued and re-tuned before the next. Figures are the share of pixels that change by more than 4/255 in a frozen pair, level n−1 against level n.
+
+| Level | What | Tuning on captures | Result |
+|---|---|---|---|
+| 1 Whitecaps | Open-sea breaking patches on the crests, thresholded on two drifting `foam_noise` scales for a storm-driven coverage (about 4 % of the sea at storm 0.55, 18 % at 1.0), plus gale streaks laid along the dominant swell. Lagoon-calmed; thinned beyond 700 m. `whitecap_gain` scales it. | First pass invisible (fBm sits at 0.5 ± 0.12, so the soft thresholds made a grey wash); second pass gave needle streaks that read as rain. Final: coverage by √(storm ramp), streaks 1.3 m × 13 m, in lanes, broken by a rounder noise. | Storm 0.12: **0.00 %** (none, as designed). Storm 0.55: 1.1 to 1.5 %. Storm 1.0: 3.0 to 3.2 %. Scattered 1 to 4 m caps between the crest-foam sheets; faint broken streaks. `stageE/e3_L1_*`. |
+| 2 Shore and reef foam | `shore_field` becomes RG8. R is the old 11 m field, unchanged; G is the same distance over `SHELF_M` 48 m. The surf reach grows with storm. A breaker on the exposed face of each rock (the field sampled 3 m up and down the swell): white water thrown up as each crest arrives. Old foam trails to the lee, out to 48 m. | First pass as built. | Full storm, bearing 045: 4.0 %; `ext`: 0.6 to 0.8 %. A white collar on the exposed side of each reef. The lee trail is faint. `e3_L2_*`. |
+| 3 Shelf tint | No seabed exists, so G stands in for the shelf: `shelf_color` (0.075, 0.17, 0.145) × shelf², up to 0.85 in a calm, 0.4 in a gale. | First colour (0.04, 0.095, 0.08) changed under 0.4 % of pixels at dawn: the near sea mirrors the bright sky. Raised. | Dawn, bearing 045 (> 2/255): 12.8 % calm, 9.5 % at 0.55, 2.6 % at 1.0. A faint cold green near the reefs and the island; at night, < 0.03 % (the albedo barely matters in the dark). `e3_L3_*`. |
+| 4 Night palette | `night` = 1 − max(dawn, 0.55·dusk), set every frame beside the sky's own value. At night the water albedo × (0.45, 0.5, 0.62), foam × 0.8, specular 0.6 → 0.42. The fresnel emission is untouched, so Stage M's horizon match holds. `night_depth` scales it. | — | Frame mean −0.1 to −1.4/255; 15 to 22 % of exterior pixels change by > 2/255. A restrained darkening; the foam still shows the sea. `e3_L4_*`. |
+| 5 Far sea (Stage M H7) | A broad detail normal (`detail_a` at 0.006, about 10 m features) blended in from 300 to 700 m (`far_normal` 1.2), plus a roughness floor rising from 250 to 700 m (`far_rough` 0.5). | Tried on dawn binocular runs: (0.24, 0.5, floor 450 to 950 m), then (0.4, 0.8), (0.5, 1.2), then the floor moved in to 250 m (kept). Two further tries were reverted (below). | See the next section. |
+
+## The far-sea patches (Stage M's H7 item): PARTIAL
+
+**Metric.** `measure_horizon.py flat` (new; pytest): in the band 1.0° to 2.4° below the horizon (about 1.3 to 0.5 km from 22 m), binocular strip 300:1150. It reports the share of pixels that are flat (9×9 luma std < 0.6) and pale (> 3/255 over the row's median), and the longest such run.
+
+| Shot (dawn, binoculars) | M6 (`m6h`) | E3 level 0 (`e3r`) | E3 level 5 (`e3h`) |
+|---|---|---|---|
+| `pitch_m3`: patch share / longest run | 3.84 % / 272 px | 3.63 % / 281 px | **1.35 % / 89 px** |
+| `pitch_m1` | 0.45 % / 40 px | 2.13 % / 115 px | **0.11 % / 23 px** |
+
+The dawn-only runs agree (`e3d0` against `e3d5d`: 3.4 % / 244 to 280 px against 1.4 to 1.5 % / 114 to 139 px). Seen (`stageE/e3_L5_*`): the large, smooth, sharp-edged pale shapes become soft textured bands; a few thinner pale bands remain at about 0.6 to 1.2 km (also on the vessel sheets at dawn, above the 400 m ship).
+
+**H1** on the same frames: 4.83 at −2.19° (`pitch_m1`) and 5.34 at −2.31° (`pitch_m3`), against M6's 3.85 and 5.00. Within one configuration the value moves by ±1 from run to run (swell phase), and these steps are on the sea at 550 to 600 m, not at the horizon. Every horizon row is ≤ 4.
+
+**What the remaining patches are (diagnosis, not fixed):**
+- Not the light's specular: `nospec` makes them stand out more.
+- Not crest foam: fading crest foam beyond 450 to 900 m changed nothing (reverted).
+- Not the swell's shading slope: easing the interpolated normal toward level beyond 500 m left the patch share at 1.3 to 1.6 % and raised H1 to 8.1 (reverted).
+- **Volumetric fog takes part:** with `--novolfog` the patch share is 0.84 to 1.21 % and the rounded shapes are mostly gone. With `--volsky=0.4` (no `sky_gain`) it is 1.40 to 2.00 %, still with a band.
+
+The volumetric froxels end at 180 m (`volumetric_fog_length`), so the far sea takes the last slice. The working hypothesis is the interaction of that fog with the 60 m swell's back slopes, and with the radiance map that `sky_gain` brightens. Next steps, if Daniel wants them: a longer froxel range or `volumetric_fog_detail_spread` on the binocular camera only, measured with `flat`.
+
+## Acceptance
+
+**Binocular sheets, every kind** (`ship_<kind>_<range>`, held due north; kinds fishing, schooner, steamer and launch, whose files are the *Kittiwake*, *Gannet*, *Iona Star* and black-boat models):
+- 120, 230 and 400 m at pitch −10, −5 and −3; night and dawn; `--noglass --norain --nohud`; 12 runs, 24 frames.
+- Sheets: `renders/last_light/stageE/e3_sheet_<kind>.png`, all viewed.
+- Every hull reads at every range in both lights, with sidelights, masthead and lit windows at night. The lettering (IONA STAR, SY 112, SY 214) reads at 230 m.
+- The 120 m frames are cut by the window transom at pitch −10, as in E2's sheets.
+
+**H1** (`e3h`, the m6h list at level 5, J.7's method):
+- every horizon row ≤ 4: `ext_far` 0.6 to 3.4, `ext_b*` 0.8 to 1.4, window 0.5 to 2.2, binoculars at night 0.5 to 1.9;
+- the flash frame 0.55;
+- `fp_bolt` 8.8 at +1.99°: the window transom, as in M6 (6.8);
+- the dawn binocular sea steps above (4.8 and 5.3, on the sea, not the horizon).
+
+**H5** (`e3s`, shipseq, `--noglass --norain --nohud`, J.7's method): **PASS**.
+- Empty −10.3, settled −20.6, after the SAVED fade −11.1 (M6: −11.1 / −21.0 / −11.3).
+- Dropping both frames of each beam sweep (samples 7–8, 38–39, 68–69), the largest vessel step is about 3.5 per 1/6 s sample, about 3.4 % of her contrast per 60 fps frame (M6 3.35; limit 15 %).
+
+**Suites** (headless, `taskpolicy -b`):
+
+| Suite | Result |
+|---|---|
+| regress | 501 passed (4 headless skips), R31 new (7 checks) |
+| story | 0 failed |
+| run_tests / opening | 95 / 31 |
+| interaction | 164 checks, 0 failed (12 warnings: the document sounds, Stage D) |
+| qa_sweep / g5 / save_compat / ross | 7,703 / 50 / 305 / 42 |
+| ship_view | PASS |
+| `sim_v2` seeds 1 to 5 | **identical to `stageM/m0_sim_v2_seeds_1_5.json`** (exact equality) |
+| pytest | green |
+
+All suites report 0 SCRIPT ERRORs.
+
+**Bench: NOT TESTED** (waits for Daniel to say the Mac is free).
+- The plan: Medium, Low and High, shots `fp_desk`, `fp_window`, `fp_gen` and `fp_bino`. `--seafx=0` and `--seafx=5` interleaved, then levels 1 to 4 once each, so each feature's cost shows.
+- Targets: section G, against level 0.
+- It also covers E2's deferred bench.
+- If a level costs more than +2 % median on Medium, it gets a quality cap (the switch is already a uniform).
+
+**Not touched:** `vertex()`, `OceanWaves`, `ship_view2.gd`, `wake.gdshader`, the sim, the story.
+
+## Checkpoint (Daniel, 2026-11-19; DECISIONS Q25)
+- **Approved E3; commit it.** The far-sea patches stay PARTIAL as an open item.
+- **Bench later**, when he says the Mac is free.
+- **`--sea=legacy` kept** until that bench.
+- **`stage-e2` and its worktree deleted.** E2's sheets were copied first to `renders/last_light/stageE/e2/`, and the E2 table above now points there. The worktree's untracked files were byte-identical copies of main's.

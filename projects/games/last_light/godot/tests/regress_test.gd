@@ -130,6 +130,7 @@ func _run() -> void:
 	await _r28_one_sea()
 	await _r29_one_atmosphere()
 	await _r30_vessels_in_fog()
+	await _r31_e3_sea()
 	print("REGRESS_RESULT ",JSON.stringify({"passed": passes, "failed": fails.size(), "failures": fails, "skipped": skips}))
 	quit(1 if fails.size() > 0 else 0)
 
@@ -3458,3 +3459,55 @@ func _r30_vessels_in_fog() -> void:
 	_check(mid > 0.3 and mid < 0.7 and v.done, "SAVED: she fades over 10 s (alpha %.2f at 5 s, done at the end: %s)" % [mid, v.done])
 	_check(worst < 0.02, "fade out: largest change in one 60 fps frame %.4f (H5: <= 0.15)" % worst)
 	_check(absf(mid_energy - mid) < 0.02, "her lamps fade with her (energy share %.2f at alpha %.2f)" % [mid_energy, mid])
+
+
+## Audit Stage E (E3): the sea's look in five levels (whitecaps, shore and reef foam, shelf tint, night palette,
+## far-sea floor), each switchable for the paired bench (--seafx); vertex() and its CPU mirrors untouched.
+func _r31_e3_sea() -> void:
+	print("R31 E3 sea (audit Stage E, E3)")
+	var o = g.outside
+	var om: ShaderMaterial = o.ocean_mat
+	var src: String = om.shader.code
+	_check(o.SEAFX_MAX == 5 and o.seafx_level() == o.SEAFX_MAX and int(om.get_shader_parameter("seafx")) == o.SEAFX_MAX,
+		"without --seafx the sea runs every E3 level (%s)" % [om.get_shader_parameter("seafx")])
+	var lv_ok := true
+	for n in range(1, 6):
+		lv_ok = lv_ok and src.contains("if (seafx >= %d)" % n)
+	_check(lv_ok, "ocean.gdshader gates each E3 term on its level (1 to 5), so level 0 is the pre-E3 fragment")
+	var defaults := ["uniform int seafx = 5;", "uniform float whitecap_gain = 1.0;", "uniform float night = 0.0;",
+		"uniform float night_depth = 1.0;", "uniform float far_rough = 0.5;", "uniform float far_normal = 1.2;",
+		"uniform vec3 shelf_color : source_color = vec3(0.075, 0.17, 0.145);"]
+	var miss: Array = []
+	for d in defaults:
+		if not src.contains(d):
+			miss.append(d)
+	_check(miss.is_empty(), "the E3 uniforms carry their recorded defaults %s" % [miss])
+	var vtx: String = src.substr(src.find("void vertex()"), src.find("void fragment()") - src.find("void vertex()"))
+	_check(not vtx.contains("seafx") and not vtx.contains("night") and not vtx.contains("shore_field"),
+		"E3 lives in fragment() only: vertex() and its mirrors (height_at, surface_ys, wake) are untouched")
+	# night follows the sky's dawn (outside.gd sets it every frame from the same value the sky gets)
+	var keep := [o.dawn, o.dusk]
+	o.dawn = 0.0
+	o.dusk = 0.0
+	o._process_body(0.0)
+	var n_night: float = om.get_shader_parameter("night")
+	o.dawn = 1.0
+	o._process_body(0.0)
+	var n_dawn: float = om.get_shader_parameter("night")
+	o.dawn = keep[0]
+	o.dusk = keep[1]
+	o._process_body(0.0)
+	_check(is_equal_approx(n_night, 1.0) and is_zero_approx(n_dawn), "night is 1 at night and 0 at dawn (%.2f, %.2f)" % [n_night, n_dawn])
+	# the field: R is the 11 m surf field as before, G the same distance over SHELF_M
+	var img: Image = (om.get_shader_parameter("shore_field") as Texture2D).get_image()
+	_check(img.get_format() == Image.FORMAT_RG8 and img.get_width() == 256, "shore_field is RG8, 256 px")
+	var worst := 0.0
+	var shelf_px := 0
+	for y in range(0, 256, 2):
+		for x in range(0, 256, 2):
+			var c := img.get_pixel(x, y)
+			if c.g > 0.0 and c.g < 1.0:
+				shelf_px += 1
+				worst = maxf(worst, absf(c.r - clampf(1.0 - (1.0 - c.g) * o.SHELF_M / 11.0, 0.0, 1.0)))
+	_check(shelf_px > 500 and worst < 0.03, "G is the same distance as R over %.0f m (%d samples, worst %.3f)" % [o.SHELF_M, shelf_px, worst])
+

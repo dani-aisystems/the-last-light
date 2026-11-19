@@ -136,3 +136,29 @@ def test_camera_sidecar_lookup(tmp_path):
     out = mh._cmd_band(type("A", (), {"png": [str(img)], "strip": None, "deg": 3.0, "fov": None, "pitch": None,
                                       "eye_y": None})())
     assert out[0]["max_step"] == pytest.approx(0.0) and out[0]["fov"] == 40.0
+
+
+def test_flat_finds_a_pale_flat_patch_and_ignores_texture():
+    """Audit E3: a smooth pale blob on a textured sea counts; the textured sea alone does not."""
+    rng = np.random.default_rng(3)
+    h, w, fov, pitch = 1205, 1920, 10.0, -3.0
+    lum = 120.0 + rng.normal(0.0, 3.0, (h, w))           # textured sea everywhere
+    r0 = int(mh.row_of(-1.0, h, fov, pitch)); r1 = int(mh.row_of(-2.4, h, fov, pitch))
+    base = mh.flat_metric(lum, fov, pitch, (300, 1150))
+    assert base["patch_pct"] < 0.1 and base["longest_run_px"] < 5
+    mid = (r0 + r1) // 2
+    lum[mid - 10:mid + 10, 500:800] = 132.0                # a flat patch 12/255 brighter, 300 px long
+    got = mh.flat_metric(lum, fov, pitch, (300, 1150))
+    assert got["rows"] == [r0, r1] or abs(got["rows"][0] - r0) <= 1
+    assert got["patch_pct"] > 1.0 and got["longest_run_px"] >= 280
+
+
+def test_flat_cli(tmp_path):
+    h, w = 1205, 1920
+    img = Image.fromarray(np.full((h, w, 3), 100, np.uint8))
+    p = tmp_path / "x_t001_a.png"
+    img.save(p)
+    (tmp_path / "x_cams.json").write_text(json.dumps({"x_t001_a.png": {"fov": 10.0, "pitch_deg": -3.0, "size": [w, h]}}))
+    out = mh.main(["flat", str(p), "--strip", "300:1150"])
+    assert out == 0
+

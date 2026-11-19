@@ -484,6 +484,18 @@ func _force(g, st: String) -> void:
 			var who: Array = known.get(slug, ["Kittiwake", "fishing"])
 			g._route(g.sim.spawn_story_ship({"name": who[0], "kind": who[1], "bearing": 6, "aim": 90, "range": vr,
 				"protected": true, "unlit": slug == "visitor"}))
+		_ when st.begins_with("seafx_") and st.substr(6).is_valid_int():   # audit E3: the ocean shader's feature
+			_restore_state["seafx"] = true       # level for this shot only (pair two shots at the same time to A/B)
+			g.outside.ocean_mat.set_shader_parameter("seafx", clampi(int(st.substr(6)), 0, g.outside.SEAFX_MAX))
+		"nobeam":                                # audit E3: the beam hidden for this shot, so an A/B pair isn't
+			_restore_state["nobeam"] = true      # swamped by the sweep (visual only: the sim's lamp is untouched)
+			g.outside.beam_pivot.visible = false
+		"nospec":                                # audit E3 (diagnostic): the moon / dawn light's specular off for
+			_restore_state["nospec"] = g.outside.moon.light_specular   # this shot (which highlights are its)
+			g.outside.moon.light_specular = 0.0
+		"freeze":                                # audit E3: the world clock held (Engine.time_scale 0) for this
+			_restore_state["freeze"] = true      # shot; two frozen shots at the same time show the same waves
+			Engine.time_scale = 0.0
 		"caption":
 			g.presenter.caption.text = "FOOTSTEPS ON THE STAIR. ONE STEP AT A TIME."
 			g.presenter.caption.modulate.a = 0.85
@@ -533,6 +545,14 @@ func _unforce(g) -> void:
 	if _restore_state.has("dawn"):
 		g.outside.dawn = _restore_state["dawn"]
 		g.outside.set_sky("night")
+	if _restore_state.has("seafx"):
+		g.outside.ocean_mat.set_shader_parameter("seafx", g.outside.seafx_level())
+	if _restore_state.has("nobeam"):
+		g.outside.beam_pivot.visible = true
+	if _restore_state.has("nospec"):
+		g.outside.moon.light_specular = _restore_state["nospec"]
+	if _restore_state.has("freeze"):
+		Engine.time_scale = 1.0
 	if _restore_state.has("doc"):
 		g.presenter.close_document()
 	if _restore_state.has("backlog") and g.has_method("close_backlog"):
