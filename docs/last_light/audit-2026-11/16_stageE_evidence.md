@@ -150,3 +150,55 @@ About the SY 214 row: the figures read clearly as white registration numbers, bu
 - **For Daniel's eye:**
   - the colour schemes: *Kittiwake* navy, *Corrie May* green, black boat tarred, *Gannet* black with a white cove line, drifter black with a buff funnel, *Iona Star* black with red boot-top and a star funnel, *Hendrika* grey;
   - the invented funnel colours of *Iona Star* and *Hendrika*.
+
+---
+
+# Part E2 (branch `stage-e2`, worktree `exports/worktrees/last_light_e2`): the vessels in the game
+
+Daniel, 2026-11-17: "You determine, then E2."
+
+E2 runs on its own branch. Stage M has recorded no milestone yet, so the main tree stays as its baseline expects. The branch merges after Stage M's M4. The ocean-shader items (whitecaps, shore and reef foam, depth tint) wait for Stage M's `ocean.gdshader` work.
+
+## E2a to E2c: what changed
+
+| Item | Change | Where |
+|---|---|---|
+| Models | The seven v003 GLBs are synced as `godot/assets/models/ship_*.glb`, together with the textures Godot extracts from them (`ship_*_T_Vessel_*`, committed with the GLBs, since the import needs them). | `assets/models/` |
+| Lookup | `model_for()` tries `ship_<name>.glb` first (e.g. `ship_corrie_may`), then `ship_<kind>.glb`. If neither exists, the stand-in and DIMS are used. | `ship_view2.gd` |
+| Lights | Placed at the model's `NAV_*` / `DECK_*` empties, with each lamp's colour, energy and range as before. The glow sphere on a model is the size of the lens (0.09 m instead of 0.22); a deck lamp on a model gets no sphere. An unlit ship gets no lights, as before. | `ship_view2.gd` `LAMPS`, `_nav` |
+| Size | Length and beam come from the model's bounds. They drive the motion, the wake and the spray. | `ship_view2.gd` |
+| Motion | Heave, pitch and roll come from five points on the sea at 80 % of length and beam. The sea is the one the GPU draws: the horizontal Gerstner displacement is inverted (two fixed-point steps) before the height is read. Damping uses τ = 0.32·√L (1.0 s at 10 m, 1.75 s at 30 m). Bank into turns is capped at 0.18 rad × min(1, 15/L). | `surface_y`, `motion_targets`, `tick` |
+| Stand-in (M1) | The fallback hull is wound outward, so it is no longer culled from outside. | `_hull_mesh` |
+| Wake | A ribbon of the stern's track, one sample per 0.25 s, kept 16 s. It is in world space, widens with age, and fades with age and speed. A new `wake.gdshader` displaces it with the ocean's own Gerstner set, so it lies on the drawn sea. It is lit, not unshaded, so it doesn't glow at night. | `ship_view2.gd` `_wake_*`; `shaders/wake.gdshader` |
+| Bow spray | 48 GPU particles at the stem. They are driven by how fast the bow drops into a sea, times the storm and the speed; there is none on the spawn frame and none from a sinking ship. | `ship_view2.gd` `_make_spray`, `_spray_tick` |
+| Test | New file (`regress_test.gd` is Stage M's). | `tests/ship_view_test.gd` |
+
+## Verification (headless, `taskpolicy -b`, in the worktree)
+
+| Check | Result |
+|---|---|
+| `ship_view_test` | **PASS**, 75 checks:<br>• every name and kind loads the right file;<br>• one vessel mesh, its material kept;<br>• 5 lights (6 on the coasters), 0 on the Visitor;<br>• red to port, green to starboard, the port light at its empty;<br>• within DIMS;<br>• `surface_y` within **1.4 cm** of the GPU surface (reading the height at the rest point was up to 42 cm off);<br>• motion SD in a full storm, pitch / roll: launch 3.35° / 3.30°, coaster 1.67° / 2.15°;<br>• stand-in normals out 309 / 309;<br>• the wake's newest sample 0.5 m from the stern, 37 samples;<br>• spray only under way, never on spawn or when sinking. |
+| `regress_test` | **PASS** 449 / 449 (4 headless skips), the same as Stage P |
+| `story`, `opening`, `run_tests`, `interaction`, `qa_sweep`, `g5`, `save_compat` | **PASS**: 0 failed; 31 / 95 / 164 / 7,703 / 50 / 305 checks |
+| `sim_v2`, seeds 1 to 5 | **PASS**, no gate failures |
+| In-game look (Daniel's OK, 2026-11-17) | **PASS** for the four kind files. Binoculars from `pp_radio`, facing north at 120 / 230 / 400 m (pitch −10 / −5 / −3°), dawn and night, with the glass and with `--noglass`: 8 windowed runs, 48 frames, viewed. Every hull is closed and upright on the water; no inward faces, no sliding texture (M1 fixed on screen). Sidelights show on the correct side (the coaster heading west shows red); windows glow at night. Sheets: `exports/worktrees/last_light_e2/renders/last_light/sheet_e2_<kind>_<glass\|noglass>.png`. The capture ship `Capture launch` is spawned lit, so its lamps show; the story's Visitor is spawned unlit (0 lights, covered by `ship_view_test`). |
+| In-game look: the name variants under way | **PASS**: new capture state `vessel_<name>_<range>`. It spawns the named vessel 6° east of north, under way across the view, protected. It lives in the branch's `capture_fp.gd`: one additive hunk next to `ship_`, to merge with Stage M's file. *Hendrika* shows her own model (grey hull, timber deck cargo, HENDRIKA on the quarter); *Lowestoft Star* her counter stern and mizzen; *Corrie May* BRD 9 and her house; the Visitor is small and dark. All ride a full-storm swell. Sheet: `…/renders/last_light/sheet_e2v_named.png`. |
+| Wake in a window | **PASS, subtle by design**. Found and fixed in three captures:<br>• A red unlit diagnostic showed the ribbon placed correctly behind the stern.<br>• At a 5 cm lift it sat under the drawn sea, because the ocean mesh's 3.33 m cells interpolate between vertices (M4). The lift is now 0.25 m.<br>• Lit, diffuse-only foam read no brighter than the sky-reflecting sea at the tower's grazing angle. The mask was widened and a daylight glow added (0.05 at night, 0.55 at dawn, read from `outside.gd` `dawn` without editing it).<br>Result: a pale streak from the stern at dawn, a faint one at night (`e2w_fix2`, `e2w_fix3`). |
+| Bow spray in a window | **NOT CONFIRMED on screen**. It fires only when the bow plunges under way in a storm; no storm frame caught a burst. Covered headless (`ship_view_test`). |
+| CPU cost per ship | **PASS**: the sea is sampled at 20 Hz with ships out of step, the wave constants are packed, and the wake parameters are set only on change. Mean 35 to 54 µs a ship under `taskpolicy -b` (efficiency cores), so four ships take 0.14 to 0.22 ms a frame, under the 0.4 ms budget checked by `ship_view_test`. It was 60 to 128 µs before. |
+| Bench | **NOT TESTED**: deferred. Load average was 3.5 to 4.6 with other sessions running; Stage P showed that a loaded bench is noise. Run on a quiet Mac. |
+
+**Found on the way (not E2's):** Stage P's extracted body and hands textures (`assets/models/body_T_LL_*`, `hands_T_LL_*`, 24 files with their `.import`) were never committed. A clean checkout cannot load `body.glb` or `hands.glb`, and regress fails 8 checks there. They were copied into the worktree only; committing them in main is Daniel's call.
+
+## 6. Merge into main (2026-11-19, run from the Stage M session at Daniel's request)
+
+`stage-e2` merged without a conflict. The Stage M mirrors were added in the merge commit:
+- `surface_ys()` and `wake.gdshader` take the M1 per-wave distance fade;
+- `ship_view_test`'s GPU reference takes the fade too, with samples out to 1.2 km;
+- a new check confirms the wake receives `wave_fade`.
+
+Results:
+- All suites pass, and `sim_v2` is identical to Stage M's M0 reference.
+- `surface_y` is now within 7 mm of the GPU surface (14 mm before).
+- In-game captures of both kinds and two named vessels are viewed. Details, sheets and the H5 fade check are in `14_stageM_ocean_boundary_fog.md` J.8.
+- The bench is still deferred.

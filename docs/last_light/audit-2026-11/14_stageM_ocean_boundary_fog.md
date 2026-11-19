@@ -613,3 +613,63 @@ The clean pairs are from pass 1, repeat 1 (focused, quiet). Times are medians an
 - H6: a method limit.
 - The pale, flat far-sea patches through the binoculars at dawn (H7): a candidate for Stage E.
 - Removing `--sea=legacy`: Daniel's call after Stage E.
+
+### J.8 Stage E merge of `stage-e2` (2026-11-19, Daniel's go)
+
+**Merge.** `stage-e2` (`fe00dc4`) merged into main in a worktree (`exports/worktrees/last_light_me2`, branch `stage-m-e2-merge`), because main's working copy has another session's uncommitted `--film` hunk in `capture_fp.gd`. Git merged the files without a conflict:
+- `capture_fp.gd`: E2's `vessel_<name>_<range>` state sits beside Stage M's `ext_b`, `shipseq` and `fp_bino`.
+- `ship_view2.gd`: J.5's hooks survived:
+  - `setup()` starts with `_fog_fade.call_deferred(0.0, 0.5)`;
+  - `tick()` ends with `_fog_fade(dt, storm)`;
+  - `_nav()` sets `e0` on each light, and `c0` and `disable_fog` on each bulb;
+  - the Stage M section is unchanged.
+
+**Fixed in the merge commit (J.2's mirrors; E2 was branched before M1):**
+- `ship_view2.surface_ys()`: both loops scale wave i by the M1 fade at the rest point's range. It is the same `1 - smoothstep(FADE[i])` as `OceanWaves.wave_gain`, inlined from a flattened table (`_fades()`):
+  - nothing is evaluated inside the first fade (110 m);
+  - `OceanWaves.legacy` is read per call, so `--sea=legacy` has no fade;
+  - the calming is `OceanWaves.calm(r)`.
+- `shaders/wake.gdshader`: a new `uniform vec2 wave_fade[6]`, with the per-wave gain in `vertex()` as in `ocean.gdshader`. `ship_view2._make_wake()` passes `OceanWaves.shader_fade_array()`.
+- `tests/ship_view_test.gd`, `test_surface_matches_gpu`:
+  - the GPU reference's horizontal shift now includes `wave_gain`;
+  - the samples reach 1.2 km, not 400 m, so every fade band is crossed;
+  - there are 60 samples instead of 40;
+  - a new check that the wake material's `wave_fade` equals `OceanWaves.shader_fade_array()`.
+
+**Tests** (headless, `taskpolicy -b`, in the merge worktree):
+
+| Suite | Result |
+|---|---|
+| regress | 494 passed (4 headless skips): R28 to R30 pass |
+| story | 0 failed |
+| `sim_v2` seeds 1 to 5 | **identical to M0** (`stageM/m0_sim_v2_seeds_1_5.json`, exact equality) |
+| run_tests / opening / interaction / g5 / save_compat / ross / qa_sweep | 95 / 31 / 164 (0 failed) / 50 / 305 / 42 / 7,703, all pass |
+| pytest | green |
+| ship_view | **PASS** at normal priority. Surface error **7 mm** (E2 alone 14 mm, budget 8 cm). |
+
+Ship_view CPU cost:
+- **Normal priority:** about 13 to 14 µs mean a ship (E2 alone: 8 to 18 µs). Median 7 to 8 µs against E2's 3 µs: the difference is M4's per-frame `_fog_fade`, already in main and in the M6 bench.
+- **Under `taskpolicy -b` on a loaded Mac (load 4 to 6):** the "four ships under 0.4 ms" check fails at 70 to 374 µs. E2's own branch fails it the same way there (105 µs, run 1). It is a timing check on throttled cores, not a regression.
+
+**Captures** (merge worktree, `tools/godot_bg`, Medium, `--bot=expert`; all viewed). Sheets in `renders/last_light/stageM/`:
+- `m7_sheet_ships_fishing.png` and `m7_sheet_ships_steamer.png`: M6 against M7, rain and glass on.
+- `m7_sheet_control_fishing.png`: M6, a clean main HEAD without E2 (`m7h_`), and the merge.
+- `m7_sheet_flags_fishing.png`: M6, clean HEAD, and the merge with `--norain --noglass` (`m7n_`).
+- `m7_sheet_shipseq.png`.
+
+Results:
+- **Ships:**
+  - E2's real models replace the stand-ins: the fishing boat with mast, wheelhouse and lamps; the steamer with her funnel and lettering.
+  - At 750 and 1000 m both sink into the murk as in M6. At 400 m: hull and lamps. The window view's horizon is still soft.
+- **Named vessels** (`m7v_iona` at 230 m, `m7v_hendrika` at 400 m at dawn): both read; *Hendrika* is softened by the murk at 400 m.
+- **Wake:** not readable at these angles (E2: subtle by design).
+- **Rain drops and the window latch:** they first looked like a merge change. The control shows the same in a clean HEAD, and the flag-matched set shows M6's look. So the `m6c` sets were taken with `--norain --noglass`, which the record had not listed.
+- **Window frame tint and latch knob:** the committed checkouts (clean HEAD and the merge) show a green-tinted frame and a knob on the latch, where M6 does not. The models on disk are identical (md5), so it is most likely main's local import cache. Not the merge.
+- **H5, `m7s`** (`--norain --nohud --noglass`, J.7's method, 92 frames): **PASS**.
+  - Empty sea −11.1, settled −21.4, after the SAVED fade −11.1. M6: −11.1 / −21.1 / −11.3.
+  - Largest step with the three beam-spike frames dropped: 3.86 across two samples, about 1.9 per 1/6 s sample, about 2 % of her contrast per 60 fps frame. M6: 3.35 per sample. The limit is 15 %.
+
+**Open:**
+- Committing the merge, and bringing it into main past the other session's uncommitted `capture_fp.gd` hunk: Daniel's call.
+- The import-cache difference above.
+- E2's bench: still not run.
