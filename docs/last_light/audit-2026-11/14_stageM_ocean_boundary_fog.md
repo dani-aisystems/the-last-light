@@ -281,6 +281,8 @@ The stage is marked complete only after the after-set has been viewed and Daniel
 | 2026-11-17 | **Daniel approved Stage M**: M0 to M6 as planned, before the rest of Stage E (decision 1). The first implementation session ran out of context before leaving anything: no tool, no captures, no game file touched. |
 | 2026-11-18 | Resumed at M0. Decisions asked (DECISIONS Q22): 2 keep today's density; 3 build the loom, judge on captures; 5 vessel fades in M4; 6 paired bench at M6 (`--sea=legacy` against the new sea), godot_bg capture batches OK. 4 (scud) is asked at M5. Load 4.7 to 10 with a Stage R session running, so no bench. |
 | 2026-11-18 | **M0 done** (results in J.1 below). New `blender/measure_horizon.py` (+ `tests/test_measure_horizon.py`, 10 tests); capture additions; the before-set (`m0h_*`, `m0b_*`, `m0c_*`, `m0s4_*`, sheets in `renders/last_light/stageM/m0_sheet_*.png`, all viewed); the suite baseline (all green). |
+| 2026-11-19 | **M5 built, judged on captures, dropped (Daniel; J.6).** Decision 4 asked: "try it and measure". Built, captured on High against `--scud=off`, shown, and removed on Daniel's call. |
+| 2026-11-19 | **M6 after-set, metrics and suites done (J.7); the paired bench waits for Daniel.** Stage E2 has not merged, so the after-set is main at `f24439b` (M4 plus Stage R, which does not touch the sea or fog). |
 
 ### J.1 M0 baseline (2026-11-18)
 
@@ -505,3 +507,63 @@ The wave set, the calming and the mesh displacement are otherwise unchanged.
 4. M5, near-field drifting scud on High: try it and measure, or skip.
 5. The vessel fade-in and fade-out (fixing today's pop) here (recommended) or in Stage E.
 6. The bench and window captures in M0: when the Mac is free.
+
+### J.6 M5 near-field scud (2026-11-19): built, judged on captures, dropped (Daniel)
+
+**Decision 4** (DECISIONS Q22), asked at M5: Daniel chose **"try it and measure"**, squall included, kept only if the M6 bench shows it earns its milliseconds.
+
+**Built** (all removed again, see below):
+- `scripts/fp/scud.gd` (preload) and `shaders/scud.gdshader` (`shader_type fog`):
+  - four box `FogVolume`s tiling the 30 to 170 m annulus (inner hole ±21.2 m, inscribed in the 30 m circle) from the sea to 36 m;
+  - density from a seamless 64³ `NoiseTexture3D`, flattened, thresholded into patches, trimmed by a ring mask and a height mask;
+  - carried by `TitleStorm.WIND` at 4 to 11 m/s, the drift integrated on the CPU;
+  - a squall envelope from three slow sines (about 11 % of a gale's time, only above storm 0.25), adding density, speed and cover;
+  - High only, off on the title, the legacy sea and `--scud=off`; visual only (no sim access, no random draws).
+- Regress R31 (14 checks: the High-only gate, annulus coverage, the shader's masks equal to the CPU copies, the drift, the squall's smoothness and share, the title, the dawn, no sim access).
+
+**Calibration** (`ext_b045`, beam-free half of the frame):
+- At ×30 density the volumes render as an opaque wall.
+- Fog-volume `EMISSION` behaves as density-weighted: an opaque patch converges to it.
+- At 1× the murk (linear) the wall was 9 to 13/255 against the bank's 41 to 51, near black. At 3× it matched the bank (45, 43, 44 against 41, 43, 51), so a patch seen against the horizon cannot draw a line.
+- The first density (0.010 to 0.030 1/m) was invisible; the judged set used 0.030 to 0.090.
+
+**Judged** (`m5f` on, `m5fo` off, `m5fq` full squall; High, storm 0.55 and 1.0; sheets `stageM/m5_sheet_scud_ext.png`, `m5_sheet_scud_window.png`; viewed):
+- The scud read as an uneven darkening of the middle distance, not as drifting patches: the volumetric fog's froxel grid is coarse at 30 to 170 m, so patches blur into large soft blobs.
+- The beam lights it as big, soft, warm blobs.
+- In a gale, and more in a squall, the window view went to flat murk: the sea, the horizon and anything beyond about 120 m disappeared. That is far below the 0.6 km gale visibility of decision 2, and it hides the vessels the player must find.
+- No frame-time figure was taken: the capture fps are run-to-run noise on a loaded Mac, and the bench waits for Daniel.
+
+**Daniel (2026-11-19): drop it.** `scud.gd`, `scud.gdshader`, R31 and the two `outside.gd` hooks were removed; a temporary `lamp_off` capture state was removed too. The game files are back to the M4 commit. Nothing to commit for M5 beyond this record and DECISIONS Q22. The M5 captures stay in `renders/last_light/` (`m5*`, gitignored). Not evidence for the look: `m5o --scud=off_*` (a mis-named re-run with the scud still on, from a shell loop bug; `m5n` is the real scud-off set), and the calibration frames `m5x*`, `m5y*`, `m5e*` and `m5g` (dev knobs `--scud_gain` and `--scud_em`).
+
+### J.7 M6 QA and checkpoint (2026-11-19)
+
+**Base:** main at `f24439b` (M0 to M4 plus Stage R's commit; M3 and M5 dropped, so no game file differs from the M4 commit). `stage-e2` had not merged, so R28 to R30 were not re-run against E2's `ship_view2.gd` (to do after that merge: J.5's notes).
+
+**After-set** (`tools/godot_bg`, Medium, `--bot=expert`; the shot lists rebuilt from the M0 file names, so the shots are the same):
+- `m6h_*`, the M0 metric set (35 shots, `--noglass --norain --nohud`);
+- `m6c_fishing_*` and `m6c_steamer_*` (6 each);
+- `m6s_*` (`shipseq`, 93 frames);
+- `m6b_*` (as played: title, window, binoculars, `fp_window`, `ext_far`);
+- `m6t_*` (title and room close-ups, the `m1t` / `m2t` shots).
+- Sheets, all viewed: `stageM/m6_sheet_ships_fishing.png`, `m6_sheet_ships_steamer.png`, `m6_sheet_played_title.png`, `m6_sheet_room.png`.
+
+**Results against section H:**
+
+| # | Result | Evidence |
+|---|---|---|
+| H1 | **PASS for the horizon** | Largest step within ±3° of the horizon, M0 → M6: `ext_far` 24 to 51 → **1.0 to 3.2**; `ext_b000` to `ext_b315` 46 to 52 → **1.2 to 1.4**; window 15 to 29 → **0.5 to 2.1**; binoculars (strip 300:1150) 18 to 36 → **0.4 to 3.9**; flash 7.5 → **0.7**; `fp_bolt` 10.3 → 6.8, but at +1.99° in M0, M2 and M6 alike: the window's horizontal transom, not the horizon (viewed: the horizon behind the bolt is soft). One view is over 4: the binoculars at dawn, `pitch_m3`, **5.0 at −1.38°**, 165 rows below the horizon. It is on the sea, not the horizon (see H7). |
+| H2 | **PASS** | No step at any of the eight bearings (`ext_b*` 1.2 to 1.4, all on the bank's soft gradient above the horizon). |
+| H3 | **PARTIAL** | `ext_b000`, the sea's luma spread per 1° strip. At 100 to 150 m it is 7.9 to 15.1, against M0's 7.5 to 14.4, so the near sea keeps at least M0's contrast now the 45 % veil is gone. The "≥ 80 % of no-fog" figure needs a no-fog capture (NOT TESTED). The spread does not fall steadily with range: 8.3 at 154 m, 10.9 at 620 m, 12.1 at 1.2 km. The long swell's foreshortened crests and the far sea's flat patches add banding with range. |
+| H4 | **PARTIAL** (unchanged from J.3) | The bank's edge varies 1.1 to 1.3° across about 85° and moves 0.27 to 0.40° in 30 s; Daniel's eye still to come. |
+| H5 | **PASS** | `m6s`, window x 700–1220, y 400–700, the darkest 2 % against the median. The empty sea is −11.1 and the settled vessel −21.2. In over about 9 samples (1.5 s), out over about 20 (3.3 s). The largest vessel step is 3.35 per 1/6 s sample, about 3 % of her contrast per 60 fps frame (≤ 15 %). Three one-frame spikes at samples 8, 39 and 69 (5 s apart) are the beam sweeping through the still camera: the expert bot relights the lamp that `shipseq` turns off (as at M4's f075). M0 (J.1): about 108 % in one frame. |
+| H6 | **PARTIAL** (unchanged) | The eyepiece vignette (about 32/255) prevents an absolute comparison; each view passes H1 on its own. |
+| H7 | **PASS with one open item** | R28 passes (regress 494). Seen: no facets or shimmer. **Open:** through the binoculars at dawn, the far sea at about 0.6 to 1 km shows pale, flat, sharp-edged patches. The faded short waves leave the surface flat there, and it mirrors the bright dawn sky between the 60 m swell's crests. Already in M2 (`m2h_t083`, step 3.4), so not new in M6; it is the 5.0 above. A candidate for Stage E's sea work (a far-sea roughness floor or a distance blend of the normal), not a horizon fault. |
+| H8 | **PASS** | The loom was dropped; the beam code is as approved. Title (`m6_sheet_played_title.png`, `m6_sheet_room.png`): the layout and brightness match M0; the faint sea line is gone; the cloud deck is back (Q23). |
+| H9 | **PASS** | Story 0 failed; `sim_v2` seeds 1 to 5 **identical to the M0 JSON** (exact equality); run_tests 95; opening 31; interaction 164 (0 failed); g5 50; save_compat 305; regress 494 (4 headless skips); qa_sweep 7,703 (92 s); pytest green. |
+| H10 | **NOT TESTED** | The paired bench waits for Daniel (decision 6): `tools/godot --audio-driver Dummy --novsync --bench --bench_shots=fp_desk,fp_window,fp_gen,fp_bino`, quality 0, 1 and 2, `--sea=legacy` and the new sea interleaved, 2 repeats, "focused" checked, 1-minute load below 3. |
+
+**Ships** (`m6_sheet_ships_*.png`, M0 against M6, both kinds):
+- At 1000 m M0 showed a crisp black silhouette on a hard horizon; M6 has nothing readable in that frame, because the beam was in the view.
+- At 750 m M0 showed a silhouette against the sky; M6 shows her lamps and a faint hull in the murk.
+- At 400 m: hull and lights. At 230 m and 120 m: unchanged.
+- To the naked eye: no hard line.

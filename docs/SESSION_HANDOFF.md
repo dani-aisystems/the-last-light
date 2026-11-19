@@ -22,9 +22,9 @@
   - deleting the superseded Ross `.blend` versions (v010, v011, v013 to v016, v018, v019), on Daniel's OK;
   - the next Stage R steps, if wanted: a capture state in `capture_fp.gd` for the entrance and the ch6 marks (a stair-climb into A; the mug at E).
 
-## LATEST (2026-11-18): audit Stage M (ocean boundary and fog) approved, in progress at M0
+## LATEST (2026-11-19): audit Stage M (ocean boundary and fog): M0 to M4 done, M5 dropped, M6 QA done; the paired bench and Daniel's checkpoint remain
 - **Record:** `docs/last_light/audit-2026-11/14_stageM_ocean_boundary_fog.md` (plan in sections D to J; progress in J). Decisions: DECISIONS Q22. Session plan: `~/.claude/plans/pasted-content-id-b67c-continue-the-soft-glacier.md`.
-- **Daniel:** approved 2026-11-17 (M0 to M6, before the rest of Stage E). 2026-11-18: keep today's fog density; build the loom and judge it on captures; vessel fades in M4; a paired bench at M6 only (`--sea=legacy` against the new sea, on a quiet Mac when he says so). **M5 scud is still his call** (ask at M5).
+- **Daniel:** approved 2026-11-17 (M0 to M6, before the rest of Stage E). 2026-11-18: keep today's fog density; build the loom and judge it on captures; vessel fades in M4; a paired bench at M6 only (`--sea=legacy` against the new sea, on a quiet Mac when he says so). 2026-11-19: M5 scud "try it and measure", then **dropped** on the captures (J.6).
 - **State:** the first M session (2026-11-17) left nothing behind; M0 restarted 2026-11-18. Work is in main; E2 stays on `stage-e2` and **merges after M4** (this entry will say when M4 is done).
 - **M0 done 2026-11-18** (record section J.1):
   - new `blender/measure_horizon.py` and its pytest;
@@ -47,14 +47,22 @@
 - **M4 DONE 2026-11-18 (J.5): Stage E can now merge `stage-e2`.**
   - Vessels fade in over 3 s and out over the 10 s SAVED fade; the lamps read before the hull (fog-dimmed by √T); regress R30; H5 PASS; all suites green; `sim_v2` identical.
   - Merge notes are in J.5: keep the Stage M (M4) section of `ship_view2.gd` and its call lines; mirror `wave_gain` in `surface_ys()` and `wake.gdshader`.
+- **M5 (scud) 2026-11-19 (J.6):** built (4 FogVolumes, 30 to 170 m, wind drift, squall), judged on High captures, **dropped by Daniel**: it read as uneven haze, and a gale hid the sea and the vessels. The code is removed; nothing to commit but the records.
+- **M6 2026-11-19 (J.7), on main `f24439b` (E2 not merged):**
+  - after-set `m6h` / `m6c_*` / `m6s` / `m6b` / `m6t`, all viewed;
+  - H1 0.4 to 3.9 (M0 15 to 52), except a sea-texture step of 5.0 in the dawn binocular view;
+  - H2, H5, H8 and H9 PASS; H3, H4 and H6 PARTIAL; H7 PASS with one open item (pale flat patches on the far dawn sea through the binoculars, since M1's wave fade);
+  - all suites green; `sim_v2` identical to M0.
 - **Next:**
-  - **M5** (near-field scud on High): Daniel's decision 4 is still open; ask him with the frame-time headroom;
-  - **M6** (QA, after-set, the paired bench `--sea=legacy` against the new sea when Daniel says the Mac is free, the checkpoint).
-  - `qa_sweep` took 62 min under load 13 (a Codex renderer at 97 % CPU); the clean figure is 105 s.
+  - the paired bench (H10) once Daniel says the Mac is free: quality 0/1/2 × `--sea=legacy` and new × 2 repeats, foreground `tools/godot --audio-driver Dummy --novsync --bench --bench_shots=fp_desk,fp_window,fp_gen,fp_bino`;
+  - then Daniel's checkpoint: approve the after-set and the M2 look, H4, the dawn patches, a commit of the records, and removing the legacy path as a separate ask;
+  - after an E2 merge: re-run R28 to R30 and check that `ship_view2.gd` still calls `_fog_fade` and mirrors `wave_gain`.
+  - `qa_sweep` took 92 s on 2026-11-19 (62 min under load 13 once).
 - **Gotchas:**
   - the windows only see bearings −51° to +51°;
   - capture ships beyond 310 m need `far_ships`;
-  - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off.
+  - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off (the expert bot relights it: the beam crosses every 5 s; drop those frames);
+  - in zsh, `set -- $var` does not split words: build capture loops in a bash script.
 - **For the Stage E merge:** `ship_view2.surface_ys()` (both loops) and `wake.gdshader`'s `gerstner()` must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = |rest position| (record J.2).
 
 ## NEW (2026-11-17): audit Stage R, part 1 (Ross: marks, figure, three lit stills); Daniel delegated the judgement, see part 2 above
