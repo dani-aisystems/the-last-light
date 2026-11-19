@@ -22,10 +22,10 @@
   - deleting the superseded Ross `.blend` versions (v010, v011, v013 to v016, v018, v019), on Daniel's OK;
   - the next Stage R steps, if wanted: a capture state in `capture_fp.gd` for the entrance and the ch6 marks (a stair-climb into A; the mug at E).
 
-## LATEST (2026-11-19): audit Stage M (ocean boundary and fog): CLOSED. M0 to M4 done, M3 and M5 dropped, M6 QA done, look approved; bench H10 PARTIAL (Medium PASS)
+## LATEST (2026-11-19): audit Stage M (ocean boundary and fog): CLOSED. M0 to M4 done, M3 and M5 dropped, M6 QA done, look approved; bench H10 PARTIAL (Medium PASS); **`stage-e2` merged into main (`b313e84`, J.8)**
 - **Record:** `docs/last_light/audit-2026-11/14_stageM_ocean_boundary_fog.md` (plan in sections D to J; progress in J). Decisions: DECISIONS Q22. Session plan: `~/.claude/plans/pasted-content-id-b67c-continue-the-soft-glacier.md`.
 - **Daniel:** approved 2026-11-17 (M0 to M6, before the rest of Stage E). 2026-11-18: keep today's fog density; build the loom and judge it on captures; vessel fades in M4; a paired bench at M6 only (`--sea=legacy` against the new sea, on a quiet Mac when he says so). 2026-11-19: M5 scud "try it and measure", then **dropped** on the captures (J.6).
-- **State:** the first M session (2026-11-17) left nothing behind; M0 restarted 2026-11-18. Work is in main; E2 stays on `stage-e2` and **merges after M4** (this entry will say when M4 is done).
+- **State:** the first M session (2026-11-17) left nothing behind; M0 restarted 2026-11-18. Work is in main; E2 was merged into main on 2026-11-19 (`b313e84`, record J.8).
 - **M0 done 2026-11-18** (record section J.1):
   - new `blender/measure_horizon.py` and its pytest;
   - capture states `storm_<pct>`, `far_ships`, `ext_b<deg>`, `shipseq`, the `fp_bino` bench shot, and `<capture>_cams.json`;
@@ -60,11 +60,20 @@
   - VRAM PASS: 1331 MB at most.
   - High not cleanly tested: 28 to 39 ms on **both** seas, so the 25 ms target is a High-budget item, not a Stage M cost.
   - The stray M5 renders were deleted (Daniel's OK).
+- **E2 merge 2026-11-19 (record J.8; Daniel asked this session to do it):** `stage-e2` is merged into main as `b313e84`.
+  - The merge was clean, and J.5's fog hooks survived. The commit adds the M1 wave fade to `surface_ys()` (inlined, nothing evaluated inside 110 m) and to `wake.gdshader` (`wave_fade` uniform). `ship_view_test`'s GPU reference now samples to 1.2 km.
+  - Results:
+    - all suites green;
+    - R28 to R30 pass;
+    - `sim_v2` identical to M0;
+    - `surface_y` within 7 mm of the GPU surface;
+    - H5 on `m7s` PASS (−11.1 / −21.4 / −11.1);
+    - `m7c` / `m7v` captures viewed, sheets `renders/last_light/stageM/m7_sheet_*`.
+  - The other session's uncommitted `--film` hunk in `capture_fp.gd` was set aside for the fast-forward and put back unstaged, line-for-line identical.
+  - `ship_view`'s "four ships under 0.4 ms" check fails only under `taskpolicy -b` on a loaded Mac, and E2 alone fails it the same way there; it passes at normal priority (about 14 µs a ship).
+  - `m6c` was captured with `--norain --noglass`: match those flags when comparing.
+  - Committed checkouts show a green-tinted window frame and a latch knob that main's working copy did not render at M6. The models are identical, so it is probably main's local import cache.
 - **Stage M is closed.** Handed over, not fixed in Stage M:
-  - **after Stage E merges `stage-e2`** (not merged on 2026-11-19; don't merge it from Stage M):
-    - re-run R28 to R30;
-    - confirm `ship_view2.gd` ends `tick()` with `_fog_fade(dt, storm)`, starts `setup()` with `_fog_fade.call_deferred(0.0, 0.5)`, and scales each wave by `OceanWaves.wave_gain(i, r)` in both loops of `surface_ys()` and in `wake.gdshader`'s `gerstner()` (J.2, J.5);
-    - take a short `m7c_` / `m7s` ship and `shipseq` set and view it.
   - H4 (bank edge variation): needs Daniel's eye.
   - H6 (binocular vignette): a method limit.
   - The pale, flat far-sea patches at 0.6 to 1 km through the binoculars at dawn (`m6h_t083_..._pitch_m3-dawn`, H1 step 5.0 on the sea): a candidate for Stage E's sea work.
@@ -77,7 +86,7 @@
   - capture ships beyond 310 m need `far_ships`;
   - binocular frame series sway, so H5 uses `shipseq`'s still camera with the lamp off (the expert bot relights it: the beam crosses every 5 s; drop those frames);
   - in zsh, `set -- $var` does not split words: build capture loops in a bash script.
-- **For the Stage E merge:** `ship_view2.surface_ys()` (both loops) and `wake.gdshader`'s `gerstner()` must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = |rest position| (record J.2).
+- **Any new mirror of the sea surface** (CPU or GPU) must scale wave i by `OceanWaves.wave_gain(i, r)`, with r = |rest position| (record J.2). `ship_view2.surface_ys()` and `wake.gdshader` do since `b313e84`.
 
 ## NEW (2026-11-17): audit Stage R, part 1 (Ross: marks, figure, three lit stills); Daniel delegated the judgement, see part 2 above
 - **Record:** `docs/last_light/audit-2026-11/17_stageR_evidence.md` (17, since 16 is Stage E's). Plan: `~/.claude/plans/pasted-content-id-4bbf-continue-the-scalable-patterson.md`.
