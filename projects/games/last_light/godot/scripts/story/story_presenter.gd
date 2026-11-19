@@ -3,6 +3,7 @@ extends CanvasLayer
 ## time-skip fades. Owned by game_fp in story mode; talks to StoryDirector via signals.
 
 signal document_closed(doc_id: String)
+signal document_opened(doc_id: String)     # audit D: game_fp plays the paper slide (also on a page turn)
 signal log_card_shown(entry: Dictionary)   # G2b: a log line starts being written on screen (game_fp: pen sound)
 
 const CARD_ON_BLACK_S := 1.8          # the clock or chapter card is fully up on black at least this long (item 21)
@@ -434,6 +435,15 @@ func _hide_thought(_item = null) -> void:
 	_thought_tw.tween_property(thought, "modulate:a", 0.0, 0.2)
 
 
+## audit D: a short thought or a sound caption is on screen (the music duck counts them as messages).
+func is_thought_visible() -> bool:
+	return thought != null and thought.modulate.a > 0.05
+
+
+func is_caption_visible() -> bool:
+	return caption != null and caption.modulate.a > 0.05
+
+
 ## A sound caption outside a conversation: small capitals, low centre, about three seconds.
 func show_caption(t: String) -> void:
 	caption.text = t.strip_edges().trim_prefix("[").trim_suffix("]").strip_edges().to_upper()
@@ -667,6 +677,7 @@ func open_document(id: String) -> void:
 	doc_root.visible = true
 	dialogue.visible = false                     # its subtitles bled through the shade under the legend
 	_layout_doc.call_deferred()
+	document_opened.emit(id)
 
 
 func _update_doc_title() -> void:

@@ -38,7 +38,7 @@
     {"id": "sked", "needs_power": true, "when": "has_flag(\"read_glass\")", "bot_player": {"set": ["read_glass"]}, "do": [["wait", 3], ["sfx", "static_burst"], ["talk", "ch1_sked"]], "duty": []},
     {"id": "check", "needs_power": true, "when": "true", "do": [["timeskip", 1260, "21:00"], ["clock", 1260, 0.4], ["wait", 2], ["talk", "ch1_check_2100"], ["log", "log_2100"]], "duty": []},
     {"id": "hector_heard", "needs_power": true, "when": "sim.clock_min >= 1300", "do": [["talk", "ch1_hector_heard"]], "duty": []},
-    {"id": "teleprinter", "when": "sim.clock_min >= 1320", "do": [["set", "teleprinter_2200"], ["talk", "ch1_teleprinter"], ["autosave"]], "duty": []},
+    {"id": "teleprinter", "when": "sim.clock_min >= 1320", "do": [["set", "teleprinter_2200"], ["sfx", "teleprinter"], ["talk", "ch1_teleprinter"], ["autosave"]], "duty": []},
     {"id": "late", "when": "true", "do": [["timeskip", 1405, "23:25"], ["clock", 1405, 0.15], ["storm", 0.25], ["wait", 2], ["talk", "ch1_morag_late"], ["log", "log_2325"]], "duty": []},
     {"id": "log", "when": "has_flag(\"read_log_1971\")", "do": [["wait", 2], ["talk", "ch1_log_after"]], "duty": ["write_up"]},
     {"id": "mary_ellen", "when": "true", "do": [["clock", 1438, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]], "duty": []}
@@ -105,7 +105,7 @@
     {"id": "approach", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0, "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "tension"], ["talk", "ch4_watch"]], "duty": []},
     {"id": "identify", "needs_power": true, "when": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "do": [["talk", "ch4_bow"], ["clue", "sy214"]], "duty": ["dark_boat"]},
     {"id": "hail", "when": "has_flag(\"docked_Visitor\")", "do": [["wait", 2], ["talk", "ch4_docked"]], "duty": ["dark_boat_in"]},
-    {"id": "steps", "when": "true", "do": [["fault", "gen_out"], ["talk", "ch4_gen_out"], ["wait", 3], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
+    {"id": "steps", "when": "true", "do": [["fault", "gen_out"], ["talk", "ch4_gen_out"], ["wait", 3], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["sfx", "ross_cough"], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
     {"id": "door", "when": "has_flag(\"at_door\")", "do": [["talk", "ch4_door"], ["autosave"]], "duty": ["door"]}
    ]},
   {"n": 5, "title": "The Truth", "subtitle": "Monday 15 November · 03:04",

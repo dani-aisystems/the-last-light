@@ -174,6 +174,12 @@ func _setup_story(save: Dictionary) -> void:
 	Settings.changed.connect(_on_settings_changed)     # method (not lambda): auto-disconnects when freed
 	presenter.dialogue.blip.connect(func(kind): audio.ui_blip(kind))
 	presenter.document_closed.connect(_on_doc_closed)
+	presenter.document_opened.connect(func(_id): if audio: audio.paper(true))     # audit D: paper in the hands
+	audio.message_probe = message_on_screen
+	audio.radio_probe = radio_message_on_screen
+	audio.visitor_probe = func(): return visitor_fig.global_position if visitor_fig and visitor_fig.visible else Vector3.INF
+	audio.player_probe = func(): return {"pos": player.global_position,
+		"walk": player.focused == "" and player.is_on_floor() and not get_tree().paused and not presenter.is_document_open()}
 	presenter.log_card_shown.connect(func(_e): if audio: audio.sfx("pen_write", -8.0))   # G2b: the pen on paper
 	backlog = preload("res://scripts/ui/backlog_ui.gd").new()
 	backlog.chapter_title_fn = func(n): return String(director.chapter_data(n).get("title", ""))
@@ -226,6 +232,7 @@ func _on_story_event(name_: String, args: Array) -> void:
 			# Stage S: the dogs come off as the wheel turns, then the leaf swings (station.DOOR_LATCH_S later)
 			audio.sfx_at("door_dogs", station.door_position() + Vector3(0, 1.0, 0))
 			audio._later(station.DOOR_LATCH_S, func(): audio.sfx_at("door_heavy", station.door_position()))
+			audio._later(station.DOOR_LATCH_S + 0.1, func(): audio.sfx_at("door_hinge", station.door_position() + Vector3(0, 1.9, 0), -8.0))
 		"visitor_enter":
 			_spawn_visitor()
 		"knock":
@@ -275,6 +282,7 @@ func _on_doc(id: String) -> void:
 		"coat_note":
 			doc = "coat_note"                  # cabin pass: the stores note in the oilskin pocket
 		"drawer":
+			audio.drawer()                          # audit D
 			if director.state.chapter >= 5:
 				doc = "letter_1957"
 			else:
@@ -292,6 +300,7 @@ func _on_doc(id: String) -> void:
 		"door":
 			_use_door()
 		"phone":
+			audio.phone()                           # audit D: the handset lifted, the dead line
 			var conv := "look_phone_ch4" if director.state.chapter == 4 and director.beat_reached("hail") else "look_phone"
 			if not director.play_aside(conv):
 				presenter.show_hint("The GPO line. Dead since the September gale.")
@@ -316,6 +325,7 @@ func _on_doc(id: String) -> void:
 				presenter.show_hint("The standby clockwork. Wound this watch.")
 		"primus":
 			if director.state.chapter == 5 and director.beat_id() == "cup" and not director.state.has_flag("primus_ch5"):
+				audio.kettle()                                 # audit D: lit, the kettle comes to the boil
 				director.on_player_event("primus_ch5")      # the cup beat plays ch5_cup
 			elif director.state.chapter == 1 and not director.state.done("look_kettle_a"):
 				director.play_aside("look_kettle_a")
@@ -343,6 +353,8 @@ func _at_desk() -> bool:
 
 
 func _on_doc_closed(doc: String) -> void:
+	if audio:
+		audio.paper(false)                       # audit D: the softer lay-down
 	match doc:
 		"log_1971":
 			if _at_desk():                     # G2b: L opens the book anywhere; writing up is done at the desk
@@ -842,6 +854,21 @@ func _show_comms(from: String, text: String, outgoing: bool) -> void:
 	if Settings.v["subtitles"] or outgoing:
 		ui.add_subtitle(from, text, outgoing)
 	_comms_gap = COMMS_GAP_S
+
+
+## audit D: any message on screen: a story line (radio, person, thought), a short thought, a sound caption or
+## a radio subtitle. The music ducks under it (F 23.8).
+func message_on_screen() -> bool:
+	if presenter and (presenter.dialogue.is_active() or presenter.is_thought_visible() or presenter.is_caption_visible()):
+		return true
+	return ui != null and ui.has_subtitles()
+
+
+## audit D: a radio message on screen (a radio-look story line or a radio subtitle): the static dips under it.
+func radio_message_on_screen() -> bool:
+	if presenter and presenter.dialogue.is_active() and presenter.dialogue.line_look == "radio":
+		return true
+	return ui != null and ui.has_subtitles()
 
 
 func _story_speaking() -> bool:

@@ -415,6 +415,8 @@ func load_slot(slot: String) -> void:
 # ------------------------------------------------------------------ loading + transition
 
 func _transition_in(save: Dictionary) -> void:
+	if menu_bg and is_instance_valid(menu_bg) and menu_bg.audio:
+		menu_bg.audio.set_menu(false, 2.6)     # audit D: the title pad fades over the camera move, not cut dead
 	var cam: Camera3D = menu_bg.cine_cam if menu_bg else null
 	if cam and menu:
 		_lock_menu(true)

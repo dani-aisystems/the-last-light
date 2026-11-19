@@ -1,5 +1,29 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## NEW (2026-11-19): audit Stage D (audio) approved by Daniel and committed locally (DECISIONS Q26); the music (score system) next
+- **Record:** `docs/last_light/audit-2026-11/18_stageD_audio.md`. **Listening files for Daniel:** `renders/last_light/stageD/listen/` (`INDEX.md`).
+- **Built:**
+  - static −6 dB under a radio message;
+  - a Stair bus (stairwell reverb, then a door low-pass that follows the swing: 700 Hz shut, 8 kHz open) and a light room reverb on SFX;
+  - `paper_slide` / new `paper_close` on documents;
+  - the title pad fades over the New Game camera move (`set_menu(false, 2.6)`);
+  - `game_fp.message_on_screen()` (for the music duck);
+  - the keeper's own footsteps (concrete; steel on the landing).
+- **Recorded CC0** (Daniel's OK, all four groups, teletype included; Freesound previews; `assets/audio_cc0/`, `assets/ASSET_LICENSES.md`):
+  - cut by the new `audio/recorded.py` into 31 takes (`audio/RECORDED.json`);
+  - wired: Ross's cough (stair and room, never the same take twice), breaths, his stair steps, the hinge, phone, kettle, teleprinter;
+  - new synth: `drawer_slide`, `phone_dead`, `bowl_drain`;
+  - `hand_pump` is cut but unwired (for Stage F).
+- **Already fixed before this stage:** `horn_fishing` and `click_button` (re-measured clean).
+- **Tests:**
+  - new `tests/audio_d_test.gd` 37/37;
+  - `interaction_test` document warnings 12 → 0;
+  - `analyze.py --strict` 86 files, 0 flagged;
+  - pytest green.
+- **Gotchas:**
+  - Movie Maker can't run headless; record the mix with `AudioEffectRecord` instead (`tests/listen_d.gd`), at normal priority (the dummy mixer falls behind under `taskpolicy -b`).
+  - In zsh, a failed glob aborts the whole `rm`.
+
 ## NEW (2026-11-19): audit Stage E, part E3 (the sea's look) approved by Daniel and committed locally (DECISIONS Q25); Stage D next
 - **Record:** `docs/last_light/audit-2026-11/16_stageE_evidence.md`, Part E3. Plan: `~/.claude/plans/pasted-content-id-4c59-continue-the-temporal-thompson.md` (E3, then Stage D audio, then the music; one checkpoint each).
 - **Built:**

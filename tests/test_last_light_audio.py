@@ -3,7 +3,8 @@
 - synth.py is deterministic and the committed WAVs are exactly what it produces (so nobody hand-edits
   a generated file, and a regenerate never silently changes a sound);
 - every file passes analyze.py's gates: CLIP, DC, SEAM, QUIET, LOUD, and SHORT (constant loops >= 20 s);
-- the files the game references exist (6 thunder variants, carrier_click, the gust and glass layers).
+- the files the game references exist (6 thunder variants, carrier_click, the gust and glass layers);
+- audit Stage D: the recorded CC0 files listed in audio/RECORDED.json match it and are licence-logged.
 Whether anything SOUNDS right is Daniel's call at a listening session.
 """
 
@@ -33,9 +34,17 @@ def fresh(tmp_path_factory):
     return out
 
 
+def _recorded():
+    """audit Stage D: the recorded CC0 files (audio/recorded.py), name -> manifest entry."""
+    import json
+    m = AUDIO_DIR / "RECORDED.json"
+    return {f["name"] + ".wav": f for f in json.loads(m.read_text())["files"]} if m.exists() else {}
+
+
 def test_committed_audio_matches_synth(fresh):
     made = sorted(p.name for p in fresh.glob("*.wav"))
-    committed = sorted(p.name for p in ASSETS.glob("*.wav"))
+    rec = _recorded()
+    committed = sorted(p.name for p in ASSETS.glob("*.wav") if p.name not in rec)
     assert made == committed, f"missing in assets: {set(made) - set(committed)}; stale in assets: {set(committed) - set(made)}"
     differ = [n for n in made if (fresh / n).read_bytes() != (ASSETS / n).read_bytes()]
     assert not differ, f"regenerate with audio/synth.py: {differ}"
@@ -52,3 +61,24 @@ def test_referenced_sounds_exist():
     need = [f"thunder_{k}" for k in range(8)] + ["carrier_click", "amb_gust", "amb_rain_glass", "amb_wind", "amb_rain", "amb_sea"]
     missing = [n for n in need if not (ASSETS / f"{n}.wav").exists()]
     assert not missing, missing
+
+
+def test_recorded_audio_matches_its_manifest():
+    """audit Stage D: each recorded file is exactly what audio/recorded.py wrote (sha256 in RECORDED.json), has a
+    CC0 source page, and is logged in assets/ASSET_LICENSES.md; no recorded name collides with a synth one."""
+    import hashlib
+    rec = _recorded()
+    assert rec, "audio/RECORDED.json is missing or empty"
+    lic = (WS / "assets/ASSET_LICENSES.md").read_text()
+    bad = []
+    for name, f in rec.items():
+        p = ASSETS / name
+        if not p.exists() or hashlib.sha256(p.read_bytes()).hexdigest() != f["sha256"]:
+            bad.append(f"{name}: missing or changed (re-run audio/recorded.py)")
+        src = f["source"]
+        if src["licence"] != "CC0 1.0" or src["page"] not in lic:
+            bad.append(f"{name}: source not CC0 or not in ASSET_LICENSES.md")
+    assert not bad, bad
+    synth_names = {p.name for p in ASSETS.glob("*.wav")} - set(rec)
+    assert not (set(rec) & synth_names)
+

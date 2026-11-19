@@ -531,6 +531,46 @@ def paper_slide():
     save("paper_slide", x, -6)
 
 
+def paper_close():
+    """audit Stage D: a document laid down (softer and shorter than paper_slide, 6 dB lower): a quick slide,
+    a lower, duller band, and a light tap as it settles on the desk."""
+    sec = 0.6
+    tt = t(sec)
+    x = band(noise(sec), 1200, 6000) * (np.sin(np.pi * np.clip(tt / 0.42, 0, 1)) ** 2) * 0.8
+    tap = band(noise(sec), 90, 900) * np.exp(-np.clip(tt - 0.44, 0, None) / 0.03) * (tt >= 0.44) * 0.6
+    save("paper_close", x + tap, -12)
+
+
+def drawer_slide():
+    """audit Stage D: the desk's bottom drawer: wood on wood runners, a small rattle of pencils, a soft stop."""
+    sec = 0.9
+    tt = t(sec)
+    slide = band(noise(sec), 250, 2500) * (np.sin(np.pi * np.clip(tt / 0.7, 0, 1)) ** 1.5) * (0.6 + 0.4 * lfo(sec, 23, 1.0))
+    rattle = drops(sec, 9, 2500, 5200, 0.05, 0.18) * np.clip((tt - 0.15) / 0.5, 0, 1)
+    stop = band(noise(sec), 80, 700) * np.exp(-np.clip(tt - 0.72, 0, None) / 0.035) * (tt >= 0.72) * 1.4
+    save("drawer_slide", slide + rattle + stop, -8)
+
+
+def phone_dead():
+    """audit Stage D: a dead GPO line after the handset is lifted: a faint hiss, a click, nothing."""
+    sec = 1.6
+    tt = t(sec)
+    hiss = band(noise(sec), 300, 3400) * 0.35 * np.clip(tt / 0.1, 0, 1) * np.clip((sec - tt) / 0.3, 0, 1)
+    click = band(noise(sec), 500, 4000) * np.exp(-np.clip(tt - 0.55, 0, None) / 0.006) * (tt >= 0.55)
+    save("phone_dead", hiss + click * 0.8, -12)          # played at -10 dB in the room: faint
+
+
+def bowl_drain():
+    """audit Stage D: the sediment bowl drained: the drain cock's squeak, a thin trickle into a tin, last drips."""
+    sec = 3.2
+    tt = t(sec)
+    squeak = np.sin(2 * np.pi * (1400 + 300 * tt) * tt) * np.exp(-tt / 0.08) * 0.3
+    trickle = band(noise(sec), 900, 5000) * (0.5 + 0.5 * lfo(sec, 7.0, 1.0)) * np.clip((tt - 0.1) / 0.2, 0, 1) \
+        * np.clip((2.2 - tt) / 0.6, 0, 1) * 0.5
+    dr = drops(sec, 7, 1500, 3200, 0.2, 0.5) * (tt > 2.0)
+    save("bowl_drain", squeak + trickle + dr, -10)
+
+
 def horn(name, f, sec=2.6, peak=-3.0):
     tt = t(sec)
     x = sum((1 / k) * np.sin(2 * np.pi * f * k * tt) for k in range(1, 7))
@@ -595,7 +635,7 @@ def main(argv=None):
         ("gen_stop", lambda: save("gen_stop", band(noise(2.0), 30, 300) * env(int(2.0 * SR), 0.01, 0.8), -4)),
         ("step_metal", lambda: footsteps("step_metal", True)),
         ("step_stone", lambda: footsteps("step_stone", False)),
-        ("knock", knock), ("door_dogs", door_dogs), ("door_heavy", door_heavy), ("door_base", base_door), ("paper_slide", paper_slide),
+        ("knock", knock), ("door_dogs", door_dogs), ("door_heavy", door_heavy), ("door_base", base_door), ("paper_slide", paper_slide), ("paper_close", paper_close), ("drawer_slide", drawer_slide), ("phone_dead", phone_dead), ("bowl_drain", bowl_drain),
         ("horn_fishing", lambda: horn("horn_fishing", 233, peak=-4.0)),     # was -3: RMS sat on the LOUD gate
         ("horn_ship", lambda: horn("horn_ship", 98, 3.6)),
         ("squelch", squelch), ("blip", blip),

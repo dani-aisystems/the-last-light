@@ -1,0 +1,563 @@
+{
+ "note": "audit Stage D: recorded CC0 sounds (audio/recorded.py); Daniel's OK 2026-11-19, DECISIONS Q16; licences in assets/ASSET_LICENSES.md",
+ "files": [
+  {
+   "name": "ross_cough_0",
+   "file": "godot/assets/audio/ross_cough_0.wav",
+   "sha256": "14f3d4e03a48b7770d29b28be58de25d847035e92ec047677eb94b524d040e18",
+   "seconds": 1.43,
+   "cut": [
+    0.46,
+    1.89
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_1",
+   "file": "godot/assets/audio/ross_cough_1.wav",
+   "sha256": "ff3dc5e531a445481a1cb3eecf8d754f5314259fc65f2574db73f47e7f156dc7",
+   "seconds": 0.9,
+   "cut": [
+    4.06,
+    4.96
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_2",
+   "file": "godot/assets/audio/ross_cough_2.wav",
+   "sha256": "5f501fe034b29537c16a77e42855f8ee5697d50403e1652e9b319e2c579b529c",
+   "seconds": 0.36,
+   "cut": [
+    4.99,
+    5.35
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_3",
+   "file": "godot/assets/audio/ross_cough_3.wav",
+   "sha256": "f060bf5975d4a50c0036827da8600607ee814bab94d41c4f5800debe95bce804",
+   "seconds": 0.99,
+   "cut": [
+    5.79,
+    6.78
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_4",
+   "file": "godot/assets/audio/ross_cough_4.wav",
+   "sha256": "24c498945eeb25834c58f49f8475610d47690777aa9e86e1dc458f4d9fe96d5d",
+   "seconds": 0.54,
+   "cut": [
+    7.8,
+    8.34
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_5",
+   "file": "godot/assets/audio/ross_cough_5.wav",
+   "sha256": "bf1b10f0f8e92021120b2465cbed6099f8e5f0735609b3fb3d223d76483c0a95",
+   "seconds": 0.88,
+   "cut": [
+    9.0,
+    9.88
+   ],
+   "source": {
+    "page": "https://freesound.org/people/georgisound/sounds/369295/",
+    "title": "Coughing.wav",
+    "author": "georgisound",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_369295/369295_hq.mp3",
+    "sha256": "4b7f6ed88c0a9373dcdbc1a7143c024667c72af88bdeff3f269d825d26e52747"
+   }
+  },
+  {
+   "name": "ross_cough_6",
+   "file": "godot/assets/audio/ross_cough_6.wav",
+   "sha256": "43c3f3931d8e1c7f52631551a8c12c4888d637569d663d5c39623f32d272b2b3",
+   "seconds": 1.75,
+   "cut": [
+    0.54,
+    2.29
+   ],
+   "source": {
+    "page": "https://freesound.org/people/husky70/sounds/157296/",
+    "title": "Coughing Cough.wav",
+    "author": "husky70",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_157296/157296_hq.mp3",
+    "sha256": "e57267f1706fcd8a17f39bb568848c3be5e48c63953063f3d2eaf9f480055d97"
+   }
+  },
+  {
+   "name": "ross_cough_7",
+   "file": "godot/assets/audio/ross_cough_7.wav",
+   "sha256": "d1bed73b2e187bca5e7fe8205fd4a1b2d0eb8f9ee4546e0e4df0a303d04ef0da",
+   "seconds": 0.91,
+   "cut": [
+    4.6,
+    5.51
+   ],
+   "source": {
+    "page": "https://freesound.org/people/husky70/sounds/157296/",
+    "title": "Coughing Cough.wav",
+    "author": "husky70",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/cough_157296/157296_hq.mp3",
+    "sha256": "e57267f1706fcd8a17f39bb568848c3be5e48c63953063f3d2eaf9f480055d97"
+   }
+  },
+  {
+   "name": "ross_breath_0",
+   "file": "godot/assets/audio/ross_breath_0.wav",
+   "sha256": "1f1256acedf268dd4239712812a7ca36fc65051fd50440d53e6e1c0a70e9de94",
+   "seconds": 0.94,
+   "cut": [
+    10.3,
+    11.24
+   ],
+   "source": {
+    "page": "https://freesound.org/people/sickfin/sounds/711359/",
+    "title": "Old Man or Middle-aged Man's Struggled Breathing",
+    "author": "sickfin",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/breaths_711359/711359_hq.mp3",
+    "sha256": "c3738dce77c5358d851e628761ce9eaba814b65ea300f97e561330738245ecce"
+   }
+  },
+  {
+   "name": "ross_breath_1",
+   "file": "godot/assets/audio/ross_breath_1.wav",
+   "sha256": "e39aaf8a61adc613b0748a2cdab42ccaa0a093146b7a39531788aac203ea9b4b",
+   "seconds": 1.11,
+   "cut": [
+    12.1,
+    13.21
+   ],
+   "source": {
+    "page": "https://freesound.org/people/sickfin/sounds/711359/",
+    "title": "Old Man or Middle-aged Man's Struggled Breathing",
+    "author": "sickfin",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/breaths_711359/711359_hq.mp3",
+    "sha256": "c3738dce77c5358d851e628761ce9eaba814b65ea300f97e561330738245ecce"
+   }
+  },
+  {
+   "name": "ross_breath_2",
+   "file": "godot/assets/audio/ross_breath_2.wav",
+   "sha256": "a4555d5893f939f8ffbb93a6ebbd626e7c75bb3572f9df4bb72c57865bc19671",
+   "seconds": 0.95,
+   "cut": [
+    14.99,
+    15.94
+   ],
+   "source": {
+    "page": "https://freesound.org/people/sickfin/sounds/711359/",
+    "title": "Old Man or Middle-aged Man's Struggled Breathing",
+    "author": "sickfin",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/breaths_711359/711359_hq.mp3",
+    "sha256": "c3738dce77c5358d851e628761ce9eaba814b65ea300f97e561330738245ecce"
+   }
+  },
+  {
+   "name": "ross_breath_3",
+   "file": "godot/assets/audio/ross_breath_3.wav",
+   "sha256": "b26164c5e75259b34ddbf31a4a7b38a0e665e8526cf68db61e1e0ec624f02a1d",
+   "seconds": 1.14,
+   "cut": [
+    16.43,
+    17.57
+   ],
+   "source": {
+    "page": "https://freesound.org/people/sickfin/sounds/711359/",
+    "title": "Old Man or Middle-aged Man's Struggled Breathing",
+    "author": "sickfin",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/breaths_711359/711359_hq.mp3",
+    "sha256": "c3738dce77c5358d851e628761ce9eaba814b65ea300f97e561330738245ecce"
+   }
+  },
+  {
+   "name": "step_concrete_0",
+   "file": "godot/assets/audio/step_concrete_0.wav",
+   "sha256": "1001295289ce5fb34bbae908a9c572316cfd2dd563f6eb0fd1cbfbacce043883",
+   "seconds": 0.33,
+   "cut": [
+    0.415,
+    0.745
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_concrete_1",
+   "file": "godot/assets/audio/step_concrete_1.wav",
+   "sha256": "71a1336cb1f29727430ba3deed6e01fdc1cdcc780847dc61dbe4e4c700033a20",
+   "seconds": 0.33,
+   "cut": [
+    0.85,
+    1.18
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_concrete_2",
+   "file": "godot/assets/audio/step_concrete_2.wav",
+   "sha256": "248948f0232d66fed8210531eab91854d70e6a6e7e1ba8adb4ea3dc2bd8037ba",
+   "seconds": 0.33,
+   "cut": [
+    1.25,
+    1.58
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_concrete_3",
+   "file": "godot/assets/audio/step_concrete_3.wav",
+   "sha256": "c88eea864ce878e34a7c999c5c7bb5769f3abd41c6007530acd3d757543381d3",
+   "seconds": 0.33,
+   "cut": [
+    2.09,
+    2.42
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_concrete_4",
+   "file": "godot/assets/audio/step_concrete_4.wav",
+   "sha256": "a363ccb75ec7e0b23db37c5b4ac3808d8577b9c669b9c9bc447dc694051ff73a",
+   "seconds": 0.33,
+   "cut": [
+    2.93,
+    3.26
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_concrete_5",
+   "file": "godot/assets/audio/step_concrete_5.wav",
+   "sha256": "299cfc564f108055d07c24694f959015285b4d385617b51c7a7d5e0eef64f685",
+   "seconds": 0.33,
+   "cut": [
+    3.37,
+    3.7
+   ],
+   "source": {
+    "page": "https://freesound.org/people/SoftDistortionFX/sounds/465299/",
+    "title": "Concrete Footsteps",
+    "author": "SoftDistortionFX",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/boots_concrete_465299/465299_hq.mp3",
+    "sha256": "d62b5da914280cb5baebbdc6c802104a53b7a7d112a4484fe04b14142af02d5f"
+   }
+  },
+  {
+   "name": "step_stair_0",
+   "file": "godot/assets/audio/step_stair_0.wav",
+   "sha256": "057d32bbc8a9c7e75aa6eb5ab47d01cc5c847aa3093fcf40c4764c988247aca7",
+   "seconds": 0.39,
+   "cut": [
+    2.0,
+    2.39
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_1",
+   "file": "godot/assets/audio/step_stair_1.wav",
+   "sha256": "3cfd0e81aafc6d1708b671ccd22168c4cda56774227ba04b8c83bcce258a8447",
+   "seconds": 0.39,
+   "cut": [
+    2.76,
+    3.15
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_2",
+   "file": "godot/assets/audio/step_stair_2.wav",
+   "sha256": "99d0530cc0baa47cd797194d7dedab30a1a82f0c9c81e90ca017c8b3baab96fd",
+   "seconds": 0.39,
+   "cut": [
+    3.97,
+    4.36
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_3",
+   "file": "godot/assets/audio/step_stair_3.wav",
+   "sha256": "200fb0fb91c90fcdb6c748cf412385188067d042ee9ad4517d6d71bd29fa1405",
+   "seconds": 0.39,
+   "cut": [
+    4.605,
+    4.995
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_4",
+   "file": "godot/assets/audio/step_stair_4.wav",
+   "sha256": "6f53e33a82c69e5c4c781e0a91ea913451c259eaca4bcbecb9b29775f844c9d4",
+   "seconds": 0.39,
+   "cut": [
+    5.87,
+    6.26
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_5",
+   "file": "godot/assets/audio/step_stair_5.wav",
+   "sha256": "23feff30c13014c59590c2591ea5d889f39e519debc5b8c4223f8deffa8f3850",
+   "seconds": 0.39,
+   "cut": [
+    7.2,
+    7.59
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_6",
+   "file": "godot/assets/audio/step_stair_6.wav",
+   "sha256": "929715eb5b70ccb4c02fde2e69a01c5ef4bf26b3880efa40fc2937a503cbada4",
+   "seconds": 0.39,
+   "cut": [
+    10.83,
+    11.22
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "step_stair_7",
+   "file": "godot/assets/audio/step_stair_7.wav",
+   "sha256": "2db616249f69ec0a7cc8252802ead3dbb7ba0b346609f477efff42bd54392abf",
+   "seconds": 0.39,
+   "cut": [
+    11.655,
+    12.045
+   ],
+   "source": {
+    "page": "https://freesound.org/people/RFCaldas/sounds/749713/",
+    "title": "Steps on metal stair Up and Down 2",
+    "author": "RFCaldas",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/stair_iron_749713/749713_hq.mp3",
+    "sha256": "ff11f1792730a9f4b71726fc6e653249b6c1b28b00df5ba8e201eb81d4d28d2b"
+   }
+  },
+  {
+   "name": "door_hinge",
+   "file": "godot/assets/audio/door_hinge.wav",
+   "sha256": "f966875bde7e724d8e2d090bba66f6daf9cb309c35f361562ab898392df11e99",
+   "seconds": 5.85,
+   "cut": [
+    0.25,
+    6.1
+   ],
+   "source": {
+    "page": "https://freesound.org/people/kyles/sounds/637583/",
+    "title": "gate big rusty metal door garage open heavy creak rattle.flac",
+    "author": "kyles",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/door_hinge_637583/637583_hq.mp3",
+    "sha256": "81be92a4a57032e58702c055a6f41aa4034ca748500c48f3d159af8a9a22c8c8"
+   }
+  },
+  {
+   "name": "phone_lift",
+   "file": "godot/assets/audio/phone_lift.wav",
+   "sha256": "8d5640717385e44b45a1d85c0ceb31e9e5d3d3a39b11f992b1835fd43fda40ab",
+   "seconds": 1.1,
+   "cut": [
+    0.1,
+    1.2
+   ],
+   "source": {
+    "page": "https://freesound.org/people/TRP/sounds/616840/",
+    "title": "Phone, old wired handset, pick up hang up, cu then medium (2012).wav",
+    "author": "TRP",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/phone_lift_616840/616840_hq.mp3",
+    "sha256": "51abcc07f0a8fde92b2837aa3f32f3e27256230a82c1d92f07536f98fe37aa43"
+   }
+  },
+  {
+   "name": "hand_pump",
+   "file": "godot/assets/audio/hand_pump.wav",
+   "sha256": "c46f2a15d9d133b0676c6b46167bfbc0ceb269825d5e47ba2fa508cc6846a09a",
+   "seconds": 7.0,
+   "cut": [
+    2.0,
+    9.0
+   ],
+   "source": {
+    "page": "https://freesound.org/people/Garuda1982/sounds/580670/",
+    "title": "old manual pump pumping water sound effect",
+    "author": "Garuda1982",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/hand_pump_580670/580670_hq.mp3",
+    "sha256": "4e6495cb40d5c9ca90397ac51f91d7181fad36e4dd87052d447465cbaa6cbc29"
+   }
+  },
+  {
+   "name": "kettle_boil",
+   "file": "godot/assets/audio/kettle_boil.wav",
+   "sha256": "5968723e0b22d4f0e27152eec9798a1897e491dca0accf991356abfc7448482e",
+   "seconds": 18.0,
+   "cut": [
+    17.0,
+    35.0
+   ],
+   "source": {
+    "page": "https://freesound.org/people/wlabarron/sounds/507937/",
+    "title": "Whistling gas kettle coming to the boil",
+    "author": "wlabarron",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/kettle_507937/507937_hq.mp3",
+    "sha256": "8ebb14fb7a9ca63471f3da7c3101e6ffd1e70bfc4d0578f9f16ca5ae0c2e207c"
+   }
+  },
+  {
+   "name": "teleprinter",
+   "file": "godot/assets/audio/teleprinter.wav",
+   "sha256": "67c4a59f27e40de09aa6225229c5d3520bb8caa80e58ff9e446dbb9746c7bad9",
+   "seconds": 10.0,
+   "cut": [
+    0.5,
+    10.5
+   ],
+   "source": {
+    "page": "https://freesound.org/people/craigsmith/sounds/483336/",
+    "title": "R20-17-Teletype Machine.wav",
+    "author": "craigsmith",
+    "licence": "CC0 1.0",
+    "file": "assets/audio_cc0/teletype_483336/483336_hq.mp3",
+    "sha256": "e0fce52dfe7449c9dac091a74236d92b984adb48a4d40db0c294dcc2906c9b99"
+   }
+  }
+ ]
+}

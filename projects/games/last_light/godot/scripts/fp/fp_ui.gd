@@ -408,6 +408,11 @@ func toggle_logbook() -> bool:
 	return logbook.visible
 
 
+## audit D: a radio subtitle (the sim's traffic) is on screen.
+func has_subtitles() -> bool:
+	return not _sub_items.is_empty()
+
+
 func add_subtitle(from: String, text: String, outgoing: bool) -> void:
 	var l := UIStyle.label("", 22, UIStyle.INK if not outgoing else UIStyle.AMBER, UIStyle.serif())
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
