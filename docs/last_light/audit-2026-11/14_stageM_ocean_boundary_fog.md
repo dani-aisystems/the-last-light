@@ -533,7 +533,7 @@ The wave set, the calming and the mesh displacement are otherwise unchanged.
 - In a gale, and more in a squall, the window view went to flat murk: the sea, the horizon and anything beyond about 120 m disappeared. That is far below the 0.6 km gale visibility of decision 2, and it hides the vessels the player must find.
 - No frame-time figure was taken: the capture fps are run-to-run noise on a loaded Mac, and the bench waits for Daniel.
 
-**Daniel (2026-11-19): drop it.** `scud.gd`, `scud.gdshader`, R31 and the two `outside.gd` hooks were removed; a temporary `lamp_off` capture state was removed too. The game files are back to the M4 commit. Nothing to commit for M5 beyond this record and DECISIONS Q22. The M5 captures stay in `renders/last_light/` (`m5*`, gitignored). Not evidence for the look: `m5o --scud=off_*` (a mis-named re-run with the scud still on, from a shell loop bug; `m5n` is the real scud-off set), and the calibration frames `m5x*`, `m5y*`, `m5e*` and `m5g` (dev knobs `--scud_gain` and `--scud_em`).
+**Daniel (2026-11-19): drop it.** `scud.gd`, `scud.gdshader`, R31 and the two `outside.gd` hooks were removed; a temporary `lamp_off` capture state was removed too. The game files are back to the M4 commit. Nothing to commit for M5 beyond this record and DECISIONS Q22. The M5 captures stay in `renders/last_light/` (`m5*`, gitignored); `m5n` is the scud-off set. The files that were not evidence for the look were deleted on 2026-11-19 with Daniel's OK (43 files, 35 MB): `m5o --scud=off_*` (a mis-named re-run with the scud still on, from a shell loop bug) and the calibration frames `m5x*`, `m5y*`, `m5e*` and `m5g` (dev knobs `--scud_gain` and `--scud_em`).
 
 ### J.7 M6 QA and checkpoint (2026-11-19)
 
@@ -560,10 +560,56 @@ The wave set, the calming and the mesh displacement are otherwise unchanged.
 | H7 | **PASS with one open item** | R28 passes (regress 494). Seen: no facets or shimmer. **Open:** through the binoculars at dawn, the far sea at about 0.6 to 1 km shows pale, flat, sharp-edged patches. The faded short waves leave the surface flat there, and it mirrors the bright dawn sky between the 60 m swell's crests. Already in M2 (`m2h_t083`, step 3.4), so not new in M6; it is the 5.0 above. A candidate for Stage E's sea work (a far-sea roughness floor or a distance blend of the normal), not a horizon fault. |
 | H8 | **PASS** | The loom was dropped; the beam code is as approved. Title (`m6_sheet_played_title.png`, `m6_sheet_room.png`): the layout and brightness match M0; the faint sea line is gone; the cloud deck is back (Q23). |
 | H9 | **PASS** | Story 0 failed; `sim_v2` seeds 1 to 5 **identical to the M0 JSON** (exact equality); run_tests 95; opening 31; interaction 164 (0 failed); g5 50; save_compat 305; regress 494 (4 headless skips); qa_sweep 7,703 (92 s); pytest green. |
-| H10 | **NOT TESTED** | The paired bench waits for Daniel (decision 6): `tools/godot --audio-driver Dummy --novsync --bench --bench_shots=fp_desk,fp_window,fp_gen,fp_bino`, quality 0, 1 and 2, `--sea=legacy` and the new sea interleaved, 2 repeats, "focused" checked, 1-minute load below 3. |
+| H10 | **PARTIAL** (bench 2026-11-19, below) | **Medium PASS** on the one clean pair: median −0.1 to +0.9 %, p95 −1.5 to +2.8 % against `--sea=legacy`. **Low PASS:** both seas sit at the 60 Hz cap (16.7 ms) when focused; the new sea draws 0.11 M fewer primitives. **VRAM PASS:** 1331 MB at most. **High NOT CLEANLY TESTED:** no focused, quiet pair; 28 to 39 ms on both seas, so High misses its 25 ms target with the legacy sea too (not a Stage M regression); new against legacy is inside the run-to-run noise; +0.13 M primitives (+5 %). |
 
 **Ships** (`m6_sheet_ships_*.png`, M0 against M6, both kinds):
 - At 1000 m M0 showed a crisp black silhouette on a hard horizon; M6 has nothing readable in that frame, because the beam was in the view.
 - At 750 m M0 showed a silhouette against the sky; M6 shows her lamps and a faint hull in the murk.
 - At 400 m: hull and lights. At 230 m and 120 m: unchanged.
 - To the naked eye: no hard line.
+
+**Daniel (2026-11-19), at the checkpoint:**
+- **Approved the look:** the after-set and M2's "A + clouds" as they stand.
+- **Keep `--sea=legacy` for now**; removing it is decided after Stage E merges.
+- The records were committed locally (`78c85a3`).
+- He said the Mac was free for the bench, but macOS indexing ran right after the after-set wrote its PNGs (Spotlight `mdworker`, then XProtect and Siri): the load stayed at 14 to 17 for 30 minutes. **The bench was not run (H10 NOT TESTED).**
+**Bench (H10), 2026-11-19 10:15 to 11:32.**
+
+Command per run: `tools/godot --audio-driver Dummy --path projects/games/last_light/godot -- --capture=m6bench_q<Q>_<new|legacy>_r<N> --novsync --bench --bench_secs=20 --bench_shots=fp_desk,fp_window,fp_gen,fp_bino --quality=<Q> [--sea=legacy]`. Bash loops, run in the background; the load was logged before each run. Output: `renders/last_light/m6bench_*_bench.json`.
+
+Three passes:
+
+1. **Pass 1 (10:15, 12 runs, interleaved):** started at a load of 2.6, after Daniel closed Brave and the Playwright session.
+   - Runs 1 to 5 held focus.
+   - At about 10:22:40, during `q2_new_r1`, another window took the foreground (a 333 ms frame at that moment). Every run after it is unfocused: once something else is in front, macOS does not let a newly launched Godot take focus.
+   - `q0_new_r1` opened at 1920×1080 at scale 0.75, against 3840×2410 at 0.355 for the others. The render size is the same, 1.17 M pixels.
+2. **Re-run (`*_rerun`, 11:08):** the nine invalid runs. Focus was lost from the first frame, so it was stopped after three runs.
+3. **Re-run 2 (`*_rerun2`, 11:17, nine runs):** Godot was brought to the front with AppleScript every 15 s. Focus still flickered per shot, and the load was 3.3 to 4 throughout. The same focused configuration varies by up to 17 % between runs (High `fp_desk` with the new sea: 28.45 and 33.21 ms), so these runs only give the range.
+
+All runs exited 0, with no `SCRIPT ERROR`. The "resources still in use at exit" lines are Godot's shutdown notices.
+
+The clean pairs are from pass 1, repeat 1 (focused, quiet). Times are medians and p95 in ms.
+
+| Quality | Shot | New | Legacy | Δ median | Δ p95 |
+|---|---|---|---|---|---|
+| Medium (1) | fp_desk | 18.63 / 20.68 | 18.62 / 20.66 | +0.1 % | +0.1 % |
+| Medium (1) | fp_window | 18.74 / 20.90 | 18.68 / 20.83 | +0.3 % | +0.3 % |
+| Medium (1) | fp_gen | 17.49 / 19.14 | 17.51 / 19.44 | −0.1 % | −1.5 % |
+| Medium (1) | fp_bino | 17.39 / 18.76 | 17.23 / 18.25 | +0.9 % | +2.8 % |
+| Low (0) | all four | 16.67 to 16.70 / 17.5 to 17.8 | 16.68 to 16.71 / 17.7 to 18.0 | 0 (60 Hz cap) | −0.5 to −1.2 % |
+
+- **Medium** is inside the +2 % median and +5 % p95 targets at every shot. Primitives fell from 1.85 M to 1.83 M at most; VRAM was 1155 against 1156 MB.
+- **Low:** both seas are at the display cap when focused, so the bench cannot separate them. Unfocused (uncapped) samples put the new sea at or below legacy. Primitives: 1.36 M against 1.47 M at most.
+- **High:** no focused pair from the quiet period.
+  - The ranges overlap. New sea: 26.6 to 39.0 ms, focused 28.45 to 34.23 ms. Legacy: 27.7 to 37.6 ms, focused 28.79 to 33.55 ms.
+  - Primitives: 3.02 M against 2.89 M at most (the 512-segment radial sea).
+  - The 25 ms target is missed by both seas, so it is a High-budget item for a later stage, not a Stage M cost.
+- **VRAM:** 1091 MB on Low, 1155 MB on Medium, 1331 MB on High; all ≤ 1.4 GB.
+- **To make High clean**, if wanted: a quiet Mac with no other app able to take the foreground (or Daniel clicking each window), quality 2 only, about 7 minutes.
+
+**Stage M is closed** with H10 PARTIAL as above. The handover is in `docs/SESSION_HANDOFF.md`:
+- After the E2 merge: re-run R28 to R30; check `ship_view2.gd`'s `_fog_fade` and its `wave_gain` mirrors (J.2, J.5); capture an `m7c_` / `m7s` set. `stage-e2` was not merged on 2026-11-19.
+- H4: still needs Daniel's eye.
+- H6: a method limit.
+- The pale, flat far-sea patches through the binoculars at dawn (H7): a candidate for Stage E.
+- Removing `--sea=legacy`: Daniel's call after Stage E.
