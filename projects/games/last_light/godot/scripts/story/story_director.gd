@@ -36,11 +36,11 @@ signal transition_requested(kind: String, args: Array)
 const ACTIONS := ["talk", "wait", "objective", "duty", "duty_drop", "log", "set", "unset", "add", "clue", "ship", "storm", "clock", "fault",
 	"battery", "mode", "intensity", "autosave", "end_campaign", "timeskip", "ending_card", "until", "release"]
 const PRESENTATION_EVENTS := ["hint", "sky", "phantom_echo", "door_open", "visitor_enter", "knock",
-	"footsteps", "sfx", "static", "music", "caption"]
+	"footsteps", "sfx", "static", "music", "music_stop", "caption"]
 ## Actions that may run while a transition holds the story at its midpoint (the screen is black): they
 ## change the world, not what the player reads. Everything else waits for transition_done().
 const INSTANT_ACTIONS := ["objective", "duty", "duty_drop", "set", "unset", "add", "clue", "storm", "clock", "battery", "mode",
-	"intensity", "sky", "music", "phantom_echo", "autosave"]
+	"intensity", "sky", "music", "music_stop", "phantom_echo", "autosave"]
 ## The four endings (STAGE3_NARRATIVE_MASTER §15): the dawn report x whether Iona Star came through.
 const ENDINGS := {
 	"correction": "Correction",

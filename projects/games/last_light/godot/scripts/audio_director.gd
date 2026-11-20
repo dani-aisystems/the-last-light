@@ -1,6 +1,6 @@
 extends Node
 ## Layered soundscape (all sounds synthesised by audio/synth.py).
-##  Ambient (2D, storm-scaled): wind, rain on glass, sea.   Music bus: menu pad / tension drone.
+##  Ambient (2D, storm-scaled): wind, rain on glass, sea.   Music bus: the score (data/music_cues.json).
 ##  Positional (3D) in the room: generator (cage), electrical hum (power cabinet), clockwork (optic drive),
 ##  radio static (desk speaker), motor grind (ceiling gear).  Events: thunder (delayed after the flash),
 ##  switches, breaker, crank, horns, squelch/typewriter blips, and the visitor's approach:
@@ -43,7 +43,7 @@ var _menu := false
 var _pending: Array = []        # [time, callable]
 var _t := 0.0
 var _static_t := 0.0
-var _music: AudioStreamPlayer
+var _music: AudioStreamPlayer      # the bed now playing (audit music: one of _beds)
 var _lp: AudioEffectLowPassFilter
 var _cutoff := MUFFLE_HZ
 var _glass: Array = []          # amb_rain_glass players at the windows
@@ -51,9 +51,27 @@ var _rng := RandomNumberGenerator.new()
 var _gust := 0.0
 var _gust_target := 0.0
 var _gust_next := 0.0
-var _music_fade := 0.0          # > 0: fading the music out (set_menu(false))
-var _music_fade_len := 2.0
-var _music_fade_from := -8.0
+# audit music stage (F 23.8): the score. Two bed players crossfade; a layer plays over its bed (M04's restless
+# layer); a stinger plays over the bed without stopping it (M08). Cue ids, files and kinds: CUES_PATH. The Music
+# bus ducks DUCK_DB under any message on screen (an AudioEffectAmplify at the head of the bus, so the player's
+# Music volume setting is untouched). From "docked" to the first stair footstep nothing may play (_hold).
+const CUES_PATH := "res://data/music_cues.json"
+const DUCK_DB := -8.0
+const DUCK_IN_S := 0.4
+const DUCK_OUT_S := 1.2
+const SILENT_DB := -60.0
+var cues := {}                  # the whole cue table (cues, title, credits, endings, legacy)
+var _beds: Array = []           # two AudioStreamPlayers on Music
+var _bed_i := 0
+var _layer: AudioStreamPlayer
+var _stinger: AudioStreamPlayer
+var _fades := {}                # player -> [from_db, to_db, elapsed, length, stop_at_end]
+var _cue := ""                  # the bed cue playing ("" none)
+var _cue_t := 0.0
+var _layers_on := {}            # layer cue ids that are on
+var _hold := false              # the silence from "docked" to the first stair footstep
+var _duck_fx: AudioEffectAmplify
+var _duck_db := 0.0
 var message_probe: Callable     # audit D: game_fp.message_on_screen (any line, thought, caption or subtitle)
 var radio_probe: Callable       # audit D: game_fp.radio_message_on_screen (a radio line or a radio subtitle)
 var _static_dip := 0.0          # 0..1: how far the static has dipped under a radio message
@@ -86,7 +104,7 @@ func setup(k: KeeperSim, st: Node3D) -> void:
 	for n in ["amb_wind", "amb_gust", "amb_rain", "amb_sea"]:
 		loops[n] = _player2d(n, EXT_BUS, -8.0)
 	_make_glass_layers()
-	_music = _player2d("music_menu", "Music", -6.0, false)
+	_setup_music()
 	loops["gen_idle"] = _player3d("gen_idle", _dev("IA_gen_panel", Vector3(-2.2, 20.6, 1.7)), 4.0)
 	loops["hum"] = _player3d("hum", _dev("IA_power_panel", Vector3(-2.9, 21.2, 0.5)), 2.0)
 	loops["clockwork"] = _player3d("clockwork", Vector3(1.9, 22.6, -1.9), 3.0)
@@ -115,6 +133,176 @@ func _ensure_exterior_bus() -> void:
 	_cutoff = OPEN_HZ if _menu else MUFFLE_HZ
 	if _lp:
 		_lp.cutoff_hz = _cutoff
+
+
+## audit music: the players, the cue table and the duck on the Music bus.
+func _setup_music() -> void:
+	var f := FileAccess.open(CUES_PATH, FileAccess.READ)
+	cues = JSON.parse_string(f.get_as_text()) if f else {}
+	if not cues.has("cues"):
+		cues = {"cues": {}}
+	for i in 2:
+		var p := AudioStreamPlayer.new()
+		p.bus = "Music"
+		p.volume_db = SILENT_DB
+		add_child(p)
+		_beds.append(p)
+	_music = _beds[0]
+	_layer = AudioStreamPlayer.new()
+	_layer.bus = "Music"
+	add_child(_layer)
+	_stinger = AudioStreamPlayer.new()
+	_stinger.bus = "Music"
+	add_child(_stinger)
+	var mi := AudioServer.get_bus_index("Music")
+	if mi != -1:
+		for k in AudioServer.get_bus_effect_count(mi):
+			if AudioServer.get_bus_effect(mi, k) is AudioEffectAmplify:
+				_duck_fx = AudioServer.get_bus_effect(mi, k)
+		if _duck_fx == null:
+			_duck_fx = AudioEffectAmplify.new()
+			AudioServer.add_bus_effect(mi, _duck_fx, 0)
+		_duck_fx.volume_db = 0.0
+
+
+func cue_info(id: String) -> Dictionary:
+	return cues.get("cues", {}).get(id, {})
+
+
+func cue_file(id: String) -> String:
+	var c := cue_info(id)
+	return (A % String(c["file"])) if not c.is_empty() else ""
+
+
+func _cue_stream(id: String) -> AudioStream:
+	var c := cue_info(id)
+	return _looped(String(c["file"])) if c.get("loop", false) else _stream(String(c["file"]))
+
+
+func _fade(p: AudioStreamPlayer, to_db: float, sec: float, stop := false) -> void:
+	if sec <= 0.0:
+		p.volume_db = to_db
+		_fades.erase(p)
+		if stop:
+			p.stop()
+		return
+	_fades[p] = [p.volume_db, to_db, 0.0, sec, stop]
+
+
+## Start a cue: a bed crossfades from the one playing (over `fade` s), a layer joins its bed, a stinger plays
+## over everything. Refused (false) during the silence hold or for an unknown id. The same bed again is a no-op.
+func play_cue(id: String, fade := 2.0) -> bool:
+	if _hold:
+		return false
+	var c := cue_info(id)
+	if c.is_empty():
+		push_warning("music: unknown cue '%s'" % id)
+		return false
+	match String(c.get("kind", "bed")):
+		"layer":
+			return set_layer(id, true, fade)
+		"stinger":
+			_stinger.stream = _cue_stream(id)
+			_stinger.volume_db = 0.0
+			_stinger.play()
+			return true
+	if id == _cue and _music.playing:
+		return true
+	var old: AudioStreamPlayer = _beds[_bed_i]
+	if old.playing:
+		_fade(old, SILENT_DB, fade, true)
+	for l in _layers_on.keys():
+		set_layer(l, false, fade)
+	_bed_i = 1 - _bed_i
+	var nb: AudioStreamPlayer = _beds[_bed_i]
+	nb.stream = _cue_stream(id)
+	nb.volume_db = SILENT_DB if fade > 0.0 else 0.0
+	nb.play()
+	_fade(nb, 0.0, fade)
+	_music = nb
+	_cue = id
+	_cue_t = 0.0
+	return true
+
+
+## Stop the bed and its layers (a stinger plays out).
+func stop_cue(fade := 2.0) -> void:
+	for b in _beds:
+		if b.playing:
+			_fade(b, SILENT_DB, fade, true)
+	for l in _layers_on.keys():
+		set_layer(l, false, fade)
+	_cue = ""
+
+
+func set_layer(id: String, on: bool, fade := 2.0) -> bool:
+	var c := cue_info(id)
+	if c.is_empty() or String(c.get("kind", "")) != "layer":
+		return false
+	if on:
+		if _hold:
+			return false
+		if not _layers_on.has(id):
+			_layer.stream = _cue_stream(id)
+			_layer.volume_db = SILENT_DB if fade > 0.0 else 0.0
+			_layer.play()
+			_fade(_layer, 0.0, fade)
+		_layers_on[id] = true
+	elif _layers_on.has(id):
+		_layers_on.erase(id)
+		_fade(_layer, SILENT_DB, fade, true)
+	return true
+
+
+## The silence (F 23.2): from "docked" to the first footstep on the stair nothing plays.
+func hold(on: bool, fade := 3.0) -> void:
+	if on:
+		stop_cue(fade)
+	_hold = on
+
+
+func current_cue() -> String:
+	return _cue
+
+
+## What a save keeps: the bed cue, its layers, and whether the silence holds (a stinger is never saved).
+func cue_state() -> Dictionary:
+	return {"cue": _cue, "layers": _layers_on.keys(), "hold": _hold}
+
+
+## On load: the saved cue from the top with a 2 s fade (F 23.8), its layers, and the silence if it held.
+func restore_cue(st: Dictionary, fade := 2.0) -> void:
+	_hold = false
+	stop_cue(0.0)
+	var id := String(st.get("cue", ""))
+	if id != "":
+		play_cue(id, fade)
+		for l in st.get("layers", []):
+			set_layer(String(l), true, fade)
+	_hold = bool(st.get("hold", false))
+
+
+func _music_process(delta: float) -> void:
+	for p in _fades.keys():
+		var f: Array = _fades[p]
+		f[2] += delta
+		var k := clampf(f[2] / f[3], 0.0, 1.0)
+		(p as AudioStreamPlayer).volume_db = lerpf(f[0], f[1], k)
+		if k >= 1.0:
+			_fades.erase(p)
+			if f[4]:
+				(p as AudioStreamPlayer).stop()
+	if _cue != "":
+		_cue_t += delta
+		var c := cue_info(_cue)
+		if c.has("max_s") and _cue_t > float(c["max_s"]):
+			stop_cue(4.0)                        # M03 / M09: so long, then out
+		elif not c.get("loop", false) and not _music.playing and not _fades.has(_music):
+			_cue = ""                            # a once-through cue played out
+	if _duck_fx:
+		var msg: bool = message_probe.is_valid() and message_probe.call()
+		_duck_db = move_toward(_duck_db, DUCK_DB if msg else 0.0, delta * absf(DUCK_DB) / (DUCK_IN_S if msg else DUCK_OUT_S))
+		_duck_fx.volume_db = _duck_db
 
 
 ## audit D: the Stair bus (created once): the stairwell's reverb, then the steel door's low-pass, into SFX.
@@ -322,14 +510,9 @@ func set_menu(on: bool, fade_s := 2.0) -> void:
 	if on:
 		if _lp:
 			_lp.cutoff_hz = _cutoff
-		_music_fade = 0.0
-		_music.stream = _looped("music_menu")
-		_music.volume_db = -8.0
-		_music.play()
-	elif _music.playing:
-		_music_fade_len = maxf(0.05, fade_s)
-		_music_fade = _music_fade_len
-		_music_fade_from = _music.volume_db
+		play_cue(String(cues.get("title", "M01")), 0.0)
+	else:
+		stop_cue(maxf(0.05, fade_s))
 
 
 ## R3: which thunder recording a strike at d metres gets (near 0-2, mid 3-5, far 6-7, varied at random).
@@ -460,11 +643,16 @@ func story_cue(name_: String, args: Array) -> void:
 						sfx(n)
 		"static":
 			_static_t = 0.0 if (args.size() > 0 and args[0] == "fade") else (6.0 if args.size() > 0 and args[0] == "heavy" else 3.5)
-		"music":
-			_music_fade = 0.0
-			_music.stream = _looped("music_tension" if args[0] == "tension" else "music_menu")
-			_music.volume_db = -12.0
-			_music.play()
+		"music":                                 # ["music", id, fade?] (F 23.8)
+			var id := String(args[0]) if args.size() > 0 else ""
+			id = String(cues.get("legacy", {}).get(id, id))
+			play_cue(id, float(args[1]) if args.size() > 1 else 2.0)
+		"music_stop":                            # ["music_stop", fade?, "hold"?]: "hold" starts the silence
+			var fd := float(args[0]) if args.size() > 0 else 2.0
+			if "hold" in args:
+				hold(true, fd)
+			else:
+				stop_cue(fd)
 
 
 var _duck := 0.0
@@ -491,6 +679,7 @@ func footsteps(stage: String, door: Vector3) -> void:
 		"base_door":
 			sfx_at("door_base", BASE_DOOR, 0.0, 10.0, STAIR_BUS)
 		"stair":
+			_hold = false                        # audit music: the first footstep ends the silence
 			# iron spiral stair: steps climb toward the door over ~12 s, a pause half way
 			for i in 18:
 				var delay := i * 0.62 + (2.5 if i > 9 else 0.0)
@@ -513,11 +702,7 @@ func _process(delta: float) -> void:
 			keep.append(p)
 	_pending = keep
 	_keeper_steps()
-	if _music_fade > 0.0:
-		_music_fade = maxf(0.0, _music_fade - delta)
-		_music.volume_db = lerpf(-60.0, _music_fade_from, _music_fade / _music_fade_len)
-		if _music_fade == 0.0:
-			_music.stop()
+	_music_process(delta)
 	if _lp:
 		_lp.cutoff_hz = lerpf(_lp.cutoff_hz, _cutoff, minf(1.0, delta * 2.0))
 	if _stair_lp and station and station.has_method("door_phase"):

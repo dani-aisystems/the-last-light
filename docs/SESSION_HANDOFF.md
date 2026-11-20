@@ -1,5 +1,19 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
+## NEW (2026-11-20): audit music stage (score system and placeholder cues) approved by Daniel and committed locally (DECISIONS Q27); real tracks: his own (Q16), prompts in audio/SOUNDTRACK_PROMPTS.md
+- **Record:** `docs/last_light/audit-2026-11/19_music.md`. **Listening:** the cues `godot/assets/audio/music_m*.wav`; the scenes in `renders/last_light/music/listen/` (`INDEX.md`).
+- **Built:**
+  - `audio_director` score system: two crossfading beds, a layer, a stinger, `play_cue` / `stop_cue` / `set_layer`, a −8 dB duck under any message (an Amplify at the head of the Music bus), and the silence hold from "docked" to the first stair footstep;
+  - the cue table `godot/data/music_cues.json`;
+  - 21 `music` / `music_stop` actions in `chapters.json` (no new beats, no `.dlg` change);
+  - the endings' cues, M14 for the credits, and the cue saved and restored (`save_dict["music"]`);
+  - 15 placeholder cues synthesised in `audio/synth.py`, mastered to the 23.2 levels with the new `analyze.lufs()` (BS.1770).
+- **Tests:** new `tests/music_test.gd` 25/25 (including the silence rule in a real ch4 run); 2 new pytests.
+- **Open:**
+  - **the real-track route** (Daniel's own Q16 tracks, or the 23.5 fallback);
+  - removing the now-unused `music_menu.wav` and `music_tension.wav` (ask).
+- **Gotcha:** to test a later chapter in a fresh game, clear `director._hold`, `_beat_done_pending`, `_actions` and `_wait` first, or the new beat is skipped.
+
 ## NEW (2026-11-19): audit Stage D (audio) approved by Daniel and committed locally (DECISIONS Q26); the music (score system) next
 - **Record:** `docs/last_light/audit-2026-11/18_stageD_audio.md`. **Listening files for Daniel:** `renders/last_light/stageD/listen/` (`INDEX.md`).
 - **Built:**

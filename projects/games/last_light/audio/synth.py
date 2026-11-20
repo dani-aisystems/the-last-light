@@ -609,6 +609,244 @@ def pad(name, notes, sec, seed, brightness=1.0, tension=False):
     save(name, loopify(x, 4.0), -10, loop=True)
 
 
+# ------------------------------------------------------------------ the score: placeholder cues (audit music stage)
+# Sketches of F_soundtrack.md section 23 until the real tracks exist (Daniel's route, asked at the checkpoint).
+# One motif: five notes falling in D minor, D C A G F, incomplete everywhere until the truth is told. Palette:
+# felt piano, one cello, low strings, air; no percussion. Each cue is mastered to its 23.2 level (LUFS, via
+# analyze.lufs) and named music_mNN_<id>.wav; godot/data/music_cues.json maps cue ids to files and kinds.
+
+MOTIF = [62, 60, 57, 55, 53]          # D4 C4 A3 G3 F3
+
+
+def hz(m):
+    return 440.0 * 2.0 ** ((m - 69) / 12.0)
+
+
+def _place(x, y, at):
+    i = int(at * SR)
+    if i >= len(x):
+        return
+    n = min(len(y), len(x) - i)
+    x[i:i + n] += y[:n]
+
+
+def felt(m, dur=4.0, vel=1.0):
+    """A felt piano note: soft hammer, partials decaying faster the higher they are, dull top."""
+    tt = t(dur)
+    f = hz(m)
+    y = sum((0.6 ** k) * np.sin(2 * np.pi * f * (k + 1) * (1 + 0.0004 * k * k) * tt) * np.exp(-tt * (0.9 + 0.7 * k))
+            for k in range(6))
+    y *= np.clip(tt / 0.012, 0, 1)
+    thump = band(noise(0.06), 80, 600) * np.exp(-t(0.06) / 0.015) * 0.15
+    y[:len(thump)] += thump
+    return band(y, 40, 2600) * vel
+
+
+def cello(m, dur=3.0, vel=1.0, attack=0.35, vib=0.004, pizz=False):
+    """A bowed cello note (harmonics 1/k with a body resonance and vibrato), or plucked (pizz)."""
+    tt = t(dur)
+    f = hz(m)
+    ph = 2 * np.pi * f * (tt + vib / (2 * np.pi * 5.2) * np.sin(2 * np.pi * 5.2 * tt) * (0.0 if pizz else 1.0))
+    y = sum((1.0 / k) * np.sin(k * ph) * (1.0 + 0.8 * np.exp(-((k * f - 900.0) / 500.0) ** 2)) for k in range(1, 12))
+    if pizz:
+        e = np.clip(tt / 0.004, 0, 1) * np.exp(-tt / 0.35)
+    else:
+        e = np.clip(tt / attack, 0, 1) * np.clip((dur - tt) / 0.45, 0, 1)
+        e *= 1.0 + 0.06 * np.sin(2 * np.pi * 0.7 * tt)
+    return band(y * e, 50, 3500) * vel * 0.25
+
+
+def strings(notes, dur, swell=4.0, vel=1.0, seed=3):
+    """Low strings: detuned bowed voices, a slow swell in and out."""
+    tt = t(dur)
+    y = np.zeros(len(tt))
+    for i, m in enumerate(notes):
+        f = hz(m)
+        for d in (-0.003, 0.0, 0.0031):
+            y += sum((0.55 ** k) * np.sin(2 * np.pi * f * (k + 1) * (1 + d) * tt + i + 7 * d) for k in range(5))
+    e = np.clip(tt / swell, 0, 1) ** 1.5 * np.clip((dur - tt) / swell, 0, 1) ** 1.5
+    e *= 0.8 + 0.2 * smooth_rand(dur, 0.15, seed)
+    return band(y * e, 40, 1600) * vel * 0.06
+
+
+def air(dur, vel=1.0):
+    return band(noise(dur), 500, 4500) * vel * 0.012
+
+
+def save_lufs(name, x, target, loop=False):
+    """Master to an integrated loudness (the 23.2 cue sheet), then synth's own writer (peak safety at -1 dBFS)."""
+    import sys as _sys
+    _here = str(Path(__file__).resolve().parent)
+    if _here not in _sys.path:                 # loaded by path (pytest) as well as run from audio/
+        _sys.path.insert(0, _here)
+    import analyze
+    x = np.nan_to_num(x)
+    if loop:
+        x = loopify(x, 3.0)
+    else:
+        n = len(x)
+        x = x * np.clip(np.arange(n) / (0.05 * SR), 0, 1) * np.clip((n - np.arange(n)) / (1.5 * SR), 0, 1)
+    x = x - x.mean()
+    y = x
+    for _ in range(3):                         # gain to the target, then a soft knee on the peaks only (1 dB of
+        y = x * 10.0 ** ((target - analyze.lufs(x, SR)) / 20.0)      # headroom), re-measured until it holds
+        a = np.abs(y)
+        y = np.where(a < 0.7, y, np.sign(y) * (0.7 + 0.19 * np.tanh((a - 0.7) / 0.19)))
+        if abs(analyze.lufs(y, SR) - target) < 0.2:
+            break
+        x = y
+    save(name, y, 20.0 * np.log10(np.abs(y).max() + 1e-12), loop=loop)
+
+
+def m01_title():
+    sec = 32.0
+    x = np.zeros(int(sec * SR))
+    for k, m in enumerate(MOTIF):                    # the phrase, with long silences between
+        _place(x, felt(m, 5.0, 0.9 - 0.08 * k), 1.0 + 1.6 * k)
+    for k, m in enumerate(MOTIF):                    # again, an octave down, slower
+        _place(x, felt(m - 12, 5.0, 0.7 - 0.06 * k), 16.0 + 2.0 * k)
+    _place(x, cello(38, 14.0, 0.8, attack=2.5), 15.0)   # one low cello D joins and stays
+    save_lufs("music_m01_title", x + air(sec, 0.6), -16.0, loop=True)
+
+
+def m02_arrival():
+    sec = 26.0
+    x = strings([38, 45, 53], sec, swell=9.0, vel=1.0)
+    for at in (3.0, 11.0, 19.0):                     # one piano note every eight seconds
+        _place(x, felt(69, 5.0, 0.5), at)
+    save_lufs("music_m02_arrival", x + air(sec), -20.0)
+
+
+def m03_watch():
+    sec = 30.0
+    tt = t(sec)
+    x = strings([38, 45], sec, swell=6.0, vel=0.9, seed=5)
+    harm = sum(np.sin(2 * np.pi * hz(m) * tt) * (0.5 + 0.5 * smooth_rand(sec, 0.08, 20 + m)) for m in (81, 86, 88))
+    save_lufs("music_m03_watch", x + band(harm, 300, 5000) * 0.004 + air(sec, 0.8), -24.0, loop=True)
+
+
+def m04_weather(layer=False):
+    sec = 30.0
+    tt = t(sec)
+    if not layer:                                    # calm: drone and cello swells rising and falling like a sea
+        x = strings([38, 45], sec, swell=5.0, vel=0.9, seed=11)
+        for k, at in enumerate(np.arange(0.5, sec - 6, 6.0)):
+            _place(x, cello([50, 53, 52, 50][k % 4], 6.0, 0.7, attack=2.5), at)
+        save_lufs("music_m04_weather", x, -22.0, loop=True)
+    else:                                            # restless: a quiet viola tremolo over the same key
+        y = sum(np.sin(2 * np.pi * hz(m) * (k + 1) * tt) * (0.5 ** k) for m in (57, 60) for k in range(4))
+        trem = 0.55 + 0.45 * np.sin(2 * np.pi * 8.0 * tt)
+        y = band(y * trem * (0.6 + 0.4 * smooth_rand(sec, 0.2, 13)), 150, 3000) * 0.05
+        save_lufs("music_m04_weather_restless", y + air(sec, 0.5), -22.0, loop=True)
+
+
+def m05_mechanism():
+    sec = 24.0
+    x = np.zeros(int(sec * SR))
+    rr = np.random.default_rng(55)
+    at = 0.3
+    while at < sec - 1.0:                            # a slipping gear: irregular pizzicato
+        _place(x, cello(rr.choice([38, 41, 43, 45]), 1.2, 0.9, pizz=True), at)
+        at += rr.choice([0.45, 0.6, 0.9, 1.35, 0.3])
+    for a2 in np.arange(1.0, sec - 2, 4.0):          # muted low piano struck softly
+        _place(x, band(felt(rr.choice([26, 29, 31]), 3.0, 0.6), 30, 500), a2)
+    save_lufs("music_m05_mechanism", x, -22.0, loop=True)
+
+
+def m06_stair():
+    sec = 26.0
+    tt = t(sec)
+    hi = sum((0.4 ** k) * np.sin(2 * np.pi * hz(93) * (k + 1) * (tt + 0.0015 * np.sin(2 * np.pi * 4.8 * tt)))
+             for k in range(3))
+    x = band(hi * np.clip(tt / 3.0, 0, 1), 400, 6000) * 0.03
+    for at in (2.0, 14.0):                           # far beneath, one low piano note every twelve seconds
+        _place(x, felt(38, 6.0, 0.8), at)
+    save_lufs("music_m06_stair", x + air(sec, 0.4), -24.0)
+
+
+def m07_ross():
+    sec = 36.0
+    x = np.zeros(int(sec * SR))
+    for k, m in enumerate(MOTIF):                    # the motif on the cello, warm, plain, tired
+        _place(x, cello(m - 12 + 12, 3.6, 0.9, attack=0.5, vib=0.005), 1.0 + 2.6 * k)
+    for k, chord in enumerate([[50, 57, 62], [46, 53, 58], [48, 53, 57], [43, 50, 55]]):   # Dm  Bb  F  Gm
+        for m in chord:
+            _place(x, felt(m - 12, 6.0, 0.35), 1.0 + 7.0 * k)
+    _place(x, cello(50, 10.0, 0.6, attack=2.0), 24.0)
+    save_lufs("music_m07_ross", x + strings([38], sec, swell=8.0, vel=0.5, seed=17), -22.0, loop=True)
+
+
+def m08_letter():
+    sec = 22.0
+    x = np.zeros(int(sec * SR))
+    for k, chord in enumerate([[50, 57, 62, 65], [46, 53, 58, 62], [43, 50, 55, 58]]):   # three slow chords
+        for m in chord:
+            _place(x, felt(m, 6.0, 0.45), 1.0 + 3.5 * k)
+    _place(x, strings([43, 50, 57], 10.0, swell=4.0, vel=1.0, seed=21), 11.0)    # a breath of strings, unresolved
+    save_lufs("music_m08_letter", x, -20.0)
+
+
+def m09_decision():
+    sec = 30.0
+    x = np.zeros(int(sec * SR))
+    for rep in range(3):                             # D C A G ... and it stops before the last note
+        for k, m in enumerate(MOTIF[:4]):
+            _place(x, felt(m, 4.0, 0.8 - 0.1 * rep), 0.8 + rep * 10.0 + 1.5 * k)
+    save_lufs("music_m09_decision", x + air(sec, 0.5), -22.0, loop=True)
+
+
+def _phrase(x, at, step, voice, last=True, octave=0, vel=1.0):
+    for k, m in enumerate(MOTIF if last else MOTIF[:4]):
+        _place(x, voice(m + octave, vel), at + step * k)
+
+
+def m10_ending_resolve():
+    sec = 26.0
+    x = np.zeros(int(sec * SR))
+    _phrase(x, 1.0, 1.8, lambda m, v: felt(m, 4.5, 0.7))
+    _phrase(x, 1.9, 1.8, lambda m, v: cello(m - 12, 2.6, 0.7))
+    for m in (50, 54, 57, 62):                       # and for the first time it resolves: D major
+        _place(x, felt(m, 9.0, 0.5), 11.5)
+    _place(x, strings([38, 45, 54], 12.0, swell=4.0, vel=0.8, seed=31), 11.0)
+    save_lufs("music_m10_ending_resolve", x, -18.0)
+
+
+def m11_ending_grief():
+    sec = 26.0
+    x = np.zeros(int(sec * SR))
+    for k, m in enumerate(MOTIF[:2]):
+        _place(x, felt(m, 4.0, 0.5), 1.0 + 1.6 * k)
+    for k, m in enumerate(MOTIF):                    # then the cello alone, to the end, long bows
+        _place(x, cello(m - 12, 4.6, 0.85, attack=0.8, vib=0.0045), 4.0 + 3.8 * k)
+    save_lufs("music_m11_ending_grief", x, -18.0)
+
+
+def m12_ending_hollow():
+    sec = 26.0
+    x = strings([38, 45], sec, swell=5.0, vel=0.8, seed=41)
+    for rep in range(2):
+        _phrase(x, 2.0 + rep * 11.0, 1.9, lambda m, v: felt(m, 4.5, 0.6), last=False)   # never the fifth
+    save_lufs("music_m12_ending_hollow", x, -18.0)
+
+
+def m13_ending_dark():
+    sec = 26.0
+    tt = t(sec)
+    x = strings([26, 33, 38, 41], sec, swell=3.0, vel=1.0, seed=43)
+    x = x * np.clip(1.0 - tt / sec, 0.05, 1.0) ** 0.7     # slowly thins out
+    save_lufs("music_m13_ending_dark", band(x, 30, 900), -18.0)
+
+
+def m14_credits():
+    sec = 42.0
+    x = np.zeros(int(sec * SR))
+    for rep in range(2):                             # the complete theme, twice
+        _phrase(x, 1.0 + rep * 13.0, 2.0, lambda m, v: felt(m, 5.0, 0.7))
+        _phrase(x, 2.0 + rep * 13.0, 2.0, lambda m, v: cello(m - 12, 2.8, 0.65))
+    _place(x, cello(38, 14.0, 0.8, attack=2.0), 27.0)    # then one held cello note fading
+    save_lufs("music_m14_credits", x + strings([38, 45], sec, swell=10.0, vel=0.4, seed=47), -16.0)
+
+
 def main(argv=None):
     global OUT
     ap = argparse.ArgumentParser()
@@ -641,6 +879,13 @@ def main(argv=None):
         ("squelch", squelch), ("blip", blip),
         ("music_menu", lambda: pad("music_menu", [50, 57, 62, 64, 69], 48, 1, 0.8)),      # D modal, open and cold
         ("music_tension", lambda: pad("music_tension", [38, 45, 51, 56], 40, 7, 0.6, tension=True)),
+        ("music_m01_title", m01_title), ("music_m02_arrival", m02_arrival), ("music_m03_watch", m03_watch),
+        ("music_m04_weather", m04_weather), ("music_m04_weather_restless", lambda: m04_weather(True)),
+        ("music_m05_mechanism", m05_mechanism), ("music_m06_stair", m06_stair), ("music_m07_ross", m07_ross),
+        ("music_m08_letter", m08_letter), ("music_m09_decision", m09_decision),
+        ("music_m10_ending_resolve", m10_ending_resolve), ("music_m11_ending_grief", m11_ending_grief),
+        ("music_m12_ending_hollow", m12_ending_hollow), ("music_m13_ending_dark", m13_ending_dark),
+        ("music_m14_credits", m14_credits),
     ]
     for name, fn in jobs:
         seed_for(name)

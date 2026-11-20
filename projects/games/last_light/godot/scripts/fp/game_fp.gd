@@ -219,6 +219,8 @@ func _on_story_event(name_: String, args: Array) -> void:
 		"caption":
 			presenter.show_caption(args[0])
 		"ending_card":
+			if audio and args.size() > 0:             # audit music: the ending's own cue (M10 to M13)
+				audio.play_cue(String(audio.cues.get("endings", {}).get(String(args[0]), "")), 2.4)
 			player.enabled = false
 			ui.clear_prompt()
 			refresh_mouse()
@@ -239,7 +241,7 @@ func _on_story_event(name_: String, args: Array) -> void:
 			audio.knock(station.door_position())
 		"footsteps":
 			audio.footsteps(args[0], station.door_position())
-		"sfx", "static", "music":
+		"sfx", "static", "music", "music_stop":
 			audio.story_cue(name_, args)
 		_:
 			push_warning("story: unhandled presentation event '%s'" % name_)   # story_test keeps the data clean
@@ -428,7 +430,8 @@ func save_dict() -> Dictionary:
 		"player": {"pos": [player.global_position.x, player.global_position.y, player.global_position.z], "yaw": player._yaw, "pitch": player._pitch,
 			"torch": player.torch_held, "torch_on": player.torch_light != null and player.torch_light.visible,
 			"equip": player.equipment.to_dict() if player.equipment else {}},
-		"station": {"door_open": station.door_open, "visitor": visitor_fig != null}}
+		"station": {"door_open": station.door_open, "visitor": visitor_fig != null},
+		"music": audio.cue_state() if audio else {}}       # audit music: the cue, its layers, the silence
 
 
 func autosave(quiet := false) -> void:
@@ -441,6 +444,8 @@ func autosave(quiet := false) -> void:
 func _apply_save(d: Dictionary) -> void:
 	sim.from_dict(d["sim"])
 	director.load_data(d["story"])
+	if audio and d.has("music"):                    # audit music: restarted from the top with a 2 s fade
+		audio.restore_cue(d["music"])
 	var p: Dictionary = d.get("player", {})
 	if p.has("pos"):
 		player.global_position = Vector3(p["pos"][0], p["pos"][1], p["pos"][2])

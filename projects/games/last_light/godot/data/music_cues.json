@@ -1,0 +1,24 @@
+{
+  "_doc": "Audit music stage (F_soundtrack.md 23.2 and 23.8; DECISIONS Q12, Q16). Cue id -> file in res://assets/audio/ (.wav), kind (bed: crossfades with the other bed; layer: over its bed, toggled; stinger: over the bed, never saved), loop, lufs (the file is mastered to it and played at unity), max_s (a bed that goes out after so long). The files are synthesised placeholders (audio/synth.py) until the real tracks exist.",
+  "cues": {
+    "M01": {"name": "Title", "file": "music_m01_title", "kind": "bed", "loop": true, "lufs": -16},
+    "M02": {"name": "Arrival", "file": "music_m02_arrival", "kind": "bed", "loop": false, "lufs": -20},
+    "M03": {"name": "Watch", "file": "music_m03_watch", "kind": "bed", "loop": true, "lufs": -24, "max_s": 120},
+    "M04": {"name": "Weather", "file": "music_m04_weather", "kind": "bed", "loop": true, "lufs": -22},
+    "M04b": {"name": "Weather, restless layer", "file": "music_m04_weather_restless", "kind": "layer", "of": "M04", "loop": true, "lufs": -22},
+    "M05": {"name": "Mechanism", "file": "music_m05_mechanism", "kind": "bed", "loop": true, "lufs": -22},
+    "M06": {"name": "The stair", "file": "music_m06_stair", "kind": "bed", "loop": false, "lufs": -24},
+    "M07": {"name": "Ross", "file": "music_m07_ross", "kind": "bed", "loop": true, "lufs": -22},
+    "M08": {"name": "The letter", "file": "music_m08_letter", "kind": "stinger", "loop": false, "lufs": -20},
+    "M09": {"name": "Decision", "file": "music_m09_decision", "kind": "bed", "loop": true, "lufs": -22, "max_s": 120},
+    "M10": {"name": "Ending: correction", "file": "music_m10_ending_resolve", "kind": "bed", "loop": false, "lufs": -18},
+    "M11": {"name": "Ending: heard together", "file": "music_m11_ending_grief", "kind": "bed", "loop": false, "lufs": -18},
+    "M12": {"name": "Ending: nothing to report", "file": "music_m12_ending_hollow", "kind": "bed", "loop": false, "lufs": -18},
+    "M13": {"name": "Ending: light exhibited throughout", "file": "music_m13_ending_dark", "kind": "bed", "loop": false, "lufs": -18},
+    "M14": {"name": "Credits", "file": "music_m14_credits", "kind": "bed", "loop": false, "lufs": -16}
+  },
+  "title": "M01",
+  "credits": "M14",
+  "endings": {"correction": "M10", "heard_together": "M11", "nothing_to_report": "M12", "light_exhibited": "M13"},
+  "legacy": {"tension": "M04", "menu": "M01"}
+}

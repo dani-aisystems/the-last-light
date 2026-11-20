@@ -82,3 +82,28 @@ def test_recorded_audio_matches_its_manifest():
     synth_names = {p.name for p in ASSETS.glob("*.wav")} - set(rec)
     assert not (set(rec) & synth_names)
 
+
+
+def test_lufs_meter_matches_bs1770_reference():
+    """audit music stage: analyze.lufs reads a 997 Hz sine at -20 dBFS as -23.0 LUFS (BS.1770), at 44.1 and 48 kHz."""
+    import numpy as np
+    an = _load("analyze")
+    for sr in (44100, 48000):
+        x = 0.1 * np.sin(2 * np.pi * 997 * np.arange(5 * sr) / sr)
+        assert abs(an.lufs(x, sr) + 23.0) < 0.1
+    assert an.lufs(np.zeros(44100), 44100) == -70.0
+
+
+def test_music_cues_are_mastered_to_the_cue_sheet():
+    """audit music stage: every cue in godot/data/music_cues.json has its file, within 1 LU of its 23.2 level."""
+    import json
+    an = _load("analyze")
+    table = json.loads((WS / "projects/games/last_light/godot/data/music_cues.json").read_text())
+    off = {}
+    for cid, c in table["cues"].items():
+        p = ASSETS / f"{c['file']}.wav"
+        assert p.exists(), cid
+        got = an.analyse(p)["lufs"]
+        if abs(got - c["lufs"]) > 1.0:
+            off[cid] = (got, c["lufs"])
+    assert not off, off

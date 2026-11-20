@@ -65,6 +65,56 @@ def db(v: float) -> float:
     return float(20 * np.log10(max(v, 1e-9)))
 
 
+def k_weight_power(f: np.ndarray, sr: int) -> np.ndarray:
+    """|H(f)|^2 of the ITU-R BS.1770 K-weighting (its high shelf, then its high-pass), at any sample rate
+    (the biquads of libebur128 / pyloudnorm, evaluated on the unit circle)."""
+    def biquad(b, a):
+        z = np.exp(-2j * np.pi * f / sr)
+        return np.abs((b[0] + b[1] * z + b[2] * z * z) / (a[0] + a[1] * z + a[2] * z * z)) ** 2
+    K = np.tan(np.pi * 1681.974450955533 / sr)
+    Q = 0.7071752369554196
+    Vh = 10.0 ** (3.999843853973347 / 20.0)
+    Vb = Vh ** 0.4996667741545416
+    a0 = 1.0 + K / Q + K * K
+    shelf = biquad([(Vh + Vb * K / Q + K * K) / a0, 2.0 * (K * K - Vh) / a0, (Vh - Vb * K / Q + K * K) / a0],
+                   [1.0, 2.0 * (K * K - 1.0) / a0, (1.0 - K / Q + K * K) / a0])
+    K = np.tan(np.pi * 38.13547087602444 / sr)
+    Q = 0.5003270373238773
+    a0 = 1.0 + K / Q + K * K
+    hp = biquad([1.0, -2.0, 1.0], [1.0, 2.0 * (K * K - 1.0) / a0, (1.0 - K / Q + K * K) / a0])
+    return shelf * hp
+
+
+def lufs(x: np.ndarray, sr: int) -> float:
+    """audit music stage: integrated loudness (LUFS) per ITU-R BS.1770-4 of a mono or (n, ch) signal: K-weighted
+    mean square in 400 ms blocks overlapping 75 %, an absolute gate at -70 LUFS and a relative one 10 LU below.
+    The K-weighting is applied per block in the frequency domain (Parseval), so no IIR loop is needed."""
+    x = np.asarray(x, dtype=np.float64)
+    if x.ndim == 1:
+        x = x[:, None]
+    n = int(round(0.4 * sr))
+    hop = n // 4
+    if len(x) < n:
+        x = np.vstack([x, np.zeros((n - len(x), x.shape[1]))])
+    w = k_weight_power(np.fft.rfftfreq(n, 1.0 / sr), sr)
+    scale = np.full(len(w), 2.0)
+    scale[0] = 1.0
+    if n % 2 == 0:
+        scale[-1] = 1.0
+    z = []
+    for i in range(0, len(x) - n + 1, hop):
+        X = np.fft.rfft(x[i:i + n], axis=0)
+        z.append(float(((np.abs(X) ** 2) * (w * scale)[:, None]).sum() / (n * n)))   # summed over channels
+    z = np.array(z)
+    l = -0.691 + 10.0 * np.log10(z + 1e-20)
+    z = z[l > -70.0]
+    if len(z) == 0:
+        return -70.0
+    rel = -0.691 + 10.0 * np.log10(z.mean()) - 10.0
+    z = z[-0.691 + 10.0 * np.log10(z) > rel]
+    return float(-0.691 + 10.0 * np.log10(z.mean()))
+
+
 def analyse(path: Path) -> dict:
     x, sr = read_wav(path)
     mono = x.mean(axis=1)
@@ -79,6 +129,7 @@ def analyse(path: Path) -> dict:
         "crest_db": round(db(peak) - db(rms), 1), "dc": round(float(mono.mean()), 4),
         "clipped": int(np.sum(np.abs(x) >= 0.9999)), "loop": is_loop,
         "seam_jump": round(seam, 3) if seam is not None else None,
+        "lufs": round(lufs(x, sr), 1),
         "step_p999": round(step999, 3) if step999 is not None else None,
     }
     flags = []

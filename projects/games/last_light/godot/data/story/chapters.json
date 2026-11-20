@@ -25,7 +25,7 @@
      {"id": "ch1_sula", "station": "Sula", "label": "Call the Sula (NLB tender, at Stornoway)", "conv": "ch1_sula", "open_after": "kittiwake_home", "close_at": "sula"}
    ],
    "beats": [
-    {"id": "dusk", "duty": ["power"], "do": [["sky", "dusk"], ["mode", 0], ["intensity", 0], ["sfx", "door_heavy"], ["wait", 2], ["talk", "ch1_dusk"]]},
+    {"id": "dusk", "duty": ["power"], "do": [["music", "M02", 3], ["sky", "dusk"], ["mode", 0], ["intensity", 0], ["sfx", "door_heavy"], ["wait", 2], ["talk", "ch1_dusk"]]},
     {"id": "engine", "when": "sim.gen == 2 or has_flag(\"gen_started\")", "hint": [[40, "Move with {move}. Look around with {look}.", "has_flag(\"moved\")"]], "do": [["talk", "ch1_gen"]]},
     {"id": "charge", "when": "sim.charge_flow > 0.0 or duty_done(\"power\")", "do": [["talk", "ch1_charging"], ["wait", 3], ["sfx", "carrier_click"], ["talk", "ch1_carrier"], ["autosave"]]},
     {"id": "light", "duty": ["light"], "when": "sim.mode == 1 and sim.intensity >= 1", "do": [["talk", "ch1_lit"]]},
@@ -40,7 +40,7 @@
     {"id": "hector_heard", "needs_power": true, "when": "sim.clock_min >= 1300", "do": [["talk", "ch1_hector_heard"]], "duty": []},
     {"id": "teleprinter", "when": "sim.clock_min >= 1320", "do": [["set", "teleprinter_2200"], ["sfx", "teleprinter"], ["talk", "ch1_teleprinter"], ["autosave"]], "duty": []},
     {"id": "late", "when": "true", "do": [["timeskip", 1405, "23:25"], ["clock", 1405, 0.15], ["storm", 0.25], ["wait", 2], ["talk", "ch1_morag_late"], ["log", "log_2325"]], "duty": []},
-    {"id": "log", "when": "has_flag(\"read_log_1971\")", "do": [["wait", 2], ["talk", "ch1_log_after"]], "duty": ["write_up"]},
+    {"id": "log", "when": "has_flag(\"read_log_1971\")", "do": [["music", "M03", 4], ["wait", 2], ["talk", "ch1_log_after"]], "duty": ["write_up"]},
     {"id": "mary_ellen", "when": "true", "do": [["clock", 1438, 0.0], ["wait", 4], ["sfx", "static_burst"], ["talk", "ch1_mary_ellen"], ["wait", 1.5], ["talk", "ch1_morag_heard"]], "duty": []}
    ]},
   {"n": 2, "title": "Strange Signals", "subtitle": "Monday 15 November · 00:02",
@@ -64,9 +64,9 @@
     {"id": "sked", "needs_power": true, "when": "true", "do": [["wait", 10], ["sfx", "static_burst"], ["talk", "ch2_sked"]], "duty": []},
     {"id": "marsh", "needs_power": true, "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_marsh"]], "duty": []},
     {"id": "second_call", "when": "true", "do": [["wait", 8], ["sfx", "static_burst"], ["talk", "ch2_mary_ellen"]], "duty": []},
-    {"id": "archive", "when": "has_flag(\"read_log_1953\")", "do": [["wait", 1], ["talk", "ch2_same_hand"], ["clue", "same_hand"]], "duty": ["archive"]},
-    {"id": "jam", "when": "true", "do": [["wait", 6], ["fault", "jam", "story"], ["talk", "ch2_jam"]], "duty": []},
-    {"id": "clear", "when": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "do": [["talk", "ch2_046"], ["autosave"]], "duty": ["jam_ch2"]}
+    {"id": "archive", "when": "has_flag(\"read_log_1953\")", "do": [["music", "M03", 4], ["wait", 1], ["talk", "ch2_same_hand"], ["clue", "same_hand"]], "duty": ["archive"]},
+    {"id": "jam", "when": "true", "do": [["music", "M05", 2], ["wait", 6], ["fault", "jam", "story"], ["talk", "ch2_jam"]], "duty": []},
+    {"id": "clear", "when": "flag(\"jam_cleared_ch2\") >= 1 and sim.mode == 1", "do": [["music_stop", 4], ["talk", "ch2_046"], ["autosave"]], "duty": ["jam_ch2"]}
    ]},
   {"n": 3, "title": "The Storm", "subtitle": "Monday 15 November · 01:05",
    "start": {"fuel": 46, "clock": 1505, "clock_rate": 0.06, "storm": 0.55},
@@ -79,7 +79,7 @@
      {"id": "opt_ch3_hector", "station": "Gannet", "label": "Call Gannet (Hector, in the West Gut lee)", "conv": "opt_ch3_hector", "open_after": "both", "close_at": "notes", "if": "saved(\"Gannet\")"}
    ],
    "beats": [
-    {"id": "forecast", "do": [["wait", 2], ["talk", "ch3_forecast"], ["storm", 0.7]], "duty": []},
+    {"id": "forecast", "do": [["music", "M04", 4], ["wait", 2], ["talk", "ch3_forecast"], ["storm", 0.7]], "duty": []},
     {"id": "two_ships", "when": "true", "do": [["ship", {"name": "Corrie May", "kind": "fishing", "bearing": 62, "aim": "reef", "speed_mul": 0.8}], ["talk", "ch3_corrie"], ["wait", 16], ["ship", {"name": "Lowestoft Star", "kind": "schooner", "bearing": -22, "aim": -10, "speed_mul": 0.8}], ["talk", "ch3_lowestoft"]]},
     {"id": "both", "needs_power": true, "when": "(saved(\"Corrie May\") or lost(\"Corrie May\")) and (saved(\"Lowestoft Star\") or lost(\"Lowestoft Star\"))", "do": [["talk", "ch3_after_two"], ["autosave"]], "duty": ["two_boats"]},
     {"id": "sked3", "needs_power": true, "when": "true", "do": [["wait", 10], ["clock", 1560, 0.04], ["talk", "ch3_sked_missed"]], "duty": []},
@@ -87,7 +87,7 @@
     {"id": "hendrika_go", "if": "has_flag(\"helped_hendrika\")", "when": "true", "do": [["ship", {"name": "Hendrika", "kind": "steamer", "bearing": -38, "aim": "reef", "speed_mul": 0.7}], ["duty", "hendrika"]]},
     {"id": "hendrika_in", "if": "has_flag(\"helped_hendrika\")", "needs_power": true, "when": "saved(\"Hendrika\") or lost(\"Hendrika\")", "do": [["wait", 3], ["talk", "ch3_hendrika_in"], ["autosave"]], "duty": []},
     {"id": "elspeth", "when": "true", "do": [["wait", 12], ["talk", "ch3_elspeth"]], "duty": []},
-    {"id": "notes", "when": "true", "do": [["wait", 14], ["talk", "ch3_notes_a"], ["fault", "trip"], ["set", "blackout=1"], ["talk", "ch3_dark"]]},
+    {"id": "notes", "when": "true", "do": [["music", "M04b", 3], ["wait", 14], ["talk", "ch3_notes_a"], ["fault", "trip"], ["set", "blackout=1"], ["talk", "ch3_dark"]]},
     {"id": "restore", "when": "sim.main_breaker", "do": [["unset", "blackout"], ["wait", 2], ["talk", "ch3_notes_b"]], "duty": ["restore_ch3"]},
     {"id": "dark_boat", "when": "true", "do": [["wait", 6], ["talk", "ch3_rory_dark"], ["autosave"]], "duty": []}
    ]},
@@ -102,11 +102,11 @@
      {"id": "ch4_mf_morag", "station": "Stornoway (MF)", "label": "Call Stornoway on the MF set (2182 kHz)", "conv": "ch4_mf_morag", "open_after": "identify", "close_at": "door", "if": "not has_flag(\"called_morag\")"}
    ],
    "beats": [
-    {"id": "approach", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0, "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "tension"], ["talk", "ch4_watch"]], "duty": []},
+    {"id": "approach", "do": [["ship", {"name": "Visitor", "kind": "launch", "bearing": 12, "aim": 0, "unlit": true, "speed_mul": 1.0, "route": [[47.8, -224.9], [0.0, -132.0], [0.0, -88.0], [0.0, -46.0], [7.5, -33.0], [11.3, -21.2]]}], ["music", "M04", 4], ["talk", "ch4_watch"]], "duty": []},
     {"id": "identify", "needs_power": true, "when": "lit_by_hand(\"Visitor\") or has_flag(\"docked_Visitor\")", "do": [["talk", "ch4_bow"], ["clue", "sy214"]], "duty": ["dark_boat"]},
-    {"id": "hail", "when": "has_flag(\"docked_Visitor\")", "do": [["wait", 2], ["talk", "ch4_docked"]], "duty": ["dark_boat_in"]},
-    {"id": "steps", "when": "true", "do": [["fault", "gen_out"], ["talk", "ch4_gen_out"], ["wait", 3], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["sfx", "ross_cough"], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
-    {"id": "door", "when": "has_flag(\"at_door\")", "do": [["talk", "ch4_door"], ["autosave"]], "duty": ["door"]}
+    {"id": "hail", "when": "has_flag(\"docked_Visitor\")", "do": [["music_stop", 3, "hold"], ["wait", 2], ["talk", "ch4_docked"]], "duty": ["dark_boat_in"]},
+    {"id": "steps", "when": "true", "do": [["fault", "gen_out"], ["talk", "ch4_gen_out"], ["wait", 3], ["footsteps", "jetty"], ["caption", "[Footsteps on the jetty, slow]"], ["wait", 7], ["talk", "ch4_stairs"], ["wait", 2], ["footsteps", "base_door"], ["caption", "[The base door, far below]"], ["wait", 4], ["sfx", "ross_cough"], ["caption", "[A cough, deep in the chest. It goes on a long time.]"], ["wait", 3], ["footsteps", "stair"], ["music", "M06", 2], ["caption", "[Footsteps on the stair. One step at a time.]"], ["wait", 12], ["sfx", "silence"], ["caption", "[Silence]"], ["wait", 4], ["music_stop", 0], ["knock"], ["caption", "[Three slow knocks]"], ["wait", 2]], "duty": []},
+    {"id": "door", "when": "has_flag(\"at_door\")", "do": [["music", "M07", 4], ["talk", "ch4_door"], ["autosave"]], "duty": ["door"]}
    ]},
   {"n": 5, "title": "The Truth", "subtitle": "Monday 15 November · 03:04",
    "start": {"fuel": 46, "clock": 1624, "clock_rate": 0.08, "storm": 0.8},
@@ -117,14 +117,14 @@
      {"id": "power_ch5", "caption": "Power", "line": "Get the light back.", "done": "sim.main_breaker and sim.gen == 2", "sub": [{"id": "main", "line": "Reset the MAIN breaker", "done": "sim.main_breaker", "nudge": "MAIN first.", "hint": "MAIN breaker on the west wall: push the lever up ({interact})."}, {"id": "engine", "line": "Engine running again (let her cool if she cut out hot)", "done": "sim.gen == 2", "nudge": "The engine. Let her cool if she's hot.", "hint": "Start the engine. The cells won't carry the lamp and the radio for long. (Hold {interact} on START; let her cool first if she cut out hot.)"}]}
    ],
    "beats": [
-    {"id": "story", "do": [["talk", "ch5_ross"]], "duty": []},
+    {"id": "story", "do": [["music", "M07", 3], ["talk", "ch5_ross"]], "duty": []},
     {"id": "cup", "when": "true", "bot_player": {"set": ["primus_ch5"]}, "do": [["wait", 3], ["talk", "ch5_kettle"], ["duty", "kettle_ch5"], ["until", "has_flag(\"primus_ch5\")"], ["talk", "ch5_cup"]], "duty": []},
     {"id": "story2", "when": "true", "do": [["wait", 3], ["talk", "ch5_ross_2"]], "duty": []},
-    {"id": "story3", "when": "true", "do": [["wait", 6], ["talk", "ch5_ross_3"]], "duty": []},
-    {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"], ["fault", "bowl_open"]], "duty": ["drawer"]},
+    {"id": "story3", "when": "true", "do": [["music", "M07", 3], ["wait", 6], ["talk", "ch5_ross_3"]], "duty": []},
+    {"id": "drawer", "when": "has_flag(\"read_letter\")", "do": [["music", "M08", 0], ["wait", 2], ["talk", "ch5_letter"], ["clue", "letter"], ["fault", "bowl_open"]], "duty": ["drawer"]},
     {"id": "bowl", "when": "not sim.gen_locked", "do": [["wait", 1], ["talk", "ch5_bowl"]], "duty": ["bowl"]},
     {"id": "morag", "when": "true", "do": [["wait", 4], ["talk", "ch5_morag"]], "duty": []},
-    {"id": "mayday", "when": "true", "do": [["wait", 6], ["sfx", "static_burst"], ["talk", "ch5_mayday"], ["fault", "overheat"], ["fault", "trip"], ["talk", "ch5_dark"]]},
+    {"id": "mayday", "when": "true", "do": [["music_stop", 3], ["wait", 6], ["sfx", "static_burst"], ["talk", "ch5_mayday"], ["fault", "overheat"], ["fault", "trip"], ["talk", "ch5_dark"]]},
     {"id": "power", "when": "sim.main_breaker and sim.gen == 2", "do": [["autosave"]], "duty": ["power_ch5"]}
    ]},
   {"n": 6, "title": "The Last Light", "subtitle": "Monday 15 November · 04:12",
@@ -135,11 +135,11 @@
    ],
    "beats": [
     {"id": "iona", "do": [["ship", {"name": "Iona Star", "kind": "steamer", "bearing": 66, "aim": 30, "speed_mul": 0.55, "hold": true, "protected": true}], ["talk", "ch6_iona"]], "duty": []},
-    {"id": "jam", "when": "true", "do": [["wait", 4], ["fault", "jam", "story", "manual"], ["talk", "ch6_jam"]]},
-    {"id": "free", "when": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "do": [["talk", "ch6_freed"]], "duty": ["jam_ch6"]},
-    {"id": "standby", "when": "true", "do": [["wait", 6], ["talk", "ch6_rory"], ["release", "Iona Star"]]},
-    {"id": "rescue", "needs_power": true, "when": "saved(\"Iona Star\") or lost(\"Iona Star\")", "do": [["wait", 3], ["talk", "ch6_outcome"]], "duty": ["iona"]},
-    {"id": "dawn", "when": "true", "do": [["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_hendrika_dawn"], ["talk", "ch6_morag_dawn"], ["talk", "ch6_sked_dawn"], ["talk", "ch6_final_log"]], "duty": []},
+    {"id": "jam", "when": "true", "do": [["music", "M05", 2], ["wait", 4], ["fault", "jam", "story", "manual"], ["talk", "ch6_jam"]]},
+    {"id": "free", "when": "flag(\"jam_cleared_ch6\") >= 1 and sim.mode == 2", "do": [["music", "M04", 3], ["talk", "ch6_freed"]], "duty": ["jam_ch6"]},
+    {"id": "standby", "when": "true", "do": [["music", "M04", 3], ["wait", 6], ["talk", "ch6_rory"], ["release", "Iona Star"]]},
+    {"id": "rescue", "needs_power": true, "when": "saved(\"Iona Star\") or lost(\"Iona Star\")", "do": [["music_stop", 4], ["wait", 3], ["talk", "ch6_outcome"]], "duty": ["iona"]},
+    {"id": "dawn", "when": "true", "do": [["music", "M09", 3], ["timeskip", 1830, "06:30"], ["clock", 1830, 0.0], ["storm", 0.25], ["sky", "dawn"], ["wait", 3], ["talk", "ch6_hendrika_dawn"], ["talk", "ch6_morag_dawn"], ["talk", "ch6_sked_dawn"], ["talk", "ch6_final_log"]], "duty": []},
     {"id": "ending", "when": "true", "do": [["wait", 2], ["ending_card", "ch6_epilogue"], ["end_campaign"]]}
    ]}
  ],
