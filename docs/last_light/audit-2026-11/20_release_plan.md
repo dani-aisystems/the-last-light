@@ -102,7 +102,7 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 - **Suites:** all 13 PASS, 0 `SCRIPT ERROR`s, pytest PASS, `sim_v2` seeds 1 to 5 identical to M0. `interaction_test` shows 3 warnings, up from 1. They are the same old "no sound when a document opens (Stage 5)" warning, now on two more documents. The check counts live audio players right after the document opens, so it is timing-sensitive under `taskpolicy -b`; the F2 change does not touch documents or audio.
 - **Note:** R3's `credits.txt` edit landed while the suites were running, so the later suites read the new credits text. The regress credits check passes on either text.
 
-## R3 endings and credits (in progress, 2026-11-20)
+## R3 endings and credits (done, 2026-11-20)
 
 **Credits (Daniel's choices: "Music by Daniel Yanchev"; the visitor stays "The man at the door"; the licence texts go in a file next to the app):**
 - `godot/data/credits.txt`:
@@ -115,7 +115,44 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 - **Licences:** the build shipped neither Godot's MIT notice nor the fonts' OFL texts; the export's `include_filter` takes only `data/*.txt`. The new `tests/make_licenses.gd` writes `THIRD_PARTY_LICENSES.txt` from the engine's own licence API (Godot MIT, 102 components, 19 licence texts) plus the four OFL texts. A test run produced 2,649 lines. R5 puts the file in the zip next to the .app.
 - **Test:** `regress_test` R19 checks the new credits: the music line, Freesound, the licence pointer, the full cast, and no name for the visitor.
 
-**Ending panels:** none of Daniel's nine are in `godot/assets/ending/` yet. Until they land, the endings show the stand-in plate without its label (R2). When they land: import, capture each ending's four panels, and check them against `E_ending_image_pack.md`.
+**Ending panels: done** (`e7074b6`, `b3343ae`).
+
+**The panels:**
+- **Source:** all nine came from Daniel, made in ChatGPT from the reference pack in `renders/last_light_ending_refs/` (game captures cropped clear of the HUD, plus portraits and three-angle face strips per panel).
+- **Import:** the originals are committed in `Ending Card/`. `blender/ending_panels_import.py` maps each one to its panel id and crops it to 16:9.
+- **Size:** kept at their native 1672 px. They show at about 1536 px and 1056 px at 1080p, and are imported without mipmaps, so a 4K upscale would add no detail and would shimmer.
+- **`p4_heard_together`:** the source was portrait (1199 × 1312), so the panel is a 16:9 band around the hands (1199 × 674). Daniel kept the crop.
+- **`p4_light_exhibited`:** "LIGHTHOUSE STATION LOG", "WEATHER" and "REMARKS" are legible at 1:1 on the page. That breaks the pack's no-text rule; Daniel kept them.
+
+**Checked against `E_ending_image_pack.md`, all PASS:**
+- Ross's face is never readable.
+- `p1_wheel` has four hands, the oilskin and the darned navy cuff.
+- `p1_alone` has one man. The handset by the wheel comes from the original pack prompt.
+- `p2_ledge` sits upright on the sand with the crew on the bridge wing.
+- Morag in `p4_correction` matches her portrait and has her notebook.
+- `p4_nothing_tide`'s boat is dark and unlit.
+- `p4_nothing_pier` has the flat cap and the pair a pace apart.
+
+**`panel_grade.gdshader` bug, fixed:**
+- **Cause:** in Godot 4, `COLOR` on entry to `fragment()` is already texture × vertex colour, and the shader multiplied its result by it again, so every panel was drawn squared.
+- **Measured:** `p1_wheel`'s mean luma of 30.5 showed as 5.3 on screen; the prediction was 5.7.
+- **Fix:** the vertex colour, which carries the crossfade modulate, is now passed through a varying.
+- **Result:** at grade 0 every P1/P2 panel matches its PNG to within 0.3 of a level. The log pages were squared as well, but light paper hid it.
+
+**Grade:**
+- Photo panels: **0.3**. At 0.75 the duotone and halftone flatten the photographs to a muddy sepia (captures `r3p_t200`–`t226`: grades 0, 0.3 and 0.75 for all nine).
+- Log pages: stay at 0.35 (`r3p_t227`, `t228`).
+
+**Captures:**
+- A capture step can now name a panel id (`p1_alone`, `p4_nothing_pier`); these two were unreachable before.
+- **In motion:** `scripts/film_fp.gd --film_ending=<id>` plays an ending through the shipping path in Movie Maker. It sets the ending's flags, then fires the director's ending card: the music cue, the fade, the four panels, the lines and the card.
+- `renders/last_light/r3_ending_correction.mp4` (95 s) runs the fade to warm black, `p1_wheel` for about 10 s, `p2_gut` about 10 s, the log page about 13 s, then `p4_correction` with its three lines fading in one at a time (about 31 s), then the closing card. The card closes 80 s after the ending trigger.
+- **Sound:** measured, not listened to. It is never silent (−24 to −36 dB per second), with phrases rising at about 31, 62 and 87 s.
+- **NOT TESTED:**
+  - the move into the credits (the film stops 10 s after the card);
+  - the other three endings in motion. Their panels are checked as stills, and `story_test` checks their panel order.
+
+**Suites** after the shader and capture changes: all PASS (`story_test` 0 failed, `run_tests` 95/95, `regress_test` 502/502, `ross_test` 42/42, `opening_test` 31/31, `interaction_test` 164 checks with 0 warnings, `sim_v2` gates clean, pytest PASS). One `regress_test` run failed R30 ("she comes out of the murk over 3 s", half at 1.37 s against 1.5 ± 0.1) and passed on the rerun (1.48 s). This is a timing-sensitive check, logged in the backlog.
 
 ## R5 macOS build (first export, 2026-11-20, main `d98db0b`)
 
@@ -148,6 +185,7 @@ The stale `build/The Last Light.app` folder from 2026-11-04 is still next to the
 - **R1 minors:** F4, chapter 3 and 4 near-black with the room lights off (Daniel's eye in R6 first); F6, the alignment of short subtitle lines against the centred speaker name.
 - **A web (HTML5) build**, only if the organisers ask for one. It needs the Compatibility renderer and a visual pass, so it is not a release-track fix.
 - **Stage G, in full:** the whole test matrix (section 26).
+- **`regress_test` R30 is flaky** ("she comes out of the murk over 3 s"): it steps `tick` with a fixed dt, yet the half-way time moved between runs on the same code (1.37 s, then 1.48 s, against 1.5 ± 0.1). Something outside the loop advances the fade (`await _frames(1)` before the loop, or the view's own process). Make it deterministic.
 - **Cleanup, each on Daniel's OK:**
   - the merged branches `stage-c-data` and `stage-m-e2-merge`;
   - the superseded Ross `.blend` versions;
