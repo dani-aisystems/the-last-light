@@ -190,9 +190,22 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 - **Look:** no visible cost. The room views are the same (mean difference 0.3 levels at the desk). The beam shaft (`r4p2b_fog64_t073` against `fog48_t071`, matched beam angle) has a slightly softer edge and no banding.
 - **Medium against the budget:** 16.84 ms at the desk at 64 froxels in this run, against 17.70 in the quiet 20:34 run. The real gap is 0.1 to 1.3 ms depending on the machine's state.
 
-**Next:**
-- Optionally, **P3**: fewer glow levels on Medium (the bisect put glow at about 2 ms), measured with the same interleaved A/B.
-- Otherwise, settle the first-launch default as Medium with P2. Its p95 passes everywhere, and its median sits at the budget to about 1 ms over.
+**P3, lighter glow on Medium (measured, not adopted):**
+- **Tool:** the interleaved bench now takes `--bench_ab=KIND:a,b[,c]` and cycles any number of arms. The kinds are `fog:<froxels>` and `glow:full|lite|off`; `--bench_ab_fog=` still works.
+- **Medium's glow as built:** levels 1, 2 and 3 at 0.8, 0.4 and 0.1, with bicubic upscale. "Lite" keeps level 1 only and upscales linearly.
+- **Results** (`r4p3_ab_bench.json`, 36 s per view, 5–6 pairs, paired against full glow):
+
+  | View | Lite | Off |
+  |---|---|---|
+  | Desk | −0.21 ms | −0.85 ms |
+  | Window | −0.28 ms | −0.53 ms |
+  | Gen | +0.13 ms | −0.48 ms |
+
+- **Glow's whole cost is now 0.5–0.85 ms**, against about 2 ms in the bisect. Lite saves about 0.2 ms, inside the noise at the generator, and it changes the lamp bloom. It is not adopted unless Daniel wants it.
+
+**State after P2 and P3:**
+- Every cheap preset lever left is worth 0.2 ms or less: render scale, fog grid and glow levels. Glow off entirely is under 1 ms and would lose the lamp bloom.
+- Medium with P2 is the candidate first-launch default. Its p95 passes everywhere (19.6 ms worst, quiet run), and its desk and window medians sit at 16.7 ms to about 1 ms over on Daniel's M3.
 - The absolute 16.7 ms check moves to the R5/R6 build on a quiet Mac.
 
 ## R5 macOS build (first export, 2026-11-20, main `d98db0b`)

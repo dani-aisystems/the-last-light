@@ -979,17 +979,28 @@ func _bench(name_: String, args: Dictionary) -> void:
 		var next_strike := 0.5
 		var el := 0.0
 		var vrid := get_viewport().get_viewport_rid()
-		# R4: --bench_ab_fog=A,B alternates the fog's froxel grid every 2 s inside this one run, so background
-		# load (backups, scans) lands on both arms alike; the 10 frames after each switch are not counted
-		var ab: PackedStringArray = String(args.get("bench_ab_fog", "")).split(",", false)
-		var ab_ft := [[], []]
-		var seg_meds := [[], []]
+		# R4: --bench_ab=KIND:a,b[,c...] cycles the arms every 2 s inside this one run, so background load
+		# (backups, scans) lands on every arm alike; the 10 frames after each switch are not counted.
+		# KIND fog: froxel grid sizes (--bench_ab_fog=A,B is the same as fog:A,B). KIND glow: full, lite, off.
+		var ab_spec := String(args.get("bench_ab", ""))
+		if args.has("bench_ab_fog"):
+			ab_spec = "fog:" + String(args["bench_ab_fog"])
+		var ab_kind := ab_spec.get_slice(":", 0) if ":" in ab_spec else ""
+		var ab: PackedStringArray = ab_spec.get_slice(":", 1).split(",", false) if ab_kind != "" else PackedStringArray()
+		var ab_ft := []
+		var seg_meds := []
+		for i in ab.size():
+			ab_ft.append([])
+			seg_meds.append([])
 		var seg: Array = []
 		var arm := 0
 		var seg_start := 0.0
 		var skip := 0
-		if ab.size() == 2:
-			RenderingServer.environment_set_volumetric_fog_volume_size(int(ab[0]), int(ab[0]))
+		var ab_base := {}
+		if ab.size() >= 2:
+			ab_base = {"glow_levels": range(7).map(func(i): return g.outside.env.get_glow_level(i)),
+				"glow": g.outside.env.glow_enabled}
+			_ab_apply(g, ab_kind, ab[0], ab_base)
 			skip = 10
 		await _frames(30)                 # settle (shader compiles, probe/shadow updates)
 		var last := Time.get_ticks_usec()
@@ -1004,7 +1015,7 @@ func _bench(name_: String, args: Dictionary) -> void:
 			last = now
 			el += ms / 1000.0
 			ft.append(ms)
-			if ab.size() == 2:
+			if ab.size() >= 2:
 				if skip > 0:
 					skip -= 1
 				else:
@@ -1014,10 +1025,10 @@ func _bench(name_: String, args: Dictionary) -> void:
 					if not seg.is_empty():
 						seg_meds[arm].append(_pct(seg, 0.5))
 					seg = []
-					arm = 1 - arm
+					arm = (arm + 1) % ab.size()
 					seg_start = el
 					skip = 10
-					RenderingServer.environment_set_volumetric_fog_volume_size(int(ab[arm]), int(ab[arm]))
+					_ab_apply(g, ab_kind, ab[arm], ab_base)
 			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(vrid))
 			proc.append(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
 			rcpu.append(RenderingServer.viewport_get_measured_render_time_cpu(vrid) + RenderingServer.get_frame_setup_time_cpu())
@@ -1030,16 +1041,16 @@ func _bench(name_: String, args: Dictionary) -> void:
 			"video_mem_mb": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1),
 			"texture_mem_mb": snappedf(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 			"focused": DisplayServer.window_is_focused()}
-		if ab.size() == 2:
-			var diffs: Array = []                # B minus A, segment k of B against segment k of A
-			for k in mini(seg_meds[0].size(), seg_meds[1].size()):
-				diffs.append(seg_meds[1][k] - seg_meds[0][k])
-			r["ab_fog"] = {"a": int(ab[0]), "b": int(ab[1]),
-				"a_median_ms": _pct(ab_ft[0], 0.5), "a_p95_ms": _pct(ab_ft[0], 0.95), "a_frames": ab_ft[0].size(),
-				"b_median_ms": _pct(ab_ft[1], 0.5), "b_p95_ms": _pct(ab_ft[1], 0.95), "b_frames": ab_ft[1].size(),
-				"pairs": diffs.size(), "paired_diff_median_ms": _pct(diffs, 0.5)}
-			var fx: int = Settings.q_fog_froxels()
-			RenderingServer.environment_set_volumetric_fog_volume_size(fx, fx)
+		if ab.size() >= 2:
+			var arms := []
+			for i in ab.size():
+				var diffs: Array = []            # this arm minus the first, segment k against segment k
+				for k in mini(seg_meds[0].size(), seg_meds[i].size()):
+					diffs.append(seg_meds[i][k] - seg_meds[0][k])
+				arms.append({"arm": ab[i], "median_ms": _pct(ab_ft[i], 0.5), "p95_ms": _pct(ab_ft[i], 0.95),
+					"frames": ab_ft[i].size(), "pairs": diffs.size(), "paired_diff_median_ms": _pct(diffs, 0.5)})
+			r["ab"] = {"kind": ab_kind, "arms": arms, "base": ab_base}
+			_ab_apply(g, ab_kind, "restore", ab_base)
 		report["shots"].append(r)
 		print("BENCH ", JSON.stringify(r))
 		_unforce(g)
@@ -1196,6 +1207,27 @@ func _worst_case(g) -> void:
 	g.sim.brk_radar = true
 	g.sim.gen = KeeperSim.Gen.RUNNING
 	g.sim.battery = maxf(g.sim.battery, 80.0)
+
+
+## R4 interleaved A/B: puts one arm in place. fog: the froxel grid (an int; "restore" = the preset's).
+## glow: "full" (as built), "lite" (only the lowest enabled level, linear upscale), "off"; "restore" = as built.
+func _ab_apply(g, kind: String, val: String, base: Dictionary) -> void:
+	match kind:
+		"fog":
+			var n: int = Settings.q_fog_froxels() if val == "restore" else int(val)
+			RenderingServer.environment_set_volumetric_fog_volume_size(n, n)
+		"glow":
+			var env: Environment = g.outside.env
+			var levels: Array = base["glow_levels"]
+			var bicubic := int(ProjectSettings.get_setting("rendering/environment/glow/upscale_mode", 1)) > 0
+			env.glow_enabled = base["glow"] and val != "off"
+			var first := -1                      # the lowest (sharpest, cheapest) level that is on
+			for i in 7:
+				if first < 0 and float(levels[i]) > 0.0:
+					first = i
+			for i in 7:
+				env.set_glow_level(i, levels[i] if (val != "lite" or i == first) else 0.0)
+			RenderingServer.environment_glow_set_use_bicubic_upscale(bicubic and val != "lite")
 
 
 static func _pct(a: Array, q: float) -> float:
