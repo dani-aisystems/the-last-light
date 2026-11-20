@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -45,7 +46,7 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     def src(p: str) -> str:
-        q = Path(p)
+        q = Path(os.path.expandvars(p))         # $R7 (renders/last_light/r7), $GAME (the Godot project)
         return str(q if q.is_absolute() else (base / q).resolve())
 
     # ---------------- video
@@ -65,7 +66,7 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
         n = len(inputs) and (sum(1 for x in inputs if x == "-i") - 1)
         chain = [trim, "setpts=PTS-STARTPTS", f"fps={fps}",
                  f"scale={W}:{H}:force_original_aspect_ratio=decrease", f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black",
-                 "setsar=1", "format=yuv420p"]
+                 "setsar=1", "format=yuv420p", f"settb=1/{fps}"]
         if c.get("fade_in"):
             chain.append(f"fade=t=in:st=0:d={c['fade_in']}")
         if c.get("fade_out"):
@@ -74,10 +75,10 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
         into = c.get("into", "cut")
         if acc is None:
             acc, acc_len = f"v{i}", c["dur"]
-            timeline.append({"i": i, "start": 0.0, "dur": c["dur"], "src": c["src"], "note": c.get("note", "")})
+            timeline.append({"i": i, "id": c.get("id", str(i)), "start": 0.0, "dur": c["dur"], "src": c["src"], "note": c.get("note", "")})
             continue
         if into == "cut":
-            vf.append(f"[{acc}][v{i}]concat=n=2:v=1:a=0[a{i}]")
+            vf.append(f"[{acc}][v{i}]concat=n=2:v=1:a=0,settb=1/{fps}[a{i}]")
             start = acc_len
             acc_len += c["dur"]
         else:
@@ -85,10 +86,10 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
             d = float(d)
             tr = "fade" if kind == "dissolve" else "fadeblack"
             start = acc_len - d
-            vf.append(f"[{acc}][v{i}]xfade=transition={tr}:duration={d}:offset={start:.3f}[a{i}]")
+            vf.append(f"[{acc}][v{i}]xfade=transition={tr}:duration={d}:offset={start:.3f},settb=1/{fps}[a{i}]")
             acc_len = start + c["dur"]
         acc = f"a{i}"
-        timeline.append({"i": i, "start": round(start, 3), "dur": c["dur"], "src": c["src"], "note": c.get("note", "")})
+        timeline.append({"i": i, "id": c.get("id", str(i)), "start": round(start, 3), "dur": c["dur"], "src": c["src"], "note": c.get("note", "")})
     total = acc_len
 
     # ---------------- audio
@@ -96,6 +97,9 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
     af: list[str] = []
     n_in = sum(1 for x in inputs if x == "-i")
     for j, a in enumerate(edl.get("audio", [])):
+        if not Path(src(a["src"])).exists():
+            print(f"WARN audio item {j} missing, skipped (draft): {a['src']}")
+            continue
         inputs += ["-i", src(a["src"])]
         k = n_in
         n_in += 1
@@ -108,7 +112,9 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
             ch.append(f"afade=t=in:st=0:d={a['fade_in']}")
         if a.get("fade_out") and d:
             ch.append(f"afade=t=out:st={d - a['fade_out']:.3f}:d={a['fade_out']}")
-        ms = int(round(a["at"] * 1000))
+        at = a["at"] if "clip" not in a else [t for t in timeline if t["id"] == str(a["clip"])][0]["start"] + a.get("offset", 0.0)
+        a["_at"] = round(at, 3)
+        ms = int(round(at * 1000))
         ch.append(f"adelay={ms}|{ms}")
         af.append(f"[{k}:a]{','.join(ch)}[s{j}]")
         buses[a.get("bus", "fx")].append(f"[s{j}]")
@@ -130,13 +136,17 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
     af.append(f"[{v}]asplit=2[vo1][vo2]")
     af.append(f"[{m}][vo1]sidechaincompress=threshold={dk['threshold']}:ratio={dk['ratio']}:"
               f"attack={dk['attack']}:release={dk['release']}:makeup=1[mduck]")
-    af.append(f"[mduck][vo2][{f}]amix=inputs=3:normalize=0:duration=first,atrim=duration={total:.3f}[mixraw]")
+    if edl.get("vo_in_mix", True):
+        af.append(f"[mduck][vo2][{f}]amix=inputs=3:normalize=0:duration=first,atrim=duration={total:.3f}[mixraw]")
+    else:   # QA only: the VO still ducks the music, but is left out of the mix (to measure the real bed)
+        af.append(f"[vo2]anullsink")
+        af.append(f"[mduck][{f}]amix=inputs=2:normalize=0:duration=first,atrim=duration={total:.3f}[mixraw]")
 
     graph = ";".join(vf + af)
     raw_wav = out / f"{stem}_mixraw.wav"
     # pass 1: render the raw mix (to measure) and the picture
     vid_tmp = out / f"{stem}_picture.mp4"
-    sh(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"] + inputs +
+    sh(["ffmpeg", "-y", "-hide_banner", "-loglevel", os.environ.get("BT_LOG", "error")] + inputs +
        ["-filter_complex", graph, "-map", f"[{acc}]", "-c:v", "libx264", "-preset", "ultrafast" if draft else "slow",
         "-crf", "18" if draft else "10", "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709",
         "-color_trc", "bt709", "-color_range", "tv", str(vid_tmp),
@@ -164,8 +174,8 @@ def build(edl_path: Path, out: Path, draft: bool) -> None:
         "-color_range", "tv", "-c:a", "aac", "-b:a", "256k", "-shortest", "-movflags", "+faststart"] + meta + [str(deliv)])
     vid_tmp.unlink()
     raw_wav.unlink()
-    (out / f"{stem}_timeline.json").write_text(json.dumps({"total": round(total, 3), "loudnorm_in": js,
-                                                           "clips": timeline}, indent=1))
+    (out / f"{stem}_timeline.json").write_text(json.dumps({"total": round(total, 3), "loudnorm_in": js, "clips": timeline,
+        "audio": [{"src": a["src"], "at": a.get("_at"), "bus": a.get("bus", "fx"), "note": a.get("note", "")} for a in edl.get("audio", [])]}, indent=1))
     print("TRAILER_RESULT " + json.dumps({"total": round(total, 3), "master": str(master), "delivery": str(deliv),
                                           "input_lufs": js["input_i"], "input_tp": js["input_tp"]}))
 

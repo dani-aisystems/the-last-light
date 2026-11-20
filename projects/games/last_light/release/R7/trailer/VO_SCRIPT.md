@@ -51,3 +51,26 @@ Pace: about 2 words per second, with long silences between lines. The silences a
 - Low, close, unhurried: a man in his forties, tired, not theatrical. A slight Scottish or Highland colour if the voice has it naturally; no put-on accent.
 - Lines 3 and 4 are almost flat. The weight is in the pause before "I wrote it."
 - Lines 8 and 9 are quieter still, close to the microphone.
+
+---
+
+## Generation record (2026-11-20/21, ElevenLabs Free; terms saved in `elevenlabs_terms_2026-11-20.txt`)
+
+Model: **Eleven Multilingual v2**, which is not Beta. The settings each take actually used are encoded in its filename:
+- speed 0.90;
+- stability 0.50;
+- similarity 0.86 (David 0.75);
+- style 0.17 to 0.26 (David 0);
+- speaker boost on.
+
+The full script C was generated once per candidate. The originals are untouched in `renders/last_light/r7/trailer/VO_original/` (with SHA256SUMS). About 1,400 credits were used of the Free plan's 10,000 a month.
+
+| Voice (Voice Library) | Take | Median F0 | Loudness | Defects measured | Verdict |
+|---|---|---|---|---|---|
+| Adam - Classic Scottish Storyteller | 31.1 s | 120 Hz | −20.4 LUFS | none (peak 0.73, no sample spikes) | **used (provisional)** |
+| Hector - Poetic and Engaging Narrator | 29.6 s | 104 Hz | −13.8 LUFS | **877 up/down sample spikes near full scale** (peak 0.974): likely distortion or crackle | alternate (cut lines kept in `vo_hector/`) |
+| David - Calm and Relaxed Narrator | 33.3 s | 76 Hz | −32.1 LUFS | no energy above 8 kHz (band-limited or muffled) | rejected |
+
+**Lines.** Adam's take was cut into the eight lines at its pauses. The cut points were checked by aligning syllable counts with the speech segments (about 0.23 s per syllable). The match also holds inside the lines: "I know what the log said" is 1.35 s against 1.40 s expected, and "I wrote it" is 0.68 s against 0.70. Each line is normalised to −16 LUFS before the mix. A second Hector take with 2.5 s break tags exists in the account history; it was not used.
+
+**Daniel's ear is the remaining check.** Claude cannot listen. Accent, warmth and naturalness are not verified. To swap the voice, cut the other take the same way into `vo/` and rebuild with `build_trailer.py`.

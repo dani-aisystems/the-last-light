@@ -1,0 +1,394 @@
+{
+ "_doc": "THE LAST LIGHT R7 trailer EDL (build_trailer.py). Every picture is the shipping game (Movie Maker in-engine shots, the game's own ending panels and log page) or a text card in the game's type. $R7 = renders/last_light/r7, $GAME = the Godot project. Audio items with \"clip\" are placed relative to that clip's start on the timeline (offset in s); dissolves shorten the timeline, so anchors keep sound on picture.",
+ "stem": "TheLastLight_Trailer",
+ "title": "The Last Light - Trailer (narration voice: elevenlabs.io)",
+ "comment": "THE LAST LIGHT, a game by Daniel Yanchev (Godot 4.7.2). In-engine footage. Music by Daniel Yanchev. Narration voice: elevenlabs.io (Free plan, non-commercial).",
+ "fps": 30,
+ "size": [
+  1920,
+  1080
+ ],
+ "video": [
+  {
+   "id": "hook",
+   "src": "$R7/reel/r01_title_storm.mp4",
+   "in": 0.0,
+   "dur": 8.0,
+   "fade_in": 1.5,
+   "note": "HOOK: the tower in the storm, the beam, a bolt at 5.5 s"
+  },
+  {
+   "id": "place",
+   "src": "$R7/trailer/cards/card_place.png",
+   "dur": 4.0,
+   "note": "NORTH POINT LIGHT, Outer Hebrides, 14 November 1971",
+   "into": "dissolve:1.0"
+  },
+  {
+   "id": "play",
+   "src": "$R7/gameplay/TheLastLight_Gameplay_Ch1_master.mp4",
+   "in": 39.0,
+   "dur": 5.0,
+   "note": "PLAY: the keeper's torch, the charge switch, and the lamps come up (ch1, in-engine)",
+   "into": "dissolve:1.0"
+  },
+  {
+   "id": "room",
+   "src": "$R7/reel/r04_dusk_window.mp4",
+   "in": 2.0,
+   "dur": 4.5,
+   "note": "WORLD: the watch room at dusk"
+  },
+  {
+   "id": "log",
+   "src": "$R7/reel/r11_log_1953.mp4",
+   "in": 1.0,
+   "dur": 7.5,
+   "note": "THE LOG: the 1953 station log as the player reads it"
+  },
+  {
+   "id": "black1",
+   "src": "$R7/trailer/cards/black.png",
+   "dur": 2.0,
+   "note": "'I wrote it.' lands on black"
+  },
+  {
+   "id": "radio",
+   "src": "$R7/reel/r06_radio_morag.mp4",
+   "in": 1.0,
+   "dur": 6.5,
+   "note": "HUMAN: Morag on Channel 16; the order panel and radar"
+  },
+  {
+   "id": "bino",
+   "src": "$R7/reel/r07_bino_storm.mp4",
+   "in": 6.0,
+   "dur": 3.5,
+   "note": "the binoculars on the storm sea, the boats talking"
+  },
+  {
+   "id": "landing",
+   "src": "$R7/reel/r03_ext_landing_bolt.mp4",
+   "in": 3.0,
+   "dur": 3.5,
+   "note": "STORM: the landing, a bolt at 5 s"
+  },
+  {
+   "id": "window",
+   "src": "$R7/reel/r08_window_bolt.mp4",
+   "in": 3.4,
+   "dur": 1.8,
+   "note": "the dark watch room, the windows flaring (bolt at 4 s)"
+  },
+  {
+   "id": "gut",
+   "src": "$R7/endings/TheLastLight_Ending_Correction_master.mp4",
+   "in": 14.5,
+   "dur": 3.0,
+   "note": "the game's own storm panel (p2_gut)"
+  },
+  {
+   "id": "lantern",
+   "src": "$R7/reel/r02_ext_top.mp4",
+   "in": 2.0,
+   "dur": 3.0,
+   "note": "the lantern turning"
+  },
+  {
+   "id": "door",
+   "src": "$R7/reel/r13_door_ross.mp4",
+   "in": 24.5,
+   "dur": 8.0,
+   "note": "THE DOOR: it opens on the red stair; the man at the door"
+  },
+  {
+   "id": "black2",
+   "src": "$R7/trailer/cards/black.png",
+   "dur": 1.0,
+   "note": "silence"
+  },
+  {
+   "id": "dawn",
+   "src": "$R7/reel/r12_dawn_window.mp4",
+   "in": 2.0,
+   "dur": 6.5,
+   "fade_in": 1.5,
+   "note": "RELEASE: dawn"
+  },
+  {
+   "id": "dawnlog",
+   "src": "$R7/endings/TheLastLight_Ending_NothingToReport_master.mp4",
+   "in": 25.0,
+   "dur": 6.0,
+   "into": "dissolve:1.0",
+   "note": "the dawn log page: 'Storm abating. Light exhibited throughout. Nothing to report.'"
+  },
+  {
+   "id": "title",
+   "src": "$R7/trailer/cards/card_title.png",
+   "dur": 8.0,
+   "into": "dip:1.5",
+   "fade_out": 2.0,
+   "note": "TITLE"
+  }
+ ],
+ "audio": [
+  {
+   "bus": "music",
+   "src": "$GAME/assets/audio/score/m01.mp3",
+   "at": 0.0,
+   "in": 0.0,
+   "dur": 20.0,
+   "gain_db": -8,
+   "fade_in": 2.5,
+   "fade_out": 4.0,
+   "note": "M01 title: the falling motif"
+  },
+  {
+   "bus": "music",
+   "src": "$GAME/assets/audio/score/m02.mp3",
+   "clip": "log",
+   "offset": -4.0,
+   "in": 24.0,
+   "dur": 24.0,
+   "gain_db": -14,
+   "fade_in": 4.0,
+   "fade_out": 2.5,
+   "note": "M02 arrival: its swell (cue 40-52 s) under the radio and the boats"
+  },
+  {
+   "bus": "music",
+   "src": "$GAME/assets/audio/score/m04b.mp3",
+   "clip": "landing",
+   "offset": -0.5,
+   "in": 28.0,
+   "dur": 19.8,
+   "gain_db": 1,
+   "fade_in": 1.5,
+   "fade_out": 0.15,
+   "note": "M04b restless: the storm; cut dead on the black"
+  },
+  {
+   "bus": "music",
+   "src": "$GAME/assets/audio/score/m05.mp3",
+   "clip": "window",
+   "offset": 0.0,
+   "in": 40.0,
+   "dur": 14.0,
+   "gain_db": -4,
+   "fade_in": 2.0,
+   "fade_out": 0.15,
+   "note": "M05 mechanism: the slipping gear"
+  },
+  {
+   "bus": "music",
+   "src": "$GAME/assets/audio/score/m09.mp3",
+   "clip": "dawn",
+   "offset": 0.5,
+   "in": 0.0,
+   "dur": 18.0,
+   "gain_db": -3,
+   "fade_in": 1.5,
+   "fade_out": 3.5,
+   "note": "M09 decision: the motif that never reaches its fifth note"
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/amb_wind.wav",
+   "at": 0.0,
+   "in": 0.0,
+   "dur": 40.0,
+   "gain_db": -15,
+   "fade_in": 2.0,
+   "note": "wind bed (loops in the game)"
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/amb_wind.wav",
+   "clip": "landing",
+   "offset": -0.5,
+   "in": 2.0,
+   "dur": 19.8,
+   "gain_db": -6,
+   "fade_out": 0.15
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/amb_rain_glass.wav",
+   "clip": "room",
+   "offset": 0.0,
+   "in": 0.0,
+   "dur": 30.0,
+   "gain_db": -21,
+   "fade_in": 2.0,
+   "fade_out": 2.0
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/thunder_2.wav",
+   "clip": "hook",
+   "offset": 6.1,
+   "gain_db": -4,
+   "note": "after the bolt in r01 (5.5 s)"
+  },
+  {
+   "bus": "fx",
+   "src": "$R7/gameplay/TheLastLight_Gameplay_Ch1_master.mp4",
+   "clip": "play",
+   "offset": 0.0,
+   "in": 39.0,
+   "dur": 5.0,
+   "gain_db": -3,
+   "fade_in": 0.4,
+   "fade_out": 0.6,
+   "note": "the game's own sound: the charge switch, the engine, the lamps"
+  },
+  {
+   "bus": "fx",
+   "src": "$R7/reel/r06_radio_morag.wav",
+   "clip": "radio",
+   "offset": 0.0,
+   "in": 1.0,
+   "dur": 6.5,
+   "gain_db": -12,
+   "fade_in": 0.3,
+   "fade_out": 0.5,
+   "note": "the game's own radio sound under Morag's card"
+  },
+  {
+   "bus": "fx",
+   "src": "$R7/reel/r07_bino_storm.wav",
+   "clip": "bino",
+   "offset": 0.0,
+   "in": 6.0,
+   "dur": 3.5,
+   "gain_db": -14,
+   "fade_out": 0.4
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/thunder_5.wav",
+   "clip": "landing",
+   "offset": 2.4,
+   "gain_db": 1,
+   "note": "after the landing bolt (5 s in the shot)"
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/thunder_1.wav",
+   "clip": "window",
+   "offset": 0.8,
+   "gain_db": 0
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/clockwork.wav",
+   "clip": "lantern",
+   "offset": 0.0,
+   "in": 0.0,
+   "dur": 3.0,
+   "gain_db": -8,
+   "fade_in": 0.3,
+   "fade_out": 0.3,
+   "note": "the lens clockwork under the lantern"
+  },
+  {
+   "bus": "fx",
+   "src": "$R7/reel/r13_door_ross.wav",
+   "clip": "door",
+   "offset": 0.0,
+   "in": 24.5,
+   "dur": 8.0,
+   "gain_db": 3,
+   "fade_out": 0.1,
+   "note": "the game's own door, stair and storm"
+  },
+  {
+   "bus": "fx",
+   "src": "$GAME/assets/audio/amb_sea.wav",
+   "clip": "dawn",
+   "offset": 0.0,
+   "in": 0.0,
+   "dur": 18.0,
+   "gain_db": -18,
+   "fade_in": 2.5,
+   "fade_out": 3.0,
+   "note": "the calm sea at dawn"
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_01.wav",
+   "clip": "hook",
+   "offset": 1.8,
+   "note": "Eighteen years ago tonight, a boat called the Mary Ellen went onto the rocks below this light.",
+   "gain_db": 5.2
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_02.wav",
+   "clip": "log",
+   "offset": 0.5,
+   "note": "The inquiry said her master was to blame.",
+   "gain_db": 4.3
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_03.wav",
+   "clip": "log",
+   "offset": 3.6,
+   "note": "The station log said the light was burning.",
+   "gain_db": 2.7
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_04.wav",
+   "clip": "log",
+   "offset": 6.1,
+   "note": "I know what the log said... I wrote it.",
+   "gain_db": 2.3
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_05.wav",
+   "clip": "radio",
+   "offset": 1.8,
+   "note": "Tonight, the same gale. The same channel.",
+   "gain_db": 4.6
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_06.wav",
+   "clip": "bino",
+   "offset": 0.3,
+   "note": "And someone out there is calling as the Mary Ellen.",
+   "gain_db": 4.6
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_07.wav",
+   "clip": "dawn",
+   "offset": 1.8,
+   "note": "By dawn, Stornoway will want my report.",
+   "gain_db": 4.7
+  },
+  {
+   "bus": "vo",
+   "src": "$R7/trailer/vo/line_08.wav",
+   "clip": "dawnlog",
+   "offset": 0.6,
+   "note": "One line in a book. That's all it ever was.",
+   "gain_db": 5.3
+  }
+ ],
+ "duck": {
+  "threshold": 0.015,
+  "ratio": 8,
+  "attack": 50,
+  "release": 700
+ },
+ "loudness": {
+  "I": -16,
+  "TP": -1.0,
+  "LRA": 11
+ }
+}

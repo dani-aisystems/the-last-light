@@ -13,7 +13,7 @@ shots="$1"; out="$2"; shift 2
 only=("$@")
 mkdir -p "$out"
 fails=0
-while IFS='|' read -r name args; do
+while IFS='|' read -r -u 3 name args; do       # fd 3: Godot's launcher must not read the shot list (stdin)
   name="$(echo "$name" | xargs)"; args="$(echo "$args" | xargs)"
   [[ -z "$name" || "$name" == \#* ]] && continue
   if (( ${#only[@]} )) && [[ ! " ${only[*]} " == *" $name "* ]]; then continue; fi
@@ -27,7 +27,7 @@ while IFS='|' read -r name args; do
   fi
   # shellcheck disable=SC2086
   (cd "$root" && tools/godot_bg --write-movie "$avi" --fixed-fps 30 --path projects/games/last_light/godot \
-      -- --capture=film --film $args --audio) > "$log" 2>&1
+      -- --capture=film --film $args --audio) < /dev/null > "$log" 2>&1
   n=$(grep -o '^[0-9]* frames at 30 FPS' "$log" | grep -o '^[0-9]*')
   pk=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 "$avi" 2>/dev/null)
   roll=$(grep -o 'FILM_ROLL frame=[0-9]*' "$log" | grep -o '[0-9]*$')
@@ -44,6 +44,6 @@ while IFS='|' read -r name args; do
   ffmpeg -v error -ss "$ss" -t "$secs" -i "$avi" -vn -c:a pcm_s24le "$out/$name.wav"
   rm "$avi"
   echo "OK $name frames=$n roll@$ss s -> $(basename "$clip")"
-done < "$shots"
+done 3< "$shots"
 echo "REEL_RESULT fails=$fails"
 exit $(( fails > 0 ))

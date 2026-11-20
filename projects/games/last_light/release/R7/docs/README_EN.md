@@ -35,7 +35,7 @@ Then, just before midnight, a voice on Channel 16 gives the name of a trawler th
 | macOS | macOS 11 or later on Apple silicon; macOS 10.15 or later on Intel; a Metal-capable GPU. Universal app (arm64 and x86_64) |
 | Windows | 64-bit Windows 10 or 11 and a GPU with Vulkan 1.2 or Direct3D 12 support (a requirement of Godot's Forward+ renderer) |
 | Disk space | about 400 MB free (the macOS app is 378 MB unpacked) |
-| Download size | macOS zip [[MAC_ZIP_SIZE]]; Windows zip [[WIN_ZIP_SIZE]]; source zip [[SOURCE_ZIP_SIZE]] |
+| Download size | macOS zip 261.0 MB; Windows zip 236.5 MB; source zip [[SOURCE_ZIP_SIZE]] |
 | Display | 1920 x 1080 base, scaled to the window. Starts fullscreen; F11 toggles |
 | Quality presets | Low, Medium (default, 60 fps target), High (30 fps or more) |
 | Input | Keyboard and mouse; gamepad (Xbox or PlayStation layout) |
@@ -45,7 +45,7 @@ Then, just before midnight, a voice on Channel 16 gives the name of a trawler th
 
 **Measured performance** (Apple M3, fullscreen Retina, focused benchmarks, frame times): Low 16.7 ms median (the 60 Hz cap); Medium 16.6 to 18.0 ms median and at most 19.6 ms at the 95th percentile; High 25.5 to 27.7 ms.
 
-**Automated tests** (all passing at the last full run): story_test (all four endings reached by bot campaigns), run_tests 95/95, opening_test 31/31, interaction_test 164 checks, regress_test 502/502, qa_sweep_test 7,703 checks, save_compat_test 305 checks (old save files still load), ross_test 42/42, and the Python tests. The headless simulation gives identical results on seeds 1 to 5. The tests are in `godot/tests/`.
+**Automated tests** (all passing at the last full run): story_test (all four endings reached by bot campaigns), run_tests 95/95, opening_test 31/31, interaction_test 164 checks, regress_test 503/503, qa_sweep_test 7,703 checks, save_compat_test 305 checks (old save files still load), ross_test 42/42, and the Python tests. The headless simulation gives identical results on seeds 1 to 5. The tests are in `godot/tests/`.
 
 ## 3. Installation
 
@@ -160,17 +160,17 @@ All of these are in Options.
 
 ## 8. Trailer
 
-`[[TRAILER_FILE]]`, [[TRAILER_LENGTH]]. Narration voice: elevenlabs.io.
+`TheLastLight_Trailer_narration-elevenlabs.io.mp4`, 1:17. Narration voice: elevenlabs.io.
 
 ## 9. Package contents
 
 | File | What it is |
 |---|---|
 | `TheLastLight.zip` | macOS build: `The Last Light.app` and `THIRD_PARTY_LICENSES.txt` |
-| `[[WIN_ZIP_NAME]]` | Windows build (exported, not run-tested) |
+| `TheLastLight-Windows.zip` | Windows build (exported, not run-tested) |
 | `TheLastLight-source.zip` | Source: `godot/` (project, scripts, data, tests), `blender/` (asset scripts and .blend files), `audio/`, `branding/`, the story documents and the licence files |
 | `README_EN`, `README_BG` | This file in English and Bulgarian |
-| `[[TRAILER_FILE]]` | Trailer |
+| `TheLastLight_Trailer_narration-elevenlabs.io.mp4` | Trailer |
 
 Inside `godot/scripts/`: `core/` (the station simulation and its configuration), `story/` (director, dialogue parser, presenter, saves of story state), `fp/` (first-person play: player, room, radio, radar, sea), `ui/` (dialogue, duty line, log, history), and `audio_director.gd`. The story itself is data: `godot/data/story/chapters.json` and six `.dlg` files.
 

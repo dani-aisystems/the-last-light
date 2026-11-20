@@ -54,7 +54,7 @@ THE LAST LIGHT („ПОСЛЕДНАТА СВЕТЛИНА“)
   Windows                 64-битов Windows 10 или 11 и видеокарта с поддръжка на Vulkan 1.2 или
                           Direct3D 12 (изискване на визуализатора Forward+ на Godot)
   Дисково пространство    около 400 MB свободни (приложението за macOS е 378 MB разархивирано)
-  Размер на архивите      zip за macOS [[MAC_ZIP_SIZE]]; zip за Windows [[WIN_ZIP_SIZE]]; zip с
+  Размер на архивите      zip за macOS 261,0 MB; zip за Windows 236,5 MB; zip с
                           изходния код [[SOURCE_ZIP_SIZE]]
   Екран                   основа 1920 x 1080, мащабира се по прозореца. Стартира на цял екран;
                           F11 превключва
@@ -72,7 +72,7 @@ THE LAST LIGHT („ПОСЛЕДНАТА СВЕТЛИНА“)
 
 Автоматични тестове (всички успешни при последното пълно изпълнение): story_test (и четирите
 края са достигнати от автоматизирани кампании), run_tests 95/95, opening_test 31/31,
-interaction_test 164 проверки, regress_test 502/502, qa_sweep_test 7703 проверки,
+interaction_test 164 проверки, regress_test 503/503, qa_sweep_test 7703 проверки,
 save_compat_test 305 проверки (старите записи се зареждат), ross_test 42/42 и тестовете на
 Python. Симулацията без графика дава еднакви резултати при начални стойности 1 – 5. Тестовете са
 в godot/tests/.
@@ -241,7 +241,7 @@ Iona Star, ще мине през East Gut, или ще бъде загубен.
 8. ТРЕЙЛЪР
 ----------
 
-[[TRAILER_FILE]], [[TRAILER_LENGTH]]. Глас на разказвача: elevenlabs.io.
+TheLastLight_Trailer_narration-elevenlabs.io.mp4, 1:17 мин.. Глас на разказвача: elevenlabs.io.
 
 9. СЪДЪРЖАНИЕ НА ПАКЕТА
 -----------------------
@@ -249,12 +249,12 @@ Iona Star, ще мине през East Gut, или ще бъде загубен.
   Файл                      Какво е
   -----------------------   --------------------------------------------------------------------
   TheLastLight.zip          изданието за macOS: The Last Light.app и THIRD_PARTY_LICENSES.txt
-  [[WIN_ZIP_NAME]]          изданието за Windows (експортирано, без изпитване)
+  TheLastLight-Windows.zip          изданието за Windows (експортирано, без изпитване)
   TheLastLight-source.zip   изходен код: godot/ (проект, скриптове, данни, тестове), blender/
                             (скриптове за ресурсите и файлове .blend), audio/, branding/,
                             сюжетните документи и файловете с лицензите
   README_EN, README_BG      този файл на английски и на български
-  [[TRAILER_FILE]]          трейлър
+  TheLastLight_Trailer_narration-elevenlabs.io.mp4          трейлър
 
 В godot/scripts/: core/ (симулацията на станцията и нейните настройки), story/ (режисьор на
 сюжета, разбор на диалозите, показване, състояние на историята), fp/ (игра от първо лице: играч,

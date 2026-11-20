@@ -36,8 +36,8 @@
 |---|---|---|---|---|---|---|---|
 | Heard Together | `TheLastLight_Ending_HeardTogether.mp4` | 141.8 s | 4404 / 4404 | p1_wheel 2.5 s, p2_ledge 12.7, p3_correction 22.9, p4_heard_together 36.1, card 64.9 | open 79.3 s, end 137.7 s, "Return to the title" | −28.5 LUFS, TP −4.3 dBFS, 0 clipped | **PASS** |
 | Nothing to Report | `TheLastLight_Ending_NothingToReport.mp4` | 153.3 s | 4750 / 4750 | p1_wheel, p2_gut, p3_exhibited, p4_nothing_pier (same times); card 71.6 s | open 85.8 s, end 149.3 s | −28.2 LUFS, TP −4.3, 0 clipped | **PASS** |
-| Light Exhibited | `TheLastLight_Ending_LightExhibited.mp4` | *(re-take)* | | p1_alone, p2_ledge, p3_exhibited, p4_light_exhibited | | | pending |
-| Correction | `TheLastLight_Ending_Correction.mp4` | *(re-take)* | | p1_wheel, p2_gut, p3_correction, p4_correction | | | pending |
+| Light Exhibited | `TheLastLight_Ending_LightExhibited.mp4` | 135.2 s | 4207 / 4207 | p1_alone, p2_ledge, p3_exhibited, p4_light_exhibited (same times); card 58.5 s | open 72.7 s, end 131.2 s | −28.9 LUFS, TP −4.3, 0 clipped | **PASS** |
+| Correction | `TheLastLight_Ending_Correction.mp4` | 143.6 s | 4459 / 4459 | p1_wheel, p2_gut, p3_correction, p4_correction (same times); card 66.9 s | open 81.1 s, end 139.6 s | −28.4 LUFS, TP −4.1, 0 clipped | **PASS** |
 
 Times are in the delivered file (recording time − 5.0 s).
 
