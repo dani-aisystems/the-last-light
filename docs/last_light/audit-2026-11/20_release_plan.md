@@ -117,6 +117,25 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 
 **Ending panels:** none of Daniel's nine are in `godot/assets/ending/` yet. Until they land, the endings show the stand-in plate without its label (R2). When they land: import, capture each ending's four panels, and check them against `E_ending_image_pack.md`.
 
+## R5 macOS build (first export, 2026-11-20, main `d98db0b`)
+
+This is an early build. It will be re-exported once Daniel's panels (R3) and the first-launch quality (R4) are in.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Export (`--export-release "macOS"`, template 4.7.2.stable, matching the engine) | PASS, 64 s, no errors or warnings | the export log |
+| Size | **zip 248.4 MB** (248,359,592 bytes, including `THIRD_PARTY_LICENSES.txt`); the app is 366 MB unpacked (binary 171 MB, pck 211 MB). No size limit is known yet (R0). | `ls`, `unzip -l` |
+| pck contents (911 files, read by a pck parser) | PASS. All 17 data files the game reads (dialogue, `chapters.json`, `music_cues.json`, `credits.txt`, `panels.json`, `docs.json`, …) are in; no `tests/`, capture, autotest or film scripts. Only the four fonts' `OFL.txt` are absent; `THIRD_PARTY_LICENSES.txt` in the zip covers them (R3). | `pck_list.py` |
+| Licence file | PASS. `THIRD_PARTY_LICENSES.txt` is next to the app in the zip (Godot MIT, 102 components, 19 licence texts, 4 OFL texts). | `make_licenses.gd`, `unzip -l` |
+| Headless boot of the exported binary | PASS: to the title, 900 frames, clean exit; only the usual exit-time leak notices | headless log |
+| Windowed boot at the title (`open -g -j`, Dummy audio, `--quit-after 1800`) | PASS: Metal 4.0, Forward+ on the Apple M3; clean self-quit. The frontmost app differed afterwards (ChatGPT → Electron), possibly Godot's one-time activation. Future launches use `godot_bg`'s focus guard. | window log |
+| Bundle | universal (arm64 + x86_64), `com.danielyanchev.thelastlight` 1.0 (1), © 2026 Daniel Yanchev | `lipo`, Info.plist |
+| Signing | ad-hoc with the hardened runtime; `codesign --verify --deep --strict` OK. **Gatekeeper rejects it** (no Developer ID, no notarisation), so a judge must allow it once under System Settings → Privacy & Security → Open Anyway. The R7 README says so. | `codesign`, `spctl` |
+| New game, save, load, an ending, quit in the exported app | **NOT TESTED** by Claude. A release build always uses the real `app_userdata/The Last Light/` folder (`XDG_DATA_HOME` does not redirect it), so a new game would autosave over Daniel's `slot_auto.json`. Daniel does this click-through (or R6 covers it). Daniel's save was verified unchanged (md5) after both boots; Godot did add a log file to that folder's `logs/`. | md5 before and after |
+| Fresh install shows no Continue (F5) | NOT TESTED, for the same reason. | |
+
+The stale `build/The Last Light.app` folder from 2026-11-04 is still next to the zip. Whether to delete it is Daniel's call.
+
 ## Backlog (after delivery)
 
 - **Stage F:** radar ranges, the larger sea and the fuel run (section 10). The hand pump sound waits here.
