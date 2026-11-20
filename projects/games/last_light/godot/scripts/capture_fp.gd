@@ -183,6 +183,11 @@ func _run() -> void:
 	if args.has("bench"):
 		await _bench(name_, args)
 		return
+	if args.has("film"):                 # gameplay film (Movie Maker): film_fp.gd plays the keeper
+		var film = load("res://scripts/film_fp.gd").new()
+		film.main = main
+		add_child(film)
+		return
 	var shots: PackedStringArray = String(args.get("shots", "menu,40@player,60@fp_desk")).split(",")
 	var speed := float(args.get("speed", "4"))
 	Engine.max_physics_steps_per_frame = 24
@@ -974,6 +979,18 @@ func _bench(name_: String, args: Dictionary) -> void:
 		var next_strike := 0.5
 		var el := 0.0
 		var vrid := get_viewport().get_viewport_rid()
+		# R4: --bench_ab_fog=A,B alternates the fog's froxel grid every 2 s inside this one run, so background
+		# load (backups, scans) lands on both arms alike; the 10 frames after each switch are not counted
+		var ab: PackedStringArray = String(args.get("bench_ab_fog", "")).split(",", false)
+		var ab_ft := [[], []]
+		var seg_meds := [[], []]
+		var seg: Array = []
+		var arm := 0
+		var seg_start := 0.0
+		var skip := 0
+		if ab.size() == 2:
+			RenderingServer.environment_set_volumetric_fog_volume_size(int(ab[0]), int(ab[0]))
+			skip = 10
 		await _frames(30)                 # settle (shader compiles, probe/shadow updates)
 		var last := Time.get_ticks_usec()
 		while el < secs:
@@ -987,6 +1004,20 @@ func _bench(name_: String, args: Dictionary) -> void:
 			last = now
 			el += ms / 1000.0
 			ft.append(ms)
+			if ab.size() == 2:
+				if skip > 0:
+					skip -= 1
+				else:
+					ab_ft[arm].append(ms)
+					seg.append(ms)
+				if el - seg_start >= 2.0:
+					if not seg.is_empty():
+						seg_meds[arm].append(_pct(seg, 0.5))
+					seg = []
+					arm = 1 - arm
+					seg_start = el
+					skip = 10
+					RenderingServer.environment_set_volumetric_fog_volume_size(int(ab[arm]), int(ab[arm]))
 			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(vrid))
 			proc.append(Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
 			rcpu.append(RenderingServer.viewport_get_measured_render_time_cpu(vrid) + RenderingServer.get_frame_setup_time_cpu())
@@ -999,6 +1030,16 @@ func _bench(name_: String, args: Dictionary) -> void:
 			"video_mem_mb": snappedf(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0, 0.1),
 			"texture_mem_mb": snappedf(Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, 0.1),
 			"focused": DisplayServer.window_is_focused()}
+		if ab.size() == 2:
+			var diffs: Array = []                # B minus A, segment k of B against segment k of A
+			for k in mini(seg_meds[0].size(), seg_meds[1].size()):
+				diffs.append(seg_meds[1][k] - seg_meds[0][k])
+			r["ab_fog"] = {"a": int(ab[0]), "b": int(ab[1]),
+				"a_median_ms": _pct(ab_ft[0], 0.5), "a_p95_ms": _pct(ab_ft[0], 0.95), "a_frames": ab_ft[0].size(),
+				"b_median_ms": _pct(ab_ft[1], 0.5), "b_p95_ms": _pct(ab_ft[1], 0.95), "b_frames": ab_ft[1].size(),
+				"pairs": diffs.size(), "paired_diff_median_ms": _pct(diffs, 0.5)}
+			var fx: int = Settings.q_fog_froxels()
+			RenderingServer.environment_set_volumetric_fog_volume_size(fx, fx)
 		report["shots"].append(r)
 		print("BENCH ", JSON.stringify(r))
 		_unforce(g)

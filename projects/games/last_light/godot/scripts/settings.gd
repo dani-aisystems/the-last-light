@@ -218,6 +218,17 @@ func apply_quality_globals() -> void:
 	# screen, the torch, gets it (its pool was a 1024 slot, soft-edged and shimmering on the floor). The
 	# room lights share the 1024 / 512 slots of quadrants 1-3, as before.
 	get_tree().root.positional_shadow_atlas_quad_0 = Viewport.SHADOW_ATLAS_QUADRANT_SUBDIV_1
+	var froxels := q_fog_froxels()
+	RenderingServer.environment_set_volumetric_fog_volume_size(froxels, froxels)
+
+
+## Release R4 (perf bisect P2): the volumetric fog's froxel grid (size and depth). Medium uses a coarser grid
+## for about 1 ms at the desk and window (fog cost 2.5 / 4.5 ms there in the bisect); Low and High keep
+## Godot's default 64. --fog_froxels=N (benches) overrides it, so old and new can be paired in one session.
+func q_fog_froxels() -> int:
+	if GameState.user_args.has("fog_froxels"):
+		return clampi(int(GameState.user_args["fog_froxels"]), 16, 128)
+	return [64, 48, 64][int(v["quality"])]
 
 
 func q_rain_amount() -> int:

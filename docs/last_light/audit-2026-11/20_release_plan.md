@@ -174,11 +174,26 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 
 **Trying a render-scale cap:** Medium's scale was lowered from 0.90 to 0.85 (`--scale3d=0.4023`) to test it. Focus was lost in both runs. The one focused shot, the desk on r2, read 17.37 / 18.71, about 0.3 ms better. The desk is not resolution-bound, so the scale cap is dropped.
 
+**P2, fog froxels on Medium (done, kept):**
+- **Change:** `Settings.q_fog_froxels()` sets the volumetric fog grid per preset: Low 64, **Medium 48**, High 64. `--fog_froxels=N` overrides it.
+- **Separate-run A/B failed twice:** at 21:04 (ChatGPT Codex at about 45 % CPU, the IDE in front) and at 21:15 (a Time Machine backup, an XProtect scan and trustd). The same view read 14–85 ms, so those runs are not used.
+- **Interleaved A/B (new):** `--bench_ab_fog=A,B` alternates the grid every 2 s inside one run, skips 10 frames after each switch, and reports each arm plus the median of paired segment differences. `r4p2_ab_bench.json` (32 s per view, 7 pairs per view):
+
+  | View | 64: median / p95 | 48: median / p95 | Paired 48 − 64 |
+  |---|---|---|---|
+  | Desk (focused) | 16.84 / 17.19 | 16.66 / 16.92 | **−0.18 ms** |
+  | Window | 16.12 / 19.73 | 15.91 / 16.86 | **−0.22 ms** |
+  | Gen | 14.63 / 15.05 | 14.48 / 14.85 | **−0.19 ms** |
+  | Binoculars | 15.74 / 36.08 | 17.19 / 49.29 | +1.79 ms (spiky, not used) |
+
+- **Saving:** about 0.2 ms, consistent across three views, against the bisect's estimate of about 1 ms.
+- **Look:** no visible cost. The room views are the same (mean difference 0.3 levels at the desk). The beam shaft (`r4p2b_fog64_t073` against `fog48_t071`, matched beam angle) has a slightly softer edge and no banding.
+- **Medium against the budget:** 16.84 ms at the desk at 64 froxels in this run, against 17.70 in the quiet 20:34 run. The real gap is 0.1 to 1.3 ms depending on the machine's state.
+
 **Next:**
-- Try the bisect's **P2**: volumetric fog on Medium at 48 froxels instead of 64. In the bisect, fog cost 2.5 ms at the desk and 4.5 ms at the window.
-- Then, if needed, **P3**: fewer glow levels on Medium.
-- One focused bench pair, plus before and after captures of the beam through the windows.
-- The first-launch default stays Medium until then. Daniel's decision is to keep Medium's look and trim it, not drop to Low.
+- Optionally, **P3**: fewer glow levels on Medium (the bisect put glow at about 2 ms), measured with the same interleaved A/B.
+- Otherwise, settle the first-launch default as Medium with P2. Its p95 passes everywhere, and its median sits at the budget to about 1 ms over.
+- The absolute 16.7 ms check moves to the R5/R6 build on a quiet Mac.
 
 ## R5 macOS build (first export, 2026-11-20, main `d98db0b`)
 
