@@ -102,6 +102,21 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 - **Suites:** all 13 PASS, 0 `SCRIPT ERROR`s, pytest PASS, `sim_v2` seeds 1 to 5 identical to M0. `interaction_test` shows 3 warnings, up from 1. They are the same old "no sound when a document opens (Stage 5)" warning, now on two more documents. The check counts live audio players right after the document opens, so it is timing-sensitive under `taskpolicy -b`; the F2 change does not touch documents or audio.
 - **Note:** R3's `credits.txt` edit landed while the suites were running, so the later suites read the new credits text. The regress credits check passes on either text.
 
+## R3 endings and credits (in progress, 2026-11-20)
+
+**Credits (Daniel's choices: "Music by Daniel Yanchev"; the visitor stays "The man at the door"; the licence texts go in a file next to the app):**
+- `godot/data/credits.txt`:
+  - a "Music by Daniel Yanchev" section;
+  - "Made with" corrected: Godot 4.7.2, and sound effects "synthesised for this game, with the recordings credited below". It no longer says every effect was made for the game or that the music was synthesised;
+  - the nine Freesound CC0 recordings that play in the game, credited by author. The unused hand pump and steel-floor recordings are not credited;
+  - the cast extended to all 13 voices in order of appearance;
+  - a Licences line pointing to `THIRD_PARTY_LICENSES.txt`.
+- Captured page by page with the new `tests/credits_shots.gd` (`r3_credits_p00`–`p02`, all viewed): every line is legible, and the ò in "Sgeir Mhòr" renders.
+- **Licences:** the build shipped neither Godot's MIT notice nor the fonts' OFL texts; the export's `include_filter` takes only `data/*.txt`. The new `tests/make_licenses.gd` writes `THIRD_PARTY_LICENSES.txt` from the engine's own licence API (Godot MIT, 102 components, 19 licence texts) plus the four OFL texts. A test run produced 2,649 lines. R5 puts the file in the zip next to the .app.
+- **Test:** `regress_test` R19 checks the new credits: the music line, Freesound, the licence pointer, the full cast, and no name for the visitor.
+
+**Ending panels:** none of Daniel's nine are in `godot/assets/ending/` yet. Until they land, the endings show the stand-in plate without its label (R2). When they land: import, capture each ending's four panels, and check them against `E_ending_image_pack.md`.
+
 ## Backlog (after delivery)
 
 - **Stage F:** radar ranges, the larger sea and the fuel run (section 10). The hand pump sound waits here.

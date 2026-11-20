@@ -2147,6 +2147,11 @@ func _r19_ending_g6a() -> void:
 	_check(roll.music != null and roll.music.bus == "Music" and roll.music.playing, "the credits music plays on the Music bus")
 	_check(roll.text.text.contains("Daniel Yanchev") and roll.text.text.contains("Human Base Meshes")
 		and not roll.text.text.contains("AI-generated") and not roll.text.text.contains("Stage 3C"), "the credits text is the corrected one")
+	var ct: String = roll.text.text                    # release R3 (Daniel 2026-11-20): music, recorded sounds, licences
+	_check(ct.contains("Music by") and not ct.contains("Music: synthesised") and not ct.contains("every sound effect")
+		and ct.contains("Freesound") and ct.contains("craigsmith") and ct.contains("THIRD_PARTY_LICENSES.txt")
+		and ct.contains("Jan Visser") and ct.contains("The man at the door") and not ct.contains("Alasdair"),
+		"the credits name the music, the recorded sounds, the licence file and the full cast (R3)")
 	var s0 := roll.scroll
 	await create_timer(0.5).timeout
 	_check(roll.scroll > s0 + 5.0 and not roll.at_end, "the credits roll up by themselves (%.0f -> %.0f px)" % [s0, roll.scroll])

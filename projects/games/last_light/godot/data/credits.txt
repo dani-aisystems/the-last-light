@@ -8,11 +8,14 @@ North Point Light, Outer Hebrides, 14-15 November 1971
 Daniel Yanchev
 
 
+[font_size=26]Music by[/font_size]
+Daniel Yanchev
+
+
 [font_size=26]Made with[/font_size]
-Godot Engine 4.7 (MIT)  ·  Blender 5.2 (GPL)
-Story, dialogue, code, models, documents, dials and charts, and every sound effect:
-made for this game.
-Music: synthesised for this game.
+Godot Engine 4.7.2 (MIT)  ·  Blender 5.2 (GPL)
+Story, dialogue, code, models, documents, dials and charts: made for this game.
+Sound effects: synthesised for this game, with the recordings credited below.
 
 
 [font_size=26]Third-party assets[/font_size]
@@ -24,6 +27,12 @@ cliff_side  ·  coast_land_rocks_01  ·  sparse_grass
 painted_concrete  ·  rusty_painted_metal  ·  distressed_painted_planks
 oak_veneer_01  ·  dark_wooden_planks  ·  green_metal_rust
 metal_plate_02  ·  plastered_wall_02  ·  concrete_floor_worn_001
+
+Recorded sounds from Freesound (freesound.org), CC0 1.0 Public Domain:
+coughs by georgisound and husky70  ·  breathing by sickfin
+footsteps by SoftDistortionFX  ·  stair steps by RFCaldas
+door hinge by kyles  ·  telephone by TRP  ·  kettle by wlabarron
+teleprinter by craigsmith
 
 
 [font_size=26]Typefaces[/font_size]
@@ -39,8 +48,16 @@ were rendered with macOS system fonts.
 
 [font_size=26]Cast (in order of appearance)[/font_size]
 Callum Mackay, principal keeper  ·  Morag Fraser, Stornoway Coastguard
-Rory Bain, Kittiwake  ·  Hector Macleod, Gannet  ·  Elspeth Ross, Iona Star
+Rory Bain, Kittiwake  ·  Mary Ellen  ·  Neil Gillies, Sula
+Murdo MacAskill, Sgeir Mhòr Light  ·  Hector Macleod, Gannet
+Elspeth Ross, Iona Star  ·  Dr Helen Marsh, Western Venture
+the Corrie May  ·  the Lowestoft Star  ·  Jan Visser, Hendrika
 The man at the door
+
+
+[font_size=26]Licences[/font_size]
+The full licence texts for Godot Engine, its components and the typefaces
+are in THIRD_PARTY_LICENSES.txt, next to the game.
 
 
 [i]The characters, vessels, the North Point Light and the events of 1953 are fictional.[/i][/center]
