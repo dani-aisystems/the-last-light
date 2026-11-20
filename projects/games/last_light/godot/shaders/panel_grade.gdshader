@@ -18,6 +18,13 @@ uniform float dot_px = 4.0;
 uniform float grain : hint_range(0.0, 0.2) = 0.035;
 uniform float vignette : hint_range(0.0, 1.0) = 0.35;
 
+// R3: COLOR on entry to fragment() is already texture * vertex colour, so multiplying the result by it again
+// squared the image (a photo's mean luminance fell from 30 to about 5). The vertex colour, which carries
+// the panel's modulate (its crossfade), is passed through here instead.
+varying vec4 v_color;
+
+void vertex() { v_color = COLOR; }
+
 float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -50,5 +57,5 @@ void fragment() {
 	g += (hash(floor(FRAGCOORD.xy)) - 0.5) * grain;
 	vec2 v = UV - 0.5;
 	g *= 1.0 - vignette * smoothstep(0.25, 0.75, length(v) * 1.2);
-	COLOR = vec4(mix(c, clamp(g, 0.0, 1.0), strength), src.a) * COLOR;
+	COLOR = vec4(mix(c, clamp(g, 0.0, 1.0), strength), src.a) * v_color;
 }

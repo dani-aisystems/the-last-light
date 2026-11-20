@@ -553,6 +553,7 @@ func _split_ending(lines: Array) -> Array:
 ## closing card), full (the pre-G6 card: title and every line), credits@PX (the roll, frozen PX in).
 ## `--ending_steps=a,b,c` gives one step per ending_<id> shot, in shot order, so one run covers them all;
 ## a step may end in /G to set the grade strength for that shot (p3/0: the log page as rendered).
+## A step may also be a panel id from panels.json (p1_alone, p4_nothing_pier): that panel, lines beside a p4.
 func show_ending_static(title: String, lines: Array) -> void:
 	for c in ending_box.get_children():
 		c.queue_free()
@@ -582,6 +583,10 @@ func show_ending_static(title: String, lines: Array) -> void:
 		ending_seq.grade_override = float(step.get_slice("/", 1))
 		step = step.get_slice("/", 0)
 	var card_lines: Array = []
+	if not ending_seq.panel_info(step).is_empty():   # R3: a panel id shows that panel (p1_alone, p4_nothing_pier)
+		ending_seq.show_static(step, split[0] if step.begins_with("p4_") else [])
+		ending_title.modulate.a = 0.0
+		return
 	if step.begins_with("credits"):
 		_cap_roll = CreditsRoll.new().setup(false)
 		ending_root.add_child(_cap_roll)
