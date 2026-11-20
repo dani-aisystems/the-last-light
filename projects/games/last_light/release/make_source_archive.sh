@@ -1,19 +1,30 @@
 #!/usr/bin/env bash
 # THE LAST LIGHT: source archive for the competition (release track R7; Daniel, 2026-11-20).
 #
-# Builds build/TheLastLight-source.zip from a COMMITTED revision (default HEAD), never from the working
-# tree, so other sessions' uncommitted work cannot leak in:
+# Builds build/TheLastLight-source.zip (or --out PATH) from a COMMITTED revision (default HEAD): the game's
+# tracked files come from a local clone at that revision, so other sessions' uncommitted work cannot leak
+# in. The ONE input that is not read from git is the six gitignored CC0 texture sets (see 3 below), which are
+# taken from the working tree of the checkout this script lives in. Steps:
 #   1. a local clone of the workspace repo at <rev>, with the game's LFS objects pulled (no network: the
 #      origin is this repo);
-#   2. the game folder's tracked files (INCLUDE below), LFS content in place of pointer files;
+#   2. the game folder's tracked files (INCLUDE below, which has "Ending Card/", Daniel's original ending
+#      panel images that blender/ending_panels_import.py reads), LFS content in place of pointer files;
 #   3. plus the six CC0 interior texture sets that .gitignore keeps out of git (R1 finding F1, Daniel's
-#      decision: CC0 1.0 allows redistribution), copied from godot/assets/textures/ with their .import files;
-#   4. plus THIRD_PARTY_LICENSES.txt (tests/make_licenses.gd), the asset licence log and a SOURCE_README.
+#      decision: CC0 1.0 allows redistribution). WHERE THEY COME FROM: they are generated copies in the
+#      working tree, godot/assets/textures/<set>_{diff,nor_gl,arm}.png (+ .import), written by
+#      blender/sync_assets.py from the Poly Haven originals in <workspace>/assets/textures/<set>/
+#      (<set>_Diffuse_2k.png, _nor_gl_2k.png, _arm_2k.png; IDs and licence in assets/ASSET_LICENSES.md).
+#      Each copied PNG is compared byte for byte with its original (--tex-src DIR; default
+#      <workspace>/assets/textures, else the main checkout's); a mismatch aborts, a missing original only
+#      warns. Their sha256 go into TEXTURES_SHA256.txt inside the zip;
+#   4. plus THIRD_PARTY_LICENSES.txt (tests/make_licenses.gd), the asset licence log and a SOURCE_README;
+#   5. the zip itself, and SHA256SUMS.txt (sha256 of the zip) next to it.
 # --verify then unzips the archive, imports it headless and runs run_tests and opening_test, failing on any
 # "Resource file not found" (the F1 check) or SCRIPT ERROR.
 #
-# Usage:  projects/games/last_light/release/make_source_archive.sh [--rev=<commit>] [--with-docs] [--verify]
-#         [--force]   (overwrite an existing build/TheLastLight-source.zip; ask Daniel first)
+# Usage:  projects/games/last_light/release/make_source_archive.sh [--rev <commit>] [--out <zip path>]
+#         [--tex-src <dir>] [--with-docs] [--verify] [--force]
+#         (--opt=value works too; --force overwrites an existing zip and SHA256SUMS.txt: ask Daniel first)
 # Nothing is deleted: the work folder is left in $TMPDIR and its path is printed.
 set -euo pipefail
 
@@ -21,24 +32,35 @@ ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"           # the workspace (git
 GAME_REL="projects/games/last_light"
 GAME="$ROOT/$GAME_REL"
 OUT="$GAME/build/TheLastLight-source.zip"
+TEX_SRC=""
 REV="HEAD"; WITH_DOCS=0; VERIFY=0; FORCE=0
-for a in "$@"; do
-  case "$a" in
-    --rev=*) REV="${a#--rev=}" ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --rev=*) REV="${1#--rev=}" ;;
+    --rev) REV="${2:?--rev needs a value}"; shift ;;
+    --out=*) OUT="${1#--out=}" ;;
+    --out) OUT="${2:?--out needs a value}"; shift ;;
+    --tex-src=*) TEX_SRC="${1#--tex-src=}" ;;
+    --tex-src) TEX_SRC="${2:?--tex-src needs a value}"; shift ;;
     --with-docs) WITH_DOCS=1 ;;
     --verify) VERIFY=1 ;;
     --force) FORCE=1 ;;
-    *) echo "unknown option: $a" >&2; exit 2 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
+  shift
 done
+case "$OUT" in /*) ;; *) OUT="$PWD/$OUT" ;; esac
+SUMS="$(dirname "$OUT")/SHA256SUMS.txt"
 # What goes in. character-refs/ (Daniel's reference dossiers) and the process notes stay out by default.
-INCLUDE=(godot blender audio branding)
+INCLUDE=(godot blender audio branding "Ending Card")
 DOCS=(DESIGN.md NARRATIVE.md REFERENCE_SPEC.md SCRIPT_REVISION_2026-11.md STAGE3_NARRATIVE_MASTER.md)
 TEXTURE_SETS=(plastered_wall_02 concrete_floor_worn_001 oak_veneer_01 dark_wooden_planks green_metal_rust metal_plate_02)
 
-if [[ -e "$OUT" && $FORCE -eq 0 ]]; then
-  echo "refusing: $OUT exists (pass --force to overwrite)" >&2; exit 1
-fi
+for f in "$OUT" "$SUMS"; do
+  if [[ -e "$f" && $FORCE -eq 0 ]]; then
+    echo "refusing: $f exists (pass --force to overwrite)" >&2; exit 1
+  fi
+done
 SHA="$(git -C "$ROOT" rev-parse --verify "$REV^{commit}")"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/lastlight_source.XXXXXX")"
 echo "rev $SHA  work $WORK"
@@ -63,30 +85,69 @@ if [[ $WITH_DOCS -eq 1 ]]; then
   for f in "${DOCS[@]}"; do [[ -f "$WORK/clone/$GAME_REL/$f" ]] && cp "$WORK/clone/$GAME_REL/$f" "$STAGE/docs/"; done
 fi
 
-# 3. the six gitignored CC0 texture sets (from the working tree; they are not in git)
-n=0
+# 3. the six gitignored CC0 texture sets. Source: the WORKING TREE of this checkout (godot/assets/textures/,
+#    generated by blender/sync_assets.py; not in git), verified byte for byte against the Poly Haven originals.
+if [[ -z "$TEX_SRC" ]]; then
+  MAIN="$(dirname "$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+  for c in "$ROOT/assets/textures" "$MAIN/assets/textures"; do
+    [[ -d "$c/${TEXTURE_SETS[0]}" ]] && { TEX_SRC="$c"; break; }
+  done
+fi
+mkdir -p "$STAGE/godot/assets/textures"
+n=0; ncmp=0; nskip=0
 for s in "${TEXTURE_SETS[@]}"; do
   for f in "$GAME/godot/assets/textures/${s}_"*; do
     [[ -e "$f" ]] || { echo "missing texture set $s in godot/assets/textures/" >&2; exit 1; }
     cp "$f" "$STAGE/godot/assets/textures/"; n=$((n+1))
+    if [[ "$f" == *.png ]]; then
+      key="$(basename "$f" .png)"; key="${key#"${s}_"}"
+      case "$key" in diff) tag=Diffuse ;; nor_gl) tag=nor_gl ;; arm) tag=arm ;; *) tag="" ;; esac
+      orig=""
+      [[ -n "$tag" && -n "$TEX_SRC" ]] && orig="$TEX_SRC/$s/${s}_${tag}_2k.png"
+      if [[ -n "$orig" && -f "$orig" ]]; then
+        cmp -s "$f" "$orig" || { echo "texture differs from its original: $f vs $orig" >&2; exit 1; }
+        ncmp=$((ncmp+1))
+      else
+        nskip=$((nskip+1))
+      fi
+    fi
   done
 done
-echo "added $n CC0 texture files (6 sets, with .import files)"
+echo "added $n CC0 texture files (6 sets, with .import files); $ncmp PNGs byte-identical to their originals in ${TEX_SRC:-<none>}, $nskip not checkable"
+[[ $nskip -eq 0 ]] || echo "WARNING: $nskip texture PNG(s) not compared with an original (pass --tex-src <workspace>/assets/textures)" >&2
+( cd "$STAGE" && for s in "${TEXTURE_SETS[@]}"; do shasum -a 256 godot/assets/textures/"${s}"_*; done ) > "$STAGE/TEXTURES_SHA256.txt"
 
 # 4. licences and a short source readme
-"$ROOT/tools/godot" --headless --path "$WORK/clone/$GAME_REL/godot" -s res://tests/make_licenses.gd \
-  -- --out="$STAGE/THIRD_PARTY_LICENSES.txt" 2>"$WORK/licenses.log" | grep -E "LICENSES_RESULT"
-  # (stderr goes to the log: the clone is not imported, so its autoloads print parse errors; the script needs none)
+# (stderr goes to the log: the clone is not imported, so its autoloads print parse errors; the script needs none.
+#  The output is captured and checked: a no-match grep in a pipe would end the script silently under pipefail.)
+lic_out="$("$ROOT/tools/godot" --headless --path "$WORK/clone/$GAME_REL/godot" -s res://tests/make_licenses.gd \
+  -- --out="$STAGE/THIRD_PARTY_LICENSES.txt" 2>"$WORK/licenses.log" || true)"
+lic_res="$(printf '%s\n' "$lic_out" | grep -E "LICENSES_RESULT" || true)"
+echo "${lic_res:-no LICENSES_RESULT line}"
+[[ "$lic_res" == *'"ok":true'* && -s "$STAGE/THIRD_PARTY_LICENSES.txt" ]] \
+  || { echo "THIRD_PARTY_LICENSES.txt was not produced (see $WORK/licenses.log)" >&2; exit 1; }
 cp "$WORK/clone/assets/ASSET_LICENSES.md" "$STAGE/ASSET_LICENSES.md"
 cat > "$STAGE/SOURCE_README.txt" <<EOF
 THE LAST LIGHT: source code (revision ${SHA:0:12})
 A game by Daniel Yanchev.
 
-godot/     the game: a Godot 4.7.2 project (open godot/project.godot in Godot 4.7.2).
-           Tests: godot --headless --path godot -s res://tests/run_tests.gd
-blender/   the Blender 5.2 scripts that build the game's models and textures (spec.py, build.py, ...)
-audio/     the scripts that synthesise, cut and master the game's sound and music
-branding/  the title art and icon sources
+godot/         the game: a Godot 4.7.2 project (open godot/project.godot in Godot 4.7.2; the first open
+               imports the assets). Tests: godot --headless --path godot -s res://tests/run_tests.gd
+blender/       the Blender 5.2 scripts and versioned .blend files that build the game's models and
+               textures (spec.py, build.py, ...). Included to read and to rebuild from: they expect the
+               author's workspace around them (a shared scripts/ helper library, an exports folder and
+               some source images that are not part of this archive), so they will not run as-is.
+audio/         the scripts that synthesise, cut and master the game's sound and music (the music
+               recordings themselves are not included; the game's audio files are in godot/)
+branding/      the title art and icon sources
+Ending Card/   the original ending panel images (supplied by the author), the input of
+               blender/ending_panels_import.py
+
+CC0 textures: six interior texture sets (plastered_wall_02, concrete_floor_worn_001, oak_veneer_01,
+dark_wooden_planks, green_metal_rust, metal_plate_02) are in godot/assets/textures/ as <set>_diff.png,
+<set>_nor_gl.png and <set>_arm.png, with their Godot .import files. They are CC0 1.0 Poly Haven textures
+(2k originals), copied there by blender/sync_assets.py; the project's git repository does not store them,
+so this archive carries them. TEXTURES_SHA256.txt lists the SHA-256 of every one of those files.
 
 Licences: THIRD_PARTY_LICENSES.txt (Godot Engine and its components, the typefaces);
 ASSET_LICENSES.md (every third-party asset, its source and licence; CC0 1.0 or SIL OFL 1.1).
@@ -94,11 +155,13 @@ Music by Daniel Yanchev. The characters, vessels, the North Point Light and the 
 are fictional.
 EOF
 
-# 5. zip (no macOS metadata)
+# 5. zip (no macOS metadata) and its checksum
 mkdir -p "$(dirname "$OUT")"
 ( cd "$WORK" && COPYFILE_DISABLE=1 zip -qr -X "$WORK/TheLastLight-source.zip" "TheLastLight-source" )
 cp "$WORK/TheLastLight-source.zip" "$OUT"
+( cd "$(dirname "$OUT")" && shasum -a 256 "$(basename "$OUT")" > "$SUMS" )
 echo "SOURCE_ARCHIVE $(stat -f %z "$OUT") bytes, $(unzip -l "$OUT" | tail -1 | awk '{print $2}') files -> $OUT"
+echo "SHA256 $(cut -d' ' -f1 "$SUMS")  (written to $SUMS)"
 
 # 6. optional: prove a judge's copy opens textured and passes the tests
 if [[ $VERIFY -eq 1 ]]; then
@@ -107,8 +170,8 @@ if [[ $VERIFY -eq 1 ]]; then
   "$ROOT/tools/godot" --headless --path "$P" --import > "$WORK/verify_import.log" 2>&1 || true
   "$ROOT/tools/godot" --headless --path "$P" -s res://tests/run_tests.gd > "$WORK/verify_run_tests.log" 2>&1 || true
   "$ROOT/tools/godot" --headless --path "$P" -s res://tests/opening_test.gd > "$WORK/verify_opening.log" 2>&1 || true
-  rt=$(grep -E '^TEST_RESULT' "$WORK/verify_run_tests.log" | tail -1)
-  op=$(grep -E '^OPENING_RESULT' "$WORK/verify_opening.log" | tail -1)
+  rt=$(grep -E '^TEST_RESULT' "$WORK/verify_run_tests.log" | tail -1 || true)
+  op=$(grep -E '^OPENING_RESULT' "$WORK/verify_opening.log" | tail -1 || true)
   nf=$(cat "$WORK"/verify_*.log | grep -c "Resource file not found" || true)
   se=$(cat "$WORK"/verify_*.log | grep -c "SCRIPT ERROR" || true)
   echo "VERIFY run_tests: ${rt:-none}"

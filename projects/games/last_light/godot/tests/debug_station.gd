@@ -29,6 +29,6 @@ func _go() -> void:
 		await process_frame
 	var img: Image = g.radar_vp.get_texture().get_image()
 	if img:
-		img.save_png("/private/tmp/claude-501/-Users-daniel-Documents-Projects-OS-Tools---Software-Blender-Dev/ef3a7133-9044-4ff7-90a7-36a114ceca31/scratchpad/radar_dump.png")
+		img.save_png("user://radar_dump.png")   # R7: was an absolute machine path
 		print("RADAR ", img.get_size(), " px(256,256)=", img.get_pixel(256, 256), " px(10,10)=", img.get_pixel(10, 10))
 	quit()

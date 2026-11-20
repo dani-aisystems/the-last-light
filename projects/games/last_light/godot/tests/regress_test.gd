@@ -3407,10 +3407,22 @@ func _r29_one_atmosphere() -> void:
 
 
 ## R30 audit Stage M (M4): vessels in fog (H5). The view is ticked here at 60 fps by hand (no frames awaited inside
-## the loops, so outside.gd's own tick does not interleave): she comes out of the murk over 3 s after spawning and
+## the loops, and outside.gd's own tick is paused for the whole test, see _r30_vessels_in_fog): she comes out of the murk over 3 s after spawning and
 ## goes back into it over the 10 s SAVED fade, never changing by more than 15 % (H5) in one frame; the view never
 ## writes to the sim; her lamps keep more of their light through the fog than her hull keeps of its contrast.
+## Determinism: outside.gd's _process ticks every ship view with the REAL frame delta. If it ran during the frame
+## awaited after the spawn, the view would enter the hand-stepped loop already part-way up (_appear = real_delta / 3,
+## and the engine caps a frame delta at about 0.15 s), shifting the measured half-way time to 1.5 - real_delta: 1.37 s on a slow frame.
+## So outside's tick is paused from before the spawn until the measurement is over (restored on every path, the
+## early return included), and the fixture is asserted to be at rest before the loop starts.
 func _r30_vessels_in_fog() -> void:
+	var outside_was: bool = g.outside.is_processing()
+	g.outside.set_process(false)
+	await _r30_body()
+	g.outside.set_process(outside_was)
+
+
+func _r30_body() -> void:
 	print("R30 vessels in fog (audit Stage M, M4)")
 	var k: KeeperSim = g.sim
 	g._route(k.spawn_story_ship({"name": "R30 Fade", "kind": "fishing", "bearing": 0, "aim": 90, "range": 230.0,
@@ -3421,6 +3433,8 @@ func _r30_vessels_in_fog() -> void:
 	_check(v != null, "a spawned vessel gets a view")
 	if v == null:
 		return
+	_check(not g.outside.is_processing() and v._appear == 0.0 and v._fade == 0.0,
+		"R30 fixture at rest before the loop: nothing but this test ticks the view (appear %.4f, fade %.4f, outside processing %s)" % [v._appear, v._fade, g.outside.is_processing()])
 	_check(v.fade_alpha() < 0.05, "she is not drawn on the frame she is made (alpha %.3f)" % v.fade_alpha())
 	var pos0: Vector2 = s.pos
 	var head0: float = s.heading

@@ -1,0 +1,25 @@
+ElevenLabs terms as read on 2026-11-20 (Daniel's logged-in account, via Claude in Chrome), for DECISIONS Q28.
+
+1) Account: Free plan ("You're currently on Free plan"); credits used 540 / 10,000 this month.
+   Subscription page (elevenlabs.io/app/subscription), Free column: "10k credits /mo", "5 Studio Projects",
+   "Access to Speech to Text, Sound Effects, Voice Design, Music, Productions, Image & Video", "API access",
+   and crossed out: "Commercial license for Speech and Music".
+
+2) Help centre, "Can I publish the content I generate on the platform?"
+   https://elevenlabs.io/docs/help-center/legal/can-i-publish-the-content-i-generate-on-the-platform
+   Verbatim key text:
+   "The free plan does not include a commercial license and cannot be used for any commercial purpose.
+   If you publish content generated using our Services on a free plan or without being signed-in to your
+   account, you must attribute it to ElevenLabs by including "elevenlabs.io" or "11.ai" in the title [...]"
+   "Content created outside of a paid subscription (before or after) cannot be used commercially and always
+   requires attribution when shared non-commercially."
+   "Under our Beta Services Addendum, content generated using Beta Services cannot be used for any commercial
+   purpose or in any production environment."
+
+How R7 complies:
+- Use: non-commercial (a school IT tournament entry, "Джон Атанасов" 2026/27). No sale, no ads.
+- Attribution: the trailer's title and file metadata carry "elevenlabs.io"
+  ("The Last Light - Trailer (narration voice: elevenlabs.io)"); also the end card fine print, README and
+  the Appendix 4 draft.
+- No Beta/Alpha model is used for the final narration (a generally available model only).
+- Scope (Q28): trailer narration only. The game itself contains no ElevenLabs audio.

@@ -1,0 +1,16 @@
+# THE LAST LIGHT R7 trailer: in-engine shots (record_reel.sh). Every shot is the shipping game: forced
+# states are capture_fp's own (storm, bolt, dawn, the say_* radio line), views are capture_fp's views.
+# name                 | film_fp arguments
+r01_title_storm        | --film_reel=title --film_reel_secs=16 --film_bolt_at=10 --quality=2
+r02_ext_top            | --film_reel=title:ext_top --film_reel_secs=10 --quality=2
+r03_ext_landing_bolt   | --film_reel=title:ext_landing --film_reel_secs=10 --film_bolt_at=5 --quality=2
+r04_dusk_window        | --film_reel=40@fp_window --film_reel_secs=12 --film_move=push:0.6 --nohud --quality=2
+r05_dusk_desk          | --film_reel=60@fp_desk --film_reel_secs=12 --film_move=pan:-8 --nohud --quality=2
+r06_radio_morag        | --film_reel=66@focus_radio!say_radio --film_reel_secs=10 --quality=2
+r07_bino_storm         | --film_reel=90@pp_radio!take_kit!binoculars!face_north!pitch_m10!storm_80!vessel_iona_star_700 --film_reel_secs=14 --film_move=look:-20,1 --quality=2
+r08_window_bolt        | --film_reel=120@fp_window!storm_full --film_reel_secs=10 --film_force_at=4:bolt --film_move=push:0.3 --nohud --quality=2
+r09_optic_storm        | --film_reel=130@cu_optic!storm_80 --film_reel_secs=10 --film_move=push:0.25 --nohud --quality=2
+r10_lamp_dark          | --film_reel=140@cu_lamp!storm_80 --film_reel_secs=10 --film_move=rise:0.15 --nohud --quality=2
+r11_log_1953           | --film_reel=70@doc_log_1953 --film_reel_secs=8 --quality=2
+r12_dawn_window        | --film_reel=150@fp_window!dawn --film_reel_secs=14 --film_move=push:0.5 --nohud --quality=2
+r13_door_ross          | --film_reel=1990@fp_stair --film_reel_secs=40 --film_move=push:0.4 --nohud --bot=expert --quality=2

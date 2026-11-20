@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<title>THE LAST LIGHT – листовка</title>
+<!--
+  Рекламна диплянка (1 бр.), A4 пейзаж, три сгъвки (99 x 210 mm).
+  Страница 1 = външна страна: [вътрешен клапан | гръб | лице].  Страница 2 = вътрешна страна: [1 | 2 | 3].
+  Печат: двустранно, обръщане по късия ръб; после се сгъва на три (клапанът се прибира вътре).
+
+  ВАЖНО: снимките в Листовка_img/ са ВРЕМЕННИ (кадри от проверката R1, 20.11.2026 г.).
+  Преди печат се заменят с крайния набор скриншоти от R7 (файловете desk, radio, stair, menu, keyart).
+  Жълтите полета [[...]] се попълват от автора.
+
+  Шрифтове: Source Sans 3 и Libre Baskerville (SIL OFL 1.1) от godot/assets/fonts.
+  Libre Baskerville няма кирилица, затова се ползва само за латински текст и цифри;
+  българските заглавия са в Source Sans 3.
+-->
+<style>
+@font-face { font-family: "Libre Baskerville"; font-weight: 400 700; font-style: normal;
+  src: url("../../../godot/assets/fonts/libre_baskerville/LibreBaskerville%5Bwght%5D.ttf") format("truetype"); }
+@font-face { font-family: "Libre Baskerville"; font-weight: 400 700; font-style: italic;
+  src: url("../../../godot/assets/fonts/libre_baskerville/LibreBaskerville-Italic%5Bwght%5D.ttf") format("truetype"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 200 900; font-style: normal;
+  src: url("../../../godot/assets/fonts/source_sans_3/SourceSans3%5Bwght%5D.ttf") format("truetype"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 200 900; font-style: italic;
+  src: url("../../../godot/assets/fonts/source_sans_3/SourceSans3-Italic%5Bwght%5D.ttf") format("truetype"); }
+
+:root {
+  --bg: #0a1018;        /* dark navy */
+  --bg2: #101823;
+  --ink: #e9e2cf;      /* parchment, as in the game */
+  --dim: #9aa3ad;      /* grey */
+  --amber: #ffb347;    /* warm light */
+  --line: rgba(233,226,207,.22);
+}
+@page { size: 297mm 210mm; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #222; }
+body { font-family: "Source Sans 3", "Helvetica Neue", Arial, sans-serif; color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+.sheet { width: 297mm; height: 210mm; display: grid; grid-template-columns: repeat(3, 99mm); background: var(--bg);
+  page-break-after: always; break-after: page; overflow: hidden; position: relative; }
+.sheet:last-child { page-break-after: auto; break-after: auto; }
+.panel { position: relative; height: 210mm; padding: 11mm 9mm 10mm; overflow: hidden; display: flex; flex-direction: column; }
+.panel + .panel { border-left: .2mm dashed rgba(233,226,207,.10); }
+
+h2 { font-size: 8.6pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--amber); margin-bottom: 3.4mm; }
+h2::after { content: ""; display: block; width: 14mm; height: .4mm; background: var(--amber); margin-top: 2.2mm; opacity: .8; }
+p { font-size: 10.4pt; line-height: 1.5; margin-bottom: 2.6mm; color: var(--ink); }
+.dim { color: var(--dim); }
+.small { font-size: 8.2pt; line-height: 1.45; }
+.shot { display: block; width: 100%; height: 76mm; object-fit: cover; border: .2mm solid var(--line); margin: 2mm 0 2mm; }
+.shot.door { object-position: 55% 38%; }
+.cap { font-size: 8pt; color: var(--dim); font-style: italic; margin-bottom: 3mm; }
+ul { list-style: none; margin-bottom: 2.6mm; }
+li { font-size: 10.2pt; line-height: 1.42; padding-left: 4.2mm; position: relative; margin-bottom: 1.7mm; }
+li::before { content: ""; position: absolute; left: 0; top: .62em; width: 1.7mm; height: 1.7mm; background: var(--amber); transform: rotate(45deg) scale(.7); }
+b { font-weight: 700; color: #f4eedc; }
+.ph { background: #ffe66d; color: #1a1a1a; padding: 0 .8mm; }
+
+/* front cover */
+.cover { padding: 0; background: radial-gradient(ellipse at 50% 18%, #1b2a3d 0%, var(--bg) 62%); }
+.cover .art { width: 99mm; height: 59mm; object-fit: cover; object-position: 50% 0%; display: block;
+  -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 100%); mask-image: linear-gradient(to bottom, #000 68%, transparent 100%); }
+.cover .logo { width: 84mm; margin: 6mm auto 0; display: block; }
+.cover .tag { font-size: 11pt; font-style: italic; line-height: 1.5; text-align: center; padding: 6mm 12mm 0; color: var(--ink); }
+.cover .meta { margin-top: auto; padding: 0 9mm 11mm; text-align: center; font-size: 8pt; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); line-height: 1.9; }
+.cover .meta b { color: var(--amber); font-weight: 600; }
+
+/* flap and back */
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 3mm; margin: 1mm 0 4mm; }
+.fact { border-top: .25mm solid var(--line); padding-top: 2mm; }
+.fact .n { font-family: "Libre Baskerville", Georgia, serif; font-size: 21pt; color: var(--amber); line-height: 1; }
+.fact .l { font-size: 8.2pt; line-height: 1.3; color: var(--dim); margin-top: 1.4mm; }
+.steps { counter-reset: s; list-style: none; margin-bottom: 2.6mm; }
+.steps li { padding-left: 6mm; }
+.steps li::before { counter-increment: s; content: counter(s); background: none; transform: none; width: auto; height: auto; top: 0; color: var(--amber);
+  font-family: "Libre Baskerville", Georgia, serif; font-size: 10pt; }
+.qr { width: 24mm; height: 24mm; border: .25mm dashed var(--dim); display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: 6.6pt; color: var(--dim); padding: 1mm; flex: none; }
+.row { display: flex; gap: 4mm; align-items: center; }
+.foot { margin-top: auto; border-top: .25mm solid var(--line); padding-top: 2.6mm; }
+.quote { font-style: italic; font-size: 13.5pt; line-height: 1.45; color: var(--ink); border-left: .5mm solid var(--amber); padding-left: 4mm; margin: 3mm 0 2mm; }
+table { width: 100%; border-collapse: collapse; margin: 1mm 0 3mm; }
+th, td { font-size: 9pt; text-align: left; padding: 1.5mm 1.6mm; border: .2mm solid var(--line); line-height: 1.3; }
+th { color: var(--amber); font-weight: 600; }
+td:first-child { color: var(--dim); }
+
+@media screen {
+  body { padding: 8mm; }
+  .sheet { margin: 0 auto 8mm; box-shadow: 0 2mm 8mm rgba(0,0,0,.6); }
+  .note { position: sticky; top: 0; z-index: 9; background: #ffe66d; color: #111; font: 600 13px/1.4 "Source Sans 3", sans-serif; padding: 6px 12px; margin: -8mm -8mm 6mm; text-align: center; }
+}
+@media print { .note { display: none; } }
+</style>
+</head>
+<body>
+<div class="note">Предварителна версия: снимките са временни (кадри от R1) и ще бъдат заменени с крайния набор скриншоти от R7. Жълтите полета се попълват от автора.</div>
+
+<!-- ================= СТРАНИЦА 1: ВЪНШНА СТРАНА ================= -->
+<section class="sheet">
+
+  <!-- клапан (прибира се вътре) -->
+  <div class="panel">
+    <h2>С един поглед</h2>
+    <div class="facts">
+      <div class="fact"><div class="n">6</div><div class="l">глави в една нощ</div></div>
+      <div class="fact"><div class="n">4</div><div class="l">различни края</div></div>
+      <div class="fact"><div class="n">15</div><div class="l">документа, които можете да прочетете</div></div>
+      <div class="fact"><div class="n">≈110</div><div class="l">възможни отговора в разговорите</div></div>
+      <div class="fact"><div class="n">8800+</div><div class="l">автоматични проверки без грешка</div></div>
+      <div class="fact"><div class="n">16,6–18,0</div><div class="l">ms на кадър в настройка Medium (около 60 кадъра в секунда)</div></div>
+    </div>
+    <h2>Достъпна за всеки</h2>
+    <ul>
+      <li>Размер на текста до 1,5 пъти и време за четене до 3 пъти</li>
+      <li>Три нива на помощ – от почти никаква до пълни подсказки</li>
+      <li>Намалени проблясъци и движение, управление с геймпад</li>
+      <li>Работи без интернет</li>
+    </ul>
+    <div class="foot small dim">Интерфейсът и текстовете са на английски език. Героите, корабите и фарът са измислени.</div>
+  </div>
+
+  <!-- гръб -->
+  <div class="panel">
+    <h2>Инсталиране за минути</h2>
+    <p class="small dim">macOS 11 или по-нова. Windows 10 или 11 (изданието е експортирано, без изпитване на компютър с Windows). Около 400 MB свободно място.</p>
+    <ol class="steps">
+      <li>Разархивирайте <b>TheLastLight.zip</b>.</li>
+      <li>Щракнете върху приложението. macOS го блокира, защото не е нотариално заверено от Apple – натиснете <b>Done</b>.</li>
+      <li>В <b>System Settings › Privacy &amp; Security</b> натиснете <b>Open Anyway</b>.</li>
+      <li>Играйте. Записът е автоматичен; <b>Continue</b> продължава.</li>
+    </ol>
+    <p class="small dim">Деинсталиране: преместете приложението в Кошчето. Подробности – във файла README.</p>
+
+    <h2 style="margin-top:3mm">Трейлър</h2>
+    <div class="row">
+      <div class="qr"><span class="ph">[[QR код към трейлъра]]</span></div>
+      <p class="small" style="margin:0">Трейлър, <span class="ph">[[TRAILER_LENGTH]]</span>. Глас на разказвача: elevenlabs.io.</p>
+    </div>
+
+    <div class="foot small">
+      <p class="small" style="margin-bottom:1.6mm"><b>Автор:</b> <span class="ph">[[АВТОР: трите имена]]</span><br>
+      <span class="ph">[[училище, град]]</span> · <span class="ph">[[клас]]</span><br>
+      <span class="ph">[[email]]</span></p>
+      <p class="small dim" style="margin:0">Двигател Godot (MIT) · Blender · текстури Poly Haven, Freesound, Blender Studio (CC0) · шрифтове Libre Baskerville и Source Sans 3 (SIL OFL). Музика: авторът.</p>
+    </div>
+  </div>
+
+  <!-- лице -->
+  <div class="panel cover">
+    <img class="art" src="Листовка_img/keyart.jpg" alt="">
+    <img class="logo" src="Листовка_img/logo_title.png" alt="THE LAST LIGHT">
+    <div class="tag">История за една светлина, която угасна, и за човека, който го записа.</div>
+    <div class="meta">Наративна игра от първо лице<br>North Point Light · Външни Хебриди<br><b>14–15 ноември 1971 г.</b><br>Национален есенен турнир „Джон Атанасов“ 2026</div>
+  </div>
+</section>
+
+<!-- ================= СТРАНИЦА 2: ВЪТРЕШНА СТРАНА ================= -->
+<section class="sheet">
+
+  <div class="panel">
+    <h2>Една нощ във фара</h2>
+    <p>Вие сте Калъм Маккей, главен пазач на фара North Point Light. Нощта е на 14 срещу 15 ноември 1971 г. и над Хебридите бушува буря.</p>
+    <p>Поддържате лампата да се върти, генератора да работи и акумулаторите да са заредени. По радиото и радара превеждате рибарските лодки през рифовете.</p>
+    <p>Малко преди полунощ глас по канал 16 назовава името на траулер, който е потънал на скалите под същия този фар преди точно осемнайсет години. Преди разсъмване някой ще се качи по стълбата.</p>
+    <img class="shot" src="Листовка_img/desk.jpg" alt="">
+    <div class="cap">Стаята на пазача: радио, радар и часовниковият механизъм на лампата.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Какво правите</h2>
+    <ul>
+      <li><b>Управлявате станцията:</b> отваряте горивния кран, палите генератора, зареждате акумулаторите, палите лампата и освобождавате заклещена предавка.</li>
+      <li><b>Водите кораби по радиото:</b> потвърждавате позиция, давате заповеди за завой, скорост и задържане и следите радара.</li>
+      <li><b>Четете:</b> станционния дневник, писмо от 1957 г., протокол от разследване, снимки и приливни таблици.</li>
+      <li><b>Разговаряте и избирате</b> какво да кажете – и на кого да вярвате.</li>
+    </ul>
+    <img class="shot" src="Листовка_img/radio.jpg" alt="">
+    <div class="cap">Радиопанелът със заповеди 1–6, радарът и картата на бюрото.</div>
+    <p class="small dim">Без озвучаване с глас: диалозите са текст със синтезиран звук на радиовръзка, а музиката е авторска.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Четири края</h2>
+    <p>Краят зависи от две решения: дали на разсъмване ще запишете в дневника истината, или ще оставите лъжата, и дали последният кораб ще мине през рифовете.</p>
+    <table>
+      <tr><th></th><th>Корабът е спасен</th><th>Корабът е загубен</th></tr>
+      <tr><td>Истината</td><td>Correction</td><td>Heard Together</td></tr>
+      <tr><td>Лъжата</td><td>Nothing to Report</td><td>Light Exhibited Throughout</td></tr>
+    </table>
+    <div class="quote">„Хората винаги вярват на светлината.“</div>
+    <div class="cap" style="margin-bottom:2.4mm">Реплика от играта.</div>
+    <img class="shot door" src="Листовка_img/stair.jpg" alt="">
+    <div class="cap">Малко преди разсъмване: някой стои на вратата на стълбата.</div>
+    <p class="small dim">Игра за отговорността, истината и честните записи, от които зависи безопасността в морето.</p>
+  </div>
+</section>
+</body>
+</html>

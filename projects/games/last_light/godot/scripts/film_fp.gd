@@ -25,6 +25,8 @@ func _ready() -> void:
 	cap_secs = float(GameState.user_args.get("film_secs", "1e9"))
 	if GameState.user_args.has("film_ending"):
 		_run_ending.call_deferred(String(GameState.user_args["film_ending"]))
+	elif GameState.user_args.has("film_reel"):
+		_run_reel.call_deferred(String(GameState.user_args["film_reel"]))
 	else:
 		_run.call_deferred()
 
@@ -33,7 +35,7 @@ func _ready() -> void:
 ## ending's music cue, the warm-black fade, the four panels with their crossfades and holds, the epilogue
 ## lines beside P4, the closing card), then a little of the credits. Record it with Movie Maker:
 ##   tools/godot_bg --write-movie /abs/out.avi --fixed-fps 30 --path projects/games/last_light/godot \
-##       -- --capture=film --film --film_ending=correction --audio
+##       -- --capture=film --film --film_ending=correction --audio [--film_credits=90]
 const FILM_ENDINGS := {
 	"correction": [{"told_truth": 1, "gave_letter": 1, "ross_wheel": 1}, "saved"],
 	"heard_together": [{"told_truth": 1, "ross_wheel": 1}, "lost"],
@@ -52,6 +54,8 @@ func _run_ending(id: String) -> void:
 		st.flags[k] = FILM_ENDINGS[id][0][k]
 	st.rescues["Iona Star"] = FILM_ENDINGS[id][1]
 	_step("ending %s panels=%s" % [id, g.director.ending_panels()])
+	if GameState.user_args.has("film_fast"):        # diagnostics only: the panels at N x speed (credits at 1 x)
+		Engine.time_scale = float(GameState.user_args["film_fast"])
 	g.director._ending_card("ch6_epilogue")
 	await _wait(0.5)
 	_step("panels %s" % [g.director.ending_panels()])
@@ -68,8 +72,115 @@ func _run_ending(id: String) -> void:
 			break
 		await get_tree().process_frame
 	_step("card closed=%s" % done)
+	# Release R7: --film_credits=SECS carries on into the credits through the shipping path (the director's
+	# campaign_finished -> game_fp._on_campaign_finished -> main_fp._on_campaign_over -> the roll after 1 s),
+	# records the roll until its end button shows (or SECS), then 4 s more. Without the flag: R3's 10 s tail.
+	var credits_s := float(GameState.user_args.get("film_credits", "0"))
+	if credits_s > 0.0:
+		Engine.time_scale = 1.0
+		g.director._finish_campaign()
+		var opened := await _wait_until(func(): return is_instance_valid(main.credits_roll), 10.0)
+		_step("credits open=%s" % opened)
+		var at_end := await _wait_until(func(): return is_instance_valid(main.credits_roll) and main.credits_roll.at_end, credits_s)
+		_step("credits at_end=%s" % at_end)
+		await _wait(4.0)
+		_finish("ending+credits")
+		return
 	await _wait(10.0)
 	_finish("ending")
+
+
+## Release R7 (trailer footage): one shot of the shipping game in motion, for Movie Maker.
+##   --film_reel=title[:<cine_view>]           the title world with the menu hidden (the live exterior orbit,
+##                                             or one of game_fp.CINE_VIEWS held still); --film_bolt_at=S fires
+##                                             one title bolt S seconds into the roll
+##   --film_reel=[T@]VIEW[!STATE...]           capture_fp's shot syntax: the story (bot-played, as in capture
+##                                             runs) is fast-forwarded to sim time T at --speed (default 12),
+##                                             then VIEW is placed and the STATEs forced, as a capture would
+##   --film_move=push:M | pan:DEG | rise:M | look:DYAW_DEG,DPITCH_DEG
+##                                             a slow move over the roll (capture camera: push / pan / rise;
+##                                             the player's own view: look)
+##   --film_reel_secs=S                        the roll's length (default 12)
+## The roll's first movie frame is printed as `FILM_ROLL frame=N` (Movie Maker writes one frame per process
+## frame, so the edit trims to N / fps). Nothing here changes how the game draws or plays.
+func _run_reel(spec: String) -> void:
+	var cap: Node = get_parent()
+	var ga: Dictionary = GameState.user_args
+	var secs := float(ga.get("film_reel_secs", "12"))
+	Engine.max_physics_steps_per_frame = 24          # as capture_fp's shots: the fast-forward keeps its speed
+	var parts := spec.split("!")
+	var head := parts[0]
+	var states := parts.slice(1)
+	if head.begins_with("title"):
+		if ":" in head:
+			ga["cine_view"] = head.get_slice(":", 1)
+		await _wait(1.0)
+		main.menu.visible = false
+		await _wait(2.0)                             # the near rain fills, the camera settles
+		_roll_mark(spec)
+		var bolt_at := float(ga.get("film_bolt_at", "-1"))
+		var t0 := t
+		while t < t0 + secs:
+			if bolt_at >= 0.0 and t >= t0 + bolt_at:
+				main.menu_bg.force_title_bolt()
+				bolt_at = -1.0
+			await get_tree().process_frame
+		_finish("reel")
+		return
+	var target := -1.0
+	var vname := head
+	if "@" in head:
+		target = float(head.get_slice("@", 0))
+		vname = head.get_slice("@", 1)
+	await cap._ensure_game(ga)
+	g = main.game
+	if target >= 0.0:
+		Engine.time_scale = float(ga.get("speed", "12"))
+		while g.sim.t < target - 1.0 and g.sim.result == KeeperSim.Result.RUNNING and not (g.story_mode and g.director.finished):
+			await get_tree().process_frame
+		Engine.time_scale = 1.0
+	cap._place(g, vname)
+	for st in states:
+		cap._force(g, st)
+	await _wait(1.5)                                 # forced states settle (fades, bolts, the binocular raise)
+	_roll_mark(spec)
+	var move := String(ga.get("film_move", ""))
+	var kind := move.get_slice(":", 0)
+	var amt := move.get_slice(":", 1)
+	var c: Camera3D = cap.cam if cap.cam and cap.cam.current else null
+	var p0 := c.global_position if c else Vector3.ZERO
+	var fwd := -c.global_basis.z if c else Vector3.FORWARD
+	var b0 := c.global_basis if c else Basis()
+	var y0: float = g.player._yaw
+	var pt0: float = g.player._pitch
+	var timed: Array = []                            # --film_force_at=S:STATE[,S:STATE]: a state forced mid-roll
+	for item in String(ga.get("film_force_at", "")).split(",", false):
+		timed.append([float(item.get_slice(":", 0)), item.get_slice(":", 1)])
+	var t0 := t
+	while t < t0 + secs:
+		var k := smoothstep(0.0, 1.0, (t - t0) / secs)
+		for tf in timed:
+			if tf[0] >= 0.0 and t >= t0 + tf[0]:
+				cap._force(g, tf[1])
+				_step("force %s" % tf[1])
+				tf[0] = -1.0
+		if c and kind == "push":
+			c.global_position = p0 + fwd * float(amt) * k
+		elif c and kind == "rise":
+			c.global_position = p0 + Vector3.UP * float(amt) * k
+		elif c and kind == "pan":
+			c.global_basis = Basis(Vector3.UP, deg_to_rad(float(amt)) * k) * b0
+		elif kind == "look":
+			g.player._yaw = y0 + deg_to_rad(float(amt.get_slice(",", 0))) * k
+			g.player._pitch = pt0 + deg_to_rad(float(amt.get_slice(",", 1))) * k
+			g.player._apply_look()
+		await get_tree().process_frame
+	_finish("reel")
+
+
+func _roll_mark(spec: String) -> void:
+	print("FILM_ROLL frame=%d spec=%s" % [Engine.get_process_frames(), spec])
+	_step("roll %s" % spec)
 
 
 func _process(delta: float) -> void:
