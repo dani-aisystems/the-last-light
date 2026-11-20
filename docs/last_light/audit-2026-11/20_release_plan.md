@@ -154,6 +154,32 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 
 **Suites** after the shader and capture changes: all PASS (`story_test` 0 failed, `run_tests` 95/95, `regress_test` 502/502, `ross_test` 42/42, `opening_test` 31/31, `interaction_test` 164 checks with 0 warnings, `sim_v2` gates clean, pytest PASS). One `regress_test` run failed R30 ("she comes out of the murk over 3 s", half at 1.37 s against 1.5 ± 0.1) and passed on the rerun (1.48 s). This is a timing-sensitive check, logged in the backlog.
 
+## R4 performance (in progress, 2026-11-20)
+
+**Setup:** focused benches on Daniel's M3, which he left alone for the run (his OK, 20:34–20:44). Command: `tools/godot --audio-driver Dummy … --bench --novsync --bench_secs=20 --bench_shots=fp_desk,fp_window,fp_gen,fp_bino --quality=Q --seafx=L`. The window is fullscreen Retina, 3840 × 2410, so Auto renders 3D at 0.36 / 0.43 / 0.47 (about 1650 px wide on Medium). The JSON is in `renders/last_light/r4f_*_bench.json`.
+
+**Results:** median / p95 in ms, focused shots only. The two first Medium runs (r1) reported themselves unfocused and are not used. The earlier `r4bench_*` runs were all unfocused.
+
+| Preset, sea level | Desk | Window | Gen | Binoculars | Verdict |
+|---|---|---|---|---|---|
+| Low, 5 | 16.69 / 17.75 | 16.70 / 17.65 | 16.68 / 17.66 | 16.66 / 17.85 | PASS: at the 60 Hz cap |
+| Medium, 5 (r2) | **17.70** / 18.75 | **18.02** / 19.63 | 16.63 / 17.04 | 16.73 / 17.22 | p95 PASS; median **FAIL** at the desk and window, 1.0–1.3 ms over 16.7 |
+| Medium, 0 (r2) | 17.83 / 19.00 | 17.91 / 19.14 | 16.65 / 16.93 | 16.68 / 17.07 | same |
+| High, 5 | 27.56 / 28.66 | 27.67 / 28.86 | 26.65 / 27.96 | 25.51 / 26.66 | FAIL against 25 ms (known; backlog P2/P3) |
+
+**Findings:**
+- **Sea level:** level 5 against 0 is within ±0.13 ms on every view, so the shipping level 5 stays.
+- **VRAM:** PASS, at 1.08 / 1.18 / 1.32 GB against the 1.4 GB budget.
+- **Medium is about 2 ms slower than after the perf bisect's P1** (17.7 here against about 15.7 expected). Later stages (M, E3, D) added cost.
+
+**Trying a render-scale cap:** Medium's scale was lowered from 0.90 to 0.85 (`--scale3d=0.4023`) to test it. Focus was lost in both runs. The one focused shot, the desk on r2, read 17.37 / 18.71, about 0.3 ms better. The desk is not resolution-bound, so the scale cap is dropped.
+
+**Next:**
+- Try the bisect's **P2**: volumetric fog on Medium at 48 froxels instead of 64. In the bisect, fog cost 2.5 ms at the desk and 4.5 ms at the window.
+- Then, if needed, **P3**: fewer glow levels on Medium.
+- One focused bench pair, plus before and after captures of the beam through the windows.
+- The first-launch default stays Medium until then. Daniel's decision is to keep Medium's look and trim it, not drop to Low.
+
 ## R5 macOS build (first export, 2026-11-20, main `d98db0b`)
 
 This is an early build. It will be re-exported once Daniel's panels (R3) and the first-launch quality (R4) are in.
