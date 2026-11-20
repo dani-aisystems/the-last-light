@@ -81,7 +81,7 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 **Windowed (`tools/godot_bg`):**
 - the judge's-eye set `r1_judge`: 14 PNGs viewed;
 - a full story run to the credits (`r1_full`): reaches the credits roll, 7 PNGs viewed;
-- the chapter 4 visitor (`r1_ch4`): **NOT TESTED at commit time.** The shots to 1700 s were still in chapter 3; the run continues, and the result is carried into R2.
+- the chapter 4 visitor (`r1_ch4`, `r1_ross`): not tested at R1's commit, **PASS in R2**. Chapter 4 runs from about 1700 to 1980 s. With the door shut, "The man at the door" is a voice (`r1_ross_t1900`, `t1940`). At 2020 s Ross stands in the open stair door as a silhouette against the red stairwell light, his face hidden under the brim (`r1_ross_t2020_fp_stair.png`). The logs carry only the exit-time "resources still in use" notice.
 
 **Clean checkout:** a clone at `73165c2` with its LFS objects imports without errors. `run_tests` 95/95 and `opening_test` 31/31 pass in the clone. The secrets sweep over 693 tracked text files is clean; the Instagram and email link is Q14's choice.
 
@@ -92,6 +92,15 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
 | F3 | The `visitor` capture state forces Ross into chapter 1, slumped in the doorway. This is not what a judge sees. | none (capture tool) | `r1_judge_t096_*` | Judge the real staging from `r1_ch4`. |
 | F4 | Chapter 3 with the room lights off (the battery duty) is nearly black apart from the windows, radar and lamps. | minor (design) | `r1_full_t1040/1100/1200_player.png`, `r1_ch4_t1300–1700_fp_stair.png` (the stair door barely visible) | Daniel's eye in R6. No change in R2. |
 | F5 | The title's "Continue · Chapter IV · 16.20" entry is a leftover from tests in `user://saves_test`, which captures read. Daniel's `user://saves` holds chapter 1 saves. | none | the save headers | R5: confirm a fresh install shows no Continue. |
+| F6 | Short in-room or thought lines sit left of centre while the speaker's name above them is centred. Long lines look centred. | minor | `r1_ross_t1940_fp_stair.png` ("Your father's boy."), `r1_ch4_t1700`, `r1_full_t960` | Backlog. |
+
+## R2 blockers and majors (2026-11-20)
+
+**Done: the blocker and major list is empty; the suites are green; `sim_v2` is identical.**
+- **F2 fixed:** the stand-in plate no longer draws "PANEL PENDING · <id>" (`scripts/story/ending_sequence.gd`). Captures `r2_end_t100_player-ending_*.png` show only the italic subject on all four endings.
+- **Test:** `regress_test` R19 now checks that the plate carries no developer label (502 checks, was 501). The old "p1 has no image" check would fail once Daniel's panels land in R3; it now accepts either state: the stand-in without its art, the image with it.
+- **Suites:** all 13 PASS, 0 `SCRIPT ERROR`s, pytest PASS, `sim_v2` seeds 1 to 5 identical to M0. `interaction_test` shows 3 warnings, up from 1. They are the same old "no sound when a document opens (Stage 5)" warning, now on two more documents. The check counts live audio players right after the document opens, so it is timing-sensitive under `taskpolicy -b`; the F2 change does not touch documents or audio.
+- **Note:** R3's `credits.txt` edit landed while the suites were running, so the later suites read the new credits text. The regress credits check passes on either text.
 
 ## Backlog (after delivery)
 
@@ -102,6 +111,7 @@ Daniel has a competition coming up. The audit stages are reordered into a **rele
   - the far-sea patches (PARTIAL: try the volumetric fog's range on the binocular camera);
   - removing `--sea=legacy`.
 - **High preset to 25 ms** (P2 and P3 from the perf bisect).
+- **R1 minors:** F4, chapter 3 and 4 near-black with the room lights off (Daniel's eye in R6 first); F6, the alignment of short subtitle lines against the centred speaker name.
 - **A web (HTML5) build**, only if the organisers ask for one. It needs the Compatibility renderer and a visual pass, so it is not a release-track fix.
 - **Stage G, in full:** the whole test matrix (section 26).
 - **Cleanup, each on Daniel's OK:**

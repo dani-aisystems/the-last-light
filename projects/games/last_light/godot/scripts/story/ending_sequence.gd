@@ -196,9 +196,7 @@ func _make_slot(id: String) -> Control:
 	c.alignment = BoxContainer.ALIGNMENT_CENTER
 	c.add_theme_constant_override("separation", 14)
 	p.add_child(c)
-	var t1 := UIStyle.label("PANEL PENDING  ·  " + id.to_upper(), 15, UIStyle.DIM, UIStyle.sans())
-	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	c.add_child(t1)
+	# release R2 (F2): no developer label on the plate; a judge sees only the panel's subject
 	var t2 := UIStyle.label(String(info.get("standin", id)), 28, UIStyle.INK, UIStyle.serif_italic())
 	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t2.modulate.a = 0.75

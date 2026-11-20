@@ -2080,7 +2080,15 @@ func _r19_ending_g6a() -> void:
 	await _wait_until(func(): return pr.ending_seq.current_id == "p1_wheel", 900)
 	var seq: EndingSequence = pr.ending_seq
 	_check(pr.is_ending_open() and seq.playing and seq.current_id == "p1_wheel", "the first panel follows the fade to warm black")
-	_check(not seq.has_image("p1_wheel") and seq._slot.get_meta("standin", false), "p1 (art pending) shows its stand-in plate")
+	if seq.has_image("p1_wheel"):                # release R3: Daniel's panel is in, so the image shows
+		_check(not seq._slot.get_meta("standin", false), "p1 with its art shows the image, not the stand-in plate")
+	else:
+		_check(seq._slot.get_meta("standin", false), "p1 (art pending) shows its stand-in plate")
+		var dev_text := ""                       # release R2 (F2): no "PANEL PENDING · <id>" label for a judge
+		for l in seq._slot.find_children("*", "Label", true, false):
+			if (l as Label).text.to_upper().contains("PENDING") or (l as Label).text.contains("p1_wheel".to_upper()):
+				dev_text = (l as Label).text
+		_check(dev_text == "", "the stand-in plate carries no developer label ('%s')" % dev_text)
 	# the gameplay keys do nothing during the sequence
 	var held0: String = g.player.equipment.held if g.player.equipment else ""
 	for k in [KEY_E, KEY_1, KEY_2, KEY_4, KEY_F, KEY_G, KEY_B, KEY_J, KEY_L, KEY_H]:
