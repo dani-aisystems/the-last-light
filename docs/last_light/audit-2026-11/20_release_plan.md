@@ -227,7 +227,23 @@ This is an early build. It will be re-exported once Daniel's panels (R3) and the
 | New game, save, load, an ending, quit in the exported app | **NOT TESTED** by Claude. A release build always uses the real `app_userdata/The Last Light/` folder (`XDG_DATA_HOME` does not redirect it), so a new game would autosave over Daniel's `slot_auto.json`. Daniel does this click-through (or R6 covers it). Daniel's save was verified unchanged (md5) after both boots; Godot did add a log file to that folder's `logs/`. | md5 before and after |
 | Fresh install shows no Continue (F5) | NOT TESTED, for the same reason. | |
 
-The stale `build/The Last Light.app` folder from 2026-11-04 is still next to the zip. Whether to delete it is Daniel's call.
+The stale `build/The Last Light.app` folder from 2026-11-04 is no longer in `build/` (checked 2026-11-20, 21:38).
+
+### R5 re-export (2026-11-20, main `d354b39`: R3 panels and shader fix, R4 P2)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Export (`--export-release "macOS"`, headless, `taskpolicy -b`) | PASS, 64 s, no errors or warnings. The first build was moved aside, not overwritten: `build/TheLastLight-r5a-d98db0b.zip`. | the export log |
+| Size | **zip 261.0 MB** (261,035,832 bytes, with `THIRD_PARTY_LICENSES.txt` added by `zip -j`). That is +12.7 MB, the nine panels. The app is 378 MB unpacked: binary 171 MB (unchanged), pck 224 MB. | `ls`, `unzip -l` |
+| pck contents (929 files, format 4, read by the new `release/pck_list.py`) | PASS. All 12 ending panels are in, both the `.import` files and the imported textures. `data/ending/panels.json` and `data/credits.txt` are byte-identical to the source, with the photo panels at grade 0.3. `shaders/panel_grade.gdshader` carries the `v_color` fix. There are no `tests/`, capture, autotest or film scripts, no `Ending Card/` and no `character-refs/`. `settings.gdc` is zstd-compressed bytecode and was not decoded; the export was made from the committed tree that contains P2. | `pck_list.py --cat=` |
+| Signing and bundle | Same as the first build: ad-hoc with the hardened runtime, and `codesign --verify --deep --strict` OK. Gatekeeper rejects it (Open Anyway). Universal (x86_64 + arm64), `com.danielyanchev.thelastlight` 1.0 (1). | `codesign`, `spctl`, `lipo`, Info.plist |
+| Headless boot of the exported binary | PASS: 900 frames, exit 0, only the exit-time leak notice | the boot log |
+| Windowed boot (`open -g -j`, Dummy audio, `--quit-after 1800`) | PASS: Metal 4.0, Forward+ on the M3, clean quit, only the exit-time notices. The frontmost app was the same before and after (no focus taken). | the window log |
+| Daniel's saves and settings | Unchanged: md5 of all 6 files (`settings.cfg`, `interaction_result.json`, the four `saves/` slots) matched before and after both boots. Godot added its launch logs to `logs/`. | md5 lists |
+| New game, save, load, an ending, quit in the exported app | **NOT TESTED** by Claude, for the same reason as before: a new game would autosave over Daniel's `slot_auto.json`. This is Daniel's click-through, or R6 covers it. | |
+| Medium frame time on the exported build | **NOT TESTED** (R4 moved the absolute 16.7 ms check to a quiet-Mac run of this build). | |
+
+`build/TheLastLight-source.zip` (14:24) predates R3 and R4. R7 regenerates it with `release/make_source_archive.sh`.
 
 ## Backlog (after delivery)
 
