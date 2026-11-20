@@ -98,3 +98,71 @@ All with 0 SCRIPT ERRORs.
 - **Approved; committed locally.**
 - **Route: his own tracks (Q16).** The prompts he asked for, a general brief and per-cue Suno prompts, are in `projects/games/last_light/audio/SOUNDTRACK_PROMPTS.md`.
 - **The old `music_menu` and `music_tension` files are kept** for now.
+
+## 6. Daniel's own tracks in the game (2026-11-20)
+
+**What arrived.** Daniel supplied 42 takes from Suno in `projects/games/last_light/audio/Music Tracks/`: 48 kHz stereo WAV, about 900 MB, not committed (like other supplied assets). Logged in `assets/ASSET_LICENSES.md` under Q16 / Q27.
+- Every cue has two to eight takes. **M10 (Ending: Correction) first looked missing.** Daniel said it was among the "M09" duplicates, and the key scan agrees: takes 17 to 20 all end in D major (F♯ over F in the last 10 s: 50 to 746 times), with 17 and 18 at M10's 2:30. Takes 21 to 24, ending in D minor or F major, are the real M09.
+- Two takes are titled "The Unanswered Question". Both are 3:00 like M01 and in its key, with no D major close, so they read as M01 takes that Suno retitled.
+
+**How the takes were picked.** Claude cannot listen. Every take was scanned for:
+- its integrated loudness;
+- its 3 s loudness curve (the swell above the median, and where the loudest moment falls: after 60 % with more than 6 dB is a "late climax");
+- the key by chroma (Krumhansl profiles) and its fit to D minor;
+- the final chord (F♯ against F in the last 10 s: D major or D minor);
+- sharp onsets per minute (busyness);
+- its quiet stretches.
+
+All the takes are evenly levelled (−15 to −20 LUFS) with swells of 3 to 9 dB.
+
+**Takes ruled out:**
+- Late climaxes: M04 take 17, M06 take 12, "The Unanswered Question" take 53.
+- Off key: six of the eight M09 takes came out in D major or F♯ minor (the brief is D minor, stopping before the fifth note).
+
+**The takes used:**
+
+| Cue | Take | Why |
+|---|---|---|
+| M01 | 41 | The named M01 take with the gentlest shape (swell 4.2) |
+| M02 | 37 | A slow swell in its middle |
+| M03 | 29 | Flattest (3.9), with quiet stretches |
+| M04 | 21 | D minor (0.88), no climax |
+| M04b | 09 | D minor (0.80), so it matches M04 underneath |
+| M05 | 05 | Best D minor fit (0.93) and the smallest swell |
+| M06 | 10 | The sparsest take of all (25 onsets a minute) |
+| M07 | 02 | The full 3:00, its swell in the middle |
+| M08 | 28 | D minor (0.86) with an unresolved minor close |
+| M09 | 22 | The only clean D minor take (0.93) |
+| M11 | 13 | No late swell |
+| M12 | 09 | D minor (take 11 read C major) |
+| M13 | 07 | Fewer attacks: closer to "strings only" |
+| M14 | 03 | Its peak early and thinning at the end, as briefed (take 01 peaked at 89 %) |
+| M10 | 18 (filed as "M09") | Opens in F♯ minor and closes in D major with the clearest close of the four (0.88): the brief's first and only resolution. Take 17 opens in A major and closes in D major, so it arrives rather than resolves. |
+
+**Daniel can overrule any pick** by changing `PICKS` in `audio/score.py` and re-running it.
+
+**Building (`audio/score.py`, new).** For each cue:
+- trim near-silence at both ends;
+- a **loop** keeps the take up to its own ending fade, then crossfades its last 4 s into its head (equal power), so the end runs into the start;
+- a **once-through** cue gets a 50 ms fade-in and a 3 s fade-out;
+- master to the cue's LUFS (gain, a soft knee above 0.7, re-measured);
+- encode to 192 kbps stereo MP3 (`godot/assets/audio/score/<cue>.mp3`, 45 MB for all 15 cues).
+
+`audio/SCORE.json` records each take's sha256, the stretch kept, the length, the level measured on the MP3 (all within 0.35 LU of target) and each MP3's sha256. `.gitattributes` gains `projects/games/**/*.mp3` under LFS, beside the existing `.wav` and `.ogg` rules.
+
+**Wiring.**
+- `music_cues.json`: each cue's `file` is now `score/<cue>.mp3`, and `placeholder` keeps the synthesised sketch as the fallback. All 15 cues play Daniel's tracks.
+- `audio_director`: `cue_file()` / `_cue_stream()` load a file with an extension directly and loop an `AudioStreamMP3` from its start.
+- `credits_roll.CREDITS_MUSIC` is M14's MP3.
+
+**Verification.**
+- **`music_test` 27 / 27.** Two checks are new. All 15 MP3s decode in Godot at exactly their encoded length (worst 0.000 s), so LAME's gapless tag is honoured and a loop has no encoder gap at its seam. And a looping track loops from its start.
+- **pytest:** `test_score_tracks_match_their_manifest` (new); the cue-level test reads the MP3s through ffmpeg.
+- **Listening:** `renders/last_light/music/listen/` was re-recorded with the tracks, plus a new scene `06_loop_seams_ross_then_title`.
+  - The seams show no dropout: 0.25 s levels stay within the music's own ±3 dB.
+  - The duck measures −25.3 / −33.5 / −25.3 dB, an 8.2 dB dip.
+
+- **The silence check was made timing-independent.** Under `taskpolicy -b` at a load of 17 to 37 it once counted 11 "loud" frames: the old bed still on its 3 s fade-out, which a throttled game clock had stretched past the test's 3.2 s wall-clock allowance. It now judges by the fade itself: in the silence, a bed may be heard only while it is fading out. It passed at normal priority twice and under `taskpolicy -b` after the change (11.6 s of silence, 0 frames).
+- **Full suites with the tracks** (before M10; M10 plays only at its ending card): story, run_tests 95, opening 31, interaction 164 (0 failed), g5 50, save_compat 305, regress 501, audio_d 37, music 27; `sim_v2` identical to M0; pytest green; `analyze.py --strict` 101 files, 0 flagged.
+
+**Open:** Daniel's ear on the picks; any pick can be swapped in `audio/score.py` `PICKS`.

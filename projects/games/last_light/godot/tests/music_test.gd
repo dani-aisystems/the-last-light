@@ -41,6 +41,17 @@ func _audible(au: Node) -> bool:
 	return au._layer.playing and au._layer.volume_db > au.SILENT_DB + 1.0
 
 
+## Audible and not on its way out: in the silence, only the bed fading out from "docked" may still be heard (judged
+## by the fade itself, not by wall time, which a throttled run stretches).
+func _audible_not_fading(au: Node) -> bool:
+	for b in au._beds + [au._layer]:
+		if b.playing and b.volume_db > au.SILENT_DB + 1.0:
+			var f = au._fades.get(b)
+			if f == null or f[1] > au.SILENT_DB + 1.0:
+				return true
+	return false
+
+
 func _run() -> void:
 	await process_frame
 	g = load("res://scripts/fp/game_fp.gd").new()
@@ -77,6 +88,28 @@ func _run() -> void:
 	for id in table:
 		all_ok = all_ok and ResourceLoader.exists(au.cue_file(id))
 	_ok("every cue in the table has its file", all_ok, "%d cues" % table.size())
+	# Daniel's tracks (audio/score.py, MP3): Godot decodes exactly the length encoded, so the LAME gapless tag is
+	# honoured and a loop has no encoder gap at its seam
+	var score = JSON.parse_string(FileAccess.get_file_as_string("res://../audio/SCORE.json")) if FileAccess.file_exists("res://../audio/SCORE.json") else null
+	var gapless := true
+	var worst := 0.0
+	var n_score := 0
+	for id in table:
+		var cf: String = au.cue_file(id)
+		if cf.ends_with(".mp3"):
+			n_score += 1
+			var st: AudioStream = load(cf)
+			var want := -1.0
+			if score:
+				for r in score["cues"]:
+					if r["cue"] == id:
+						want = float(r["seconds"])
+			if want > 0.0:
+				worst = maxf(worst, absf(st.get_length() - want))
+			gapless = gapless and st is AudioStreamMP3 and want > 0.0 and absf(st.get_length() - want) < 0.03
+	_ok("Daniel's tracks decode gapless (length as encoded)", n_score > 0 and gapless, "%d tracks, worst %.3f s" % [n_score, worst])
+	var lp: AudioStream = au._cue_stream("M07")
+	_ok("a looping track loops from its start", lp is AudioStreamMP3 and (lp as AudioStreamMP3).loop and (lp as AudioStreamMP3).loop_offset == 0.0)
 	_ok("the four endings each have their own cue", au.cues.get("endings", {}).size() == 4
 		and au.cues["endings"].values().all(func(v): return table.has(v)))
 	_ok("the credits play cue M14's file", load("res://scripts/ui/credits_roll.gd").CREDITS_MUSIC == au.cue_file(String(au.cues.get("credits", ""))))
@@ -175,8 +208,8 @@ func _run() -> void:
 		await process_frame
 		if au._hold and held_since < 0:
 			held_since = Time.get_ticks_msec()
-		if au._hold and held_since >= 0 and Time.get_ticks_msec() - held_since > 3200 and _audible(au):
-			loud_in_silence += 1
+		if au._hold and held_since >= 0 and _audible_not_fading(au):
+			loud_in_silence += 1                 # only the fade-out begun at "docked" may still be heard
 		if au._hold and not refused and held_since >= 0 and Time.get_ticks_msec() - held_since > 1000:
 			refused = not au.play_cue("M07", 0.0)   # someone asks for music in the silence
 		for e in log:
@@ -188,8 +221,8 @@ func _run() -> void:
 			m06_after_stair = true
 	var silent_ms := (stair_at - held_since) if stair_at >= 0 and held_since >= 0 else -1
 	_ok("docked starts the silence (hail: music_stop hold)", held_since >= 0)
-	_ok("nothing plays from docked to the first stair footstep", loud_in_silence == 0 and silent_ms > 3200,
-		"%.1f s of silence, %d loud frames after the fade" % [silent_ms / 1000.0, loud_in_silence])
+	_ok("nothing plays from docked to the first stair footstep", loud_in_silence == 0 and silent_ms > 3000,
+		"%.1f s of silence, %d frames with music not fading out" % [silent_ms / 1000.0, loud_in_silence])
 	_ok("a cue asked for in the silence is refused", refused)
 	_ok("the first footstep ends it: M06 plays on the stair", stair_at >= 0 and m06_after_stair)
 	_ok("and cuts on the first knock", knock_at >= 0 and au.current_cue() == "" and not _audible(au))

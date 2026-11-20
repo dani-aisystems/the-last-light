@@ -4,12 +4,12 @@ extends Control
 ## screen at a reading pace (audit D1: Space no longer speeds it up); Esc (or pad B) jumps to the end. At the end the
 ## "Return to the title" button fades in (after an ending) or "Back" (from the menu's Credits). From the
 ## menu the wheel and a drag also move it. After an ending the credits music plays on the Music bus
-## (CREDITS_MUSIC: cue M14, a synthesised placeholder until the real tracks; audit music stage).
+## (CREDITS_MUSIC: cue M14, Daniel's own track, DECISIONS Q27).
 
 signal finished
 
 const CREDITS_PATH := "res://data/credits.txt"
-const CREDITS_MUSIC := "res://assets/audio/music_m14_credits.wav"   # audit music: cue M14 (data/music_cues.json)
+const CREDITS_MUSIC := "res://assets/audio/score/m14.mp3"   # cue M14 (data/music_cues.json): Daniel's track
 const SPEED_PX := 46.0                  # at 1080 p; scaled with the window height
 const MUSIC_DB := 0.0                 # the cue file is mastered to its level (-16 LUFS)
 const WARM_BLACK := Color(0.035, 0.026, 0.02)

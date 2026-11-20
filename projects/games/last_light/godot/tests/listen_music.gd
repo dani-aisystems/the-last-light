@@ -81,6 +81,14 @@ func _run() -> void:
 		await _secs(6.0)
 		au.set_menu(false, 2.6)
 		await _secs(3.5))
+	# the loop seams of Daniel's tracks: 8 s before the end of M07 and of M01, through the seam into the start
+	await _section("06_loop_seams_ross_then_title", func():
+		for id in ["M07", "M01"]:
+			au.play_cue(id, 0.0)
+			au._music.seek(maxf(0.0, au._music.stream.get_length() - 8.0))
+			await _secs(14.0)
+			au.stop_cue(0.0)
+			await _secs(1.0))
 	# chapter 4 as played, at real pace: the weather bed, "docked" (the silence), the jetty, the base door, the
 	# cough, the first stair footstep (the stair cue), and the knock (it cuts)
 	AudioServer.set_bus_mute(AudioServer.get_bus_index("Ambient"), false)

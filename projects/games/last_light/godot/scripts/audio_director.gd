@@ -169,14 +169,27 @@ func cue_info(id: String) -> Dictionary:
 	return cues.get("cues", {}).get(id, {})
 
 
+## A cue's file: "name" is a synthesised WAV in assets/audio/; "score/m01.mp3" (with its extension) is one of
+## Daniel's tracks built by audio/score.py.
 func cue_file(id: String) -> String:
 	var c := cue_info(id)
-	return (A % String(c["file"])) if not c.is_empty() else ""
+	if c.is_empty():
+		return ""
+	var f := String(c["file"])
+	return ("res://assets/audio/" + f) if f.get_extension() != "" else (A % f)
 
 
 func _cue_stream(id: String) -> AudioStream:
 	var c := cue_info(id)
-	return _looped(String(c["file"])) if c.get("loop", false) else _stream(String(c["file"]))
+	var f := String(c["file"])
+	if f.get_extension() == "":
+		return _looped(f) if c.get("loop", false) else _stream(f)
+	var s: AudioStream = load(cue_file(id))
+	if s is AudioStreamMP3:
+		s = s.duplicate()
+		(s as AudioStreamMP3).loop = bool(c.get("loop", false))
+		(s as AudioStreamMP3).loop_offset = 0.0
+	return s
 
 
 func _fade(p: AudioStreamPlayer, to_db: float, sec: float, stop := false) -> void:

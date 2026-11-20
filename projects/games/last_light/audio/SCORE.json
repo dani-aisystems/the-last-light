@@ -1,0 +1,245 @@
+{
+ "note": "Daniel's own tracks (DECISIONS Q16, Q27), built by audio/score.py from audio/Music Tracks/ (local, not committed)",
+ "cues": [
+  {
+   "cue": "M01",
+   "take": "41 - M01 Title.wav",
+   "take_sha256": "44de8836cbc36321e5e6bf098c72cca78f5e29cc4d48698ad5547d843e83c2ac",
+   "kept": [
+    0.11,
+    172.11
+   ],
+   "loop": true,
+   "seconds": 172.0,
+   "lufs_target": -16,
+   "lufs_mp3": -16.27,
+   "peak_dbfs": -1.89,
+   "file": "godot/assets/audio/score/m01.mp3",
+   "sha256": "d7b9e1bf70ff99e3e9e4e375e6c833be4d3b76a435f7a2c226bc4594756efaad"
+  },
+  {
+   "cue": "M02",
+   "take": "37 - M02 Arrival.wav",
+   "take_sha256": "4761a7c5451a0fe5454dd433bc9c0991a18867c1866495d153cae47bc9c6c6df",
+   "kept": [
+    0.13,
+    87.79
+   ],
+   "loop": false,
+   "seconds": 87.66,
+   "lufs_target": -20,
+   "lufs_mp3": -20.27,
+   "peak_dbfs": -5.55,
+   "file": "godot/assets/audio/score/m02.mp3",
+   "sha256": "e7935728227c2d24f582d6b5ed5c4686eca3fad97b0b6a2aaa0259bcd248b74d"
+  },
+  {
+   "cue": "M03",
+   "take": "29 - M03 The watch.wav",
+   "take_sha256": "ee1ef901bc8c434bb1e58e5d40519517cef9c66312ac6e11b45b137207dbd13f",
+   "kept": [
+    0.7,
+    113.7
+   ],
+   "loop": true,
+   "seconds": 113.0,
+   "lufs_target": -24,
+   "lufs_mp3": -24.27,
+   "peak_dbfs": -10.32,
+   "file": "godot/assets/audio/score/m03.mp3",
+   "sha256": "4331d1a51b5fb8904437cb7b1c6ab29d18032c0b02a861c5eb97b78ffd8b728c"
+  },
+  {
+   "cue": "M04",
+   "take": "21 - M04 Weather (calm).wav",
+   "take_sha256": "0cea6e6f6a86a9028d39c5896f53fa5c7e877aab9dbd7768c634d06cdc4fab57",
+   "kept": [
+    0.74,
+    108.74
+   ],
+   "loop": true,
+   "seconds": 108.0,
+   "lufs_target": -22,
+   "lufs_mp3": -22.27,
+   "peak_dbfs": -6.55,
+   "file": "godot/assets/audio/score/m04.mp3",
+   "sha256": "58166d7aacdeb9e4236aee2aa1bed919c9400ba5b5a4e75b6eee9b5ca9769f94"
+  },
+  {
+   "cue": "M04b",
+   "take": "09 - M04b Weather (restless).wav",
+   "take_sha256": "6c4cb1e29b1b3bd79a0d2dea78510414f243b1569a6a7c5022ca7584d4fff1f4",
+   "kept": [
+    0.76,
+    107.76
+   ],
+   "loop": true,
+   "seconds": 107.0,
+   "lufs_target": -22,
+   "lufs_mp3": -22.27,
+   "peak_dbfs": -7.64,
+   "file": "godot/assets/audio/score/m04b.mp3",
+   "sha256": "f53ffc7502c91424b9cc4c97163171f77931bb44be0a1f90bf55f5cb6febbf22"
+  },
+  {
+   "cue": "M05",
+   "take": "05 - M05 Mechanism.wav",
+   "take_sha256": "d0510951ac936e1b421aa29cfaf92d68e28c3925b81fc71d0cb00217c1abeae5",
+   "kept": [
+    0.14,
+    83.14
+   ],
+   "loop": true,
+   "seconds": 83.0,
+   "lufs_target": -22,
+   "lufs_mp3": -22.27,
+   "peak_dbfs": -6.68,
+   "file": "godot/assets/audio/score/m05.mp3",
+   "sha256": "279b793aae83b1f37422856bf1ff946701c6c3e892bde1c14333c59695c11771"
+  },
+  {
+   "cue": "M06",
+   "take": "10 - M06 The stair.wav",
+   "take_sha256": "7f8dbcc2079cbcf7b0c64b51a16af85155ab2f80c1cdbd94edb6f95b0151fdf4",
+   "kept": [
+    0.1,
+    117.79
+   ],
+   "loop": false,
+   "seconds": 117.69,
+   "lufs_target": -24,
+   "lufs_mp3": -24.27,
+   "peak_dbfs": -8.19,
+   "file": "godot/assets/audio/score/m06.mp3",
+   "sha256": "9596387b1250e8e53149c7d141841a2e07d0aac78e72208446f15f89d66ab860"
+  },
+  {
+   "cue": "M07",
+   "take": "02 - M07 Ross.wav",
+   "take_sha256": "c3008d04fe0e595b1565b6608d9b697e4120dcb7f68db7a839034ff780b2368e",
+   "kept": [
+    0.11,
+    171.11
+   ],
+   "loop": true,
+   "seconds": 171.0,
+   "lufs_target": -22,
+   "lufs_mp3": -22.27,
+   "peak_dbfs": -7.46,
+   "file": "godot/assets/audio/score/m07.mp3",
+   "sha256": "37319bf0dd98adcd60ebd4276403cbb942b8350abe9905a2c75663e38e353d18"
+  },
+  {
+   "cue": "M08",
+   "take": "28 - M08 The letter.wav",
+   "take_sha256": "e1c04c7d109e3bda4119993608621ae3eddbc99301a48adb941acdc080c7c773",
+   "kept": [
+    0.1,
+    39.5
+   ],
+   "loop": false,
+   "seconds": 39.4,
+   "lufs_target": -20,
+   "lufs_mp3": -20.27,
+   "peak_dbfs": -6.14,
+   "file": "godot/assets/audio/score/m08.mp3",
+   "sha256": "5c60ca13033dc22360bcb6cd25a692f6f65287275355dde3f52c86abe3145975"
+  },
+  {
+   "cue": "M09",
+   "take": "22 - M09 Decision.wav",
+   "take_sha256": "5725793e94d29624890b4cc66906af18445a079fa2378bb1245a9a2aebb44d95",
+   "kept": [
+    0.1,
+    112.1
+   ],
+   "loop": true,
+   "seconds": 112.0,
+   "lufs_target": -22,
+   "lufs_mp3": -22.27,
+   "peak_dbfs": -6.36,
+   "file": "godot/assets/audio/score/m09.mp3",
+   "sha256": "99afbe399622f1f1ec56173a4c9dc568c73edd0e2e3d746fd3fb7f262a26e3a8"
+  },
+  {
+   "cue": "M10",
+   "take": "18 - M09 Decision.wav",
+   "take_sha256": "200c2aaecf6cc068398e4d2f77fcdfd4e4f9f25d6d4ceba3faacd07aaba8d788",
+   "kept": [
+    0.14,
+    149.54
+   ],
+   "loop": false,
+   "seconds": 149.4,
+   "lufs_target": -18,
+   "lufs_mp3": -18.27,
+   "peak_dbfs": -3.94,
+   "file": "godot/assets/audio/score/m10.mp3",
+   "sha256": "3a33a5cf5fe3b8107ebbe4763b2d7a8d54820c283b08d78595ed39eb10caa08f"
+  },
+  {
+   "cue": "M11",
+   "take": "13 - M11 Ending Heard Together.wav",
+   "take_sha256": "e010cf9005f697709cd3e0cfacfbfa9c1b1069db4f3efe2fb4318393ce3fae91",
+   "kept": [
+    0.11,
+    148.35
+   ],
+   "loop": false,
+   "seconds": 148.24,
+   "lufs_target": -18,
+   "lufs_mp3": -18.27,
+   "peak_dbfs": -3.98,
+   "file": "godot/assets/audio/score/m11.mp3",
+   "sha256": "8d3b056cac568cfd26bcb6abce751143879662e288a90df90ccd028bbfbf478f"
+  },
+  {
+   "cue": "M12",
+   "take": "09 - M12 Ending Nothing to Report.wav",
+   "take_sha256": "e5c50c95280e3804b5f5e33b8b06561fb98358374b011387fcf01f2d79c21859",
+   "kept": [
+    0.49,
+    149.69
+   ],
+   "loop": false,
+   "seconds": 149.2,
+   "lufs_target": -18,
+   "lufs_mp3": -18.27,
+   "peak_dbfs": -3.53,
+   "file": "godot/assets/audio/score/m12.mp3",
+   "sha256": "d858096d3bb2ca7c24fbf15b5f3e36900977ce35e4ad303d404c06f4894ecc9f"
+  },
+  {
+   "cue": "M13",
+   "take": "07 - M13 Ending Light Exhibited.wav",
+   "take_sha256": "66412261cd5359d240a55661b3fd4f062610f268426efa3b721561cbdf099f12",
+   "kept": [
+    0.78,
+    148.93
+   ],
+   "loop": false,
+   "seconds": 148.15,
+   "lufs_target": -18,
+   "lufs_mp3": -18.27,
+   "peak_dbfs": -5.1,
+   "file": "godot/assets/audio/score/m13.mp3",
+   "sha256": "d272d15d7e3c8f3776aa1e8ec80dfa16a8928e79693bc831145338aa714a3c2f"
+  },
+  {
+   "cue": "M14",
+   "take": "03 - M14 Credits.wav",
+   "take_sha256": "ea9d5927a85a5be83e1e661f3a3a9c5642f9ec74b93dc963646297ef229b0e3c",
+   "kept": [
+    0.15,
+    239.0
+   ],
+   "loop": false,
+   "seconds": 238.85,
+   "lufs_target": -16,
+   "lufs_mp3": -16.27,
+   "peak_dbfs": -1.73,
+   "file": "godot/assets/audio/score/m14.mp3",
+   "sha256": "27410180d20b414e5b526386546a48d3daf721f5e814c2fc94d248a6aa62a719"
+  }
+ ]
+}

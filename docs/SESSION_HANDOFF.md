@@ -1,6 +1,12 @@
 # Session handoff: 2026-11-04 (session 2, Stage 0)
 
 ## NEW (2026-11-20): audit music stage (score system and placeholder cues) approved by Daniel and committed locally (DECISIONS Q27); real tracks: his own (Q16), prompts in audio/SOUNDTRACK_PROMPTS.md
+- **2026-11-20, later: Daniel's tracks in the game (NOT committed yet).**
+  - 42 Suno takes in `audio/Music Tracks/` (local).
+  - 14 picked by measurement and built by the new `audio/score.py` into `godot/assets/audio/score/*.mp3` (LFS rule added; `audio/SCORE.json`).
+  - M10 was among the takes filed as "M09" (17 to 20 resolve to D major); take 18 is used. All 15 cues are his.
+  - `music_test` 27/27: the tracks decode gapless.
+  - Record: `19_music.md` section 6.
 - **Record:** `docs/last_light/audit-2026-11/19_music.md`. **Listening:** the cues `godot/assets/audio/music_m*.wav`; the scenes in `renders/last_light/music/listen/` (`INDEX.md`).
 - **Built:**
   - `audio_director` score system: two crossfading beds, a layer, a stinger, `play_cue` / `stop_cue` / `set_layer`, a −8 dB duck under any message (an Amplify at the head of the Music bus), and the silence hold from "docked" to the first stair footstep;

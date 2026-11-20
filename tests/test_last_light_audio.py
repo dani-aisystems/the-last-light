@@ -99,11 +99,38 @@ def test_music_cues_are_mastered_to_the_cue_sheet():
     import json
     an = _load("analyze")
     table = json.loads((WS / "projects/games/last_light/godot/data/music_cues.json").read_text())
+    import subprocess
+    import numpy as np
     off = {}
     for cid, c in table["cues"].items():
-        p = ASSETS / f"{c['file']}.wav"
+        f = c["file"]
+        p = ASSETS / (f if "." in f else f"{f}.wav")
         assert p.exists(), cid
-        got = an.analyse(p)["lufs"]
+        if p.suffix == ".wav":
+            got = an.analyse(p)["lufs"]
+        else:                                    # Daniel's tracks (MP3): decoded by ffmpeg, then the same meter
+            raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(p), "-ac", "2", "-ar", "48000", "-f", "f32le", "-"],
+                                 capture_output=True, check=True).stdout
+            got = an.lufs(np.frombuffer(raw, np.float32).astype(np.float64).reshape(-1, 2), 48000)
         if abs(got - c["lufs"]) > 1.0:
-            off[cid] = (got, c["lufs"])
+            off[cid] = (round(got, 2), c["lufs"])
+        if c.get("placeholder"):
+            assert (ASSETS / f"{c['placeholder']}.wav").exists(), cid
     assert not off, off
+
+
+def test_score_tracks_match_their_manifest():
+    """Daniel's own tracks (DECISIONS Q27): each MP3 is what audio/score.py wrote (SCORE.json sha256), and the cue
+    table points at it."""
+    import hashlib
+    import json
+    m = json.loads((AUDIO_DIR / "SCORE.json").read_text())
+    table = json.loads((WS / "projects/games/last_light/godot/data/music_cues.json").read_text())["cues"]
+    bad = []
+    for r in m["cues"]:
+        p = WS / "projects/games/last_light" / r["file"]
+        if not p.exists() or hashlib.sha256(p.read_bytes()).hexdigest() != r["sha256"]:
+            bad.append(f"{r['cue']}: missing or changed (re-run audio/score.py)")
+        if table[r["cue"]]["file"] != f"score/{p.name}":
+            bad.append(f"{r['cue']}: music_cues.json does not point at {p.name}")
+    assert not bad, bad
