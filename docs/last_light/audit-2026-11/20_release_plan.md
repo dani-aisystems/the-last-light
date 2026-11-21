@@ -264,3 +264,46 @@ The stale `build/The Last Light.app` folder from 2026-11-04 is no longer in `bui
   - `music_menu.wav` and `music_tension.wav`;
   - the stale ROADMAP audit table.
 - **Daniel's ear:** the Stage D sounds and the 15 score picks (any pick swaps in `audio/score.py` `PICKS`).
+
+## R7 submission package (2026-11-20/21, branch `release-r7`; everything except R6)
+
+The records are in `projects/games/last_light/release/R7/`:
+- `R7_CHECKLIST.md`
+- `qa/ENDINGS_QA.md`
+- `qa/TRAILER_QA.md`
+- `qa/BUILDS_SOURCE_R30_QA.md`
+- `SCREENSHOTS.md`
+- `trailer/VO_SCRIPT.md`, `trailer/SHOT_LIST.md`, `trailer/CUE_SHEET.md`
+
+The package is `build/R7/TheLastLight_R7/`.
+
+**The competition rules were found and read** (`John Atanasov/Регламент 2026-2027.pdf`, the National Autumn IT Tournament "Джон Атанасов" 2026/27). They require:
+- registration in Bulgarian by **29.11.2026**;
+- an online upload link to the source (mandatory), executable, documentation and presentation;
+- a folder with a flash drive, documentation of up to 5 A4 sheets (Appendix 1), a leaflet and the Appendix 4 declaration;
+- a 15-minute defence in Sofia, 4–6.12.2026.
+
+Windows is not required. Decisions: DECISIONS Q28.
+
+**Done:**
+- the four endings in motion through to the credits;
+- 8 screenshots;
+- the source archive (713.2 MB, SHA-256 `397dea04…7a4d`, verify and clean room PASS);
+- READMEs in EN and BG; the Bulgarian documentation (full and print), the leaflet and the Appendix 4 draft;
+- the trailer (77.3 s);
+- the chapter 1 gameplay capture;
+- R30 resolved;
+- the Windows export (NOT run-tested).
+
+**Found and fixed on the way:**
+- **Movie Maker and occlusion:** a covered window makes Godot stop drawing, and Movie Maker then repeats stale frames. Proven by an A/B test; every recording is now gated on drawn frames = written frames, and recordings run as one block with the IDE in front.
+- **`film_fp.gd` credits:** `--film_credits` follows the real `end_campaign` path; `--film_reel` records trailer shots.
+- **`tests/debug_station.gd`:** an absolute machine path was removed.
+
+**Still Daniel's:**
+- R6 (the play time);
+- the personal fields;
+- the Appendix 4 "code is my work" decision;
+- the upload link, the registration, the flash drive;
+- listening to the trailer and endings;
+- the presentation (not made).

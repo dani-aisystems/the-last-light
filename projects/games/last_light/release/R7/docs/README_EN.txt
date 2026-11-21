@@ -55,14 +55,14 @@ What is distinctive.
                     requirement of Godot's Forward+ renderer)
   Disk space        about 400 MB free (the macOS app is 378 MB unpacked)
   Download size     macOS zip 261.0 MB; Windows zip 236.5 MB; source zip
-                    [[SOURCE_ZIP_SIZE]]
+                    713.2 MB
   Display           1920 x 1080 base, scaled to the window. Starts fullscreen; F11 toggles
   Quality presets   Low, Medium (default, 60 fps target), High (30 fps or more)
   Input             Keyboard and mouse; gamepad (Xbox or PlayStation layout)
   Saving            Automatic. Continue on the title screen resumes
   Network           None. Two links on the title screen open your browser or mail client, only
                     if you click them
-  Source            Included: TheLastLight-source.zip (SHA-256 [[SOURCE_SHA256]])
+  Source            Included: TheLastLight-source.zip (SHA-256 397dea040287f521cacba714c66ec4650b0a28af4041535b44ccdf93522c7a4d)
 
 Measured performance (Apple M3, fullscreen Retina, focused benchmarks, frame times): Low 16.7 ms
 median (the 60 Hz cap); Medium 16.6 to 18.0 ms median and at most 19.6 ms at the 95th

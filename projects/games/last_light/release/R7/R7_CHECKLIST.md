@@ -1,29 +1,21 @@
-# THE LAST LIGHT: R7 submission checklist
+# THE LAST LIGHT: R7 submission checklist (final state 2026-11-21)
 
-Branch `release-r7` (worktree `exports/worktrees/last_light_r7`, from main `eff547c`). Intermediates go to `renders/last_light/r7/`; the package goes to `projects/games/last_light/build/R7/`. Competition: National Autumn IT Tournament "Джон Атанасов" 2026/27. **Registration (in Bulgarian) closes 29.11.2026**; the defence is in Sofia, 4–6.12.2026.
+- **Branch:** `release-r7` (worktree `exports/worktrees/last_light_r7`, from main `eff547c`). Local commits only, never pushed. Merging into main is Daniel's call.
+- **Package:** `projects/games/last_light/build/R7/TheLastLight_R7/`.
+- **Intermediates and masters:** `renders/last_light/r7/`.
+- **Competition:** National Autumn IT Tournament "Джон Атанасов" 2026/27. **Registration (in Bulgarian) closes 29.11.2026**; the defence is in Sofia, 4–6.12.2026.
 
-Statuses: DONE · IN PROGRESS · BLOCKED (owner) · NOT TESTED. *(Live document: updated during R7.)*
-
-| # | Item | Status | Output | Evidence / note |
+| # | Item | Status | Output | Evidence |
 |---|---|---|---|---|
-| A1 | `film_fp.gd --film_credits` (endings run on into the credits through the shipping path) | DONE | `godot/scripts/film_fp.gd` | 4 endings reached `credits at_end=true` |
-| A2 | Ending: Heard Together | DONE | `Endings/TheLastLight_Ending_HeardTogether.mp4` | 141.8 s; 4254/4254 frames; sheets viewed |
-| A3 | Ending: Nothing to Report | DONE | `Endings/TheLastLight_Ending_NothingToReport.mp4` | 153.3 s; 4750/4750 frames recorded; sheets viewed |
-| A4 | Ending: Light Exhibited | IN PROGRESS | | first take rejected: the window was covered, 2332 of 4356 frames drawn |
-| A5 | Ending: Correction (re-take with credits) | IN PROGRESS | | first take rejected: covered window, 2584 of 4459 frames drawn |
-| B | Screenshots (6–8 + contact sheet) | TODO | `Screenshots/` | |
-| C | Source archive + clean room | IN PROGRESS (Worker C) | `02_Source/` | |
-| D | README EN/BG, BG documentation, print digest, leaflet, Appendix 4 draft | DRAFTED (Worker D), fact-check IN PROGRESS | `03_Документация/` | premise corrected (no "eight men", no 11-minute spoiler) |
-| E1 | Trailer footage reel (13 in-engine shots, Movie Maker, High preset) | TODO | `renders/last_light/r7/reel/` | `release/R7/trailer/reel_shots.txt` |
-| E2 | Trailer edit (EDL + build script) | TOOLS READY | `release/R7/trailer/{edit.json,build_trailer.py}` | |
-| E3 | Title and place cards | DONE | `renders/last_light/r7/trailer/cards/` | viewed |
-| F | ElevenLabs narration (Q28) | IN PROGRESS | `release/R7/trailer/VO_SCRIPT.md` | Free plan; terms saved; 1 Hector sample made; downloads fixed by Daniel |
-| G | R30 deterministic | IN PROGRESS (Worker F) | `godot/tests/` | |
-| H | Windows export | IN PROGRESS | `01_Build/Windows/` | official 4.7.2 templates downloading; preset added in branch |
-| I | Integration + final gate | TODO | `build/R7/TheLastLight_R7/` | |
-| R6 | Daniel's timed playthrough | BLOCKED (Daniel) | | play time placeholder `[[R6_PLAY_TIME]]` |
-
-## Rules facts (from `John Atanasov/Регламент 2026-2027.pdf`)
-- Upload everything online and share the link: source code (mandatory), executable, documentation, presentation, other files.
-- The physical folder holds: a labelled flash drive or CD; documentation of up to 5 A4 sheets (Appendix 1 structure, Times New Roman 12, spacing 1.5); one advertising leaflet; the Appendix 4 declaration.
-- The defence is 15 minutes, presented from a flash drive or your own laptop. Windows is not required.
+| A | Endings in motion, through to the credits (all four) | **DONE** | `04_Media/Endings/TheLastLight_Ending_{HeardTogether,NothingToReport,LightExhibited,Correction}.mp4` | `qa/ENDINGS_QA.md`. Every take was gated (drawn frames = written frames). The occlusion fault was proven by an A/B test and fixed. Sheets viewed. Audio by measurement only. |
+| B | Screenshots (8) plus contact sheet | **DONE** | `04_Media/Screenshots/` | `SCREENSHOTS.md`. In-engine, High preset, 1920×1080, unaltered. |
+| C | Source archive and clean room | **DONE** | `02_Source/TheLastLight-source.zip` (713.2 MB, SHA-256 `397dea04…7a4d`) | `qa/BUILDS_SOURCE_R30_QA.md`. `--verify` PASS. The independent clean-room import, tests, export and boot all PASS. |
+| D | READMEs (EN and BG), Bulgarian documentation (full and ≤ 5-page print), leaflet, Appendix 4 draft | **DONE** (personal fields, R6 play time and the Appendix 4 decision left for Daniel) | `03_Documentation/` | Fact-checked against code and canon. Corrections made: the premise, "8 men", the 11-minute spoiler, regress 503, the performance framing. |
+| E | Trailer (77.3 s) plus master, EDL, shot list, cue sheet, EN/BG subtitles, thumbnail, narration stem | **DONE** (Daniel's ear pending) | `04_Media/Trailer/` | `qa/TRAILER_QA.md`: −16 LUFS, −1 dBTP, 0 clipping, sheets viewed. |
+| E2 | Gameplay video (separate from the trailer, labelled honestly) | **DONE** (scripted capture); R6 human run PENDING | `04_Media/Gameplay/TheLastLight_Gameplay_Ch1_scripted_capture.mp4` | An in-engine automated keeper playing chapter 1 through the real controls, 139.8 s, High preset. |
+| F | ElevenLabs narration (Q28) | **DONE** (voice provisional) | `trailer/VO_SCRIPT.md`; originals in `renders/…/VO_original/` | Free plan, Multilingual v2. Adam chosen by measurement (Hector distorted, David band-limited). Terms saved. |
+| G | R30 deterministic | **RESOLVED** | `godot/tests/regress_test.gd`, `tests/r30_repeat.gd` | Old logic fails 50/50 at a ≥ 150 ms stall; fixed, 200/200 pass. regress 10× 503/503. |
+| H | Windows export | **EXPORTED, NOT RUN-TESTED** | `01_Build/Windows/TheLastLight-Windows.zip` (236.5 MB) | Official templates, SHA-512 verified; PE32+; pck 929 files. |
+| I | Integration and final gate | **DONE** | `build/R7/TheLastLight_R7/` (with SHA256SUMS) | Suites green on `release-r7`; the no-game-change diff is empty. |
+| R6 | Daniel's timed playthrough | **BLOCKED (Daniel)** | `[[R6_PLAY_TIME]]` in the READMEs and docx | |
+| P | Defence presentation (listed among the files to upload) | **NOT DONE** (not in the R7 brief) | | Offered. |

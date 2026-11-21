@@ -25,14 +25,17 @@ done
 c "$here/docs/README_EN.txt" "$out/README_EN.txt"
 c "$here/docs/README_BG.txt" "$out/README_BG.txt"
 # 04 media
-for f in "$R7r/trailer/final/"TheLastLight_Trailer*.mp4 "$R7r/trailer/final/"*.srt "$R7r/trailer/final/"thumbnail*.png; do
+for f in "$R7r/trailer/final/"TheLastLight_Trailer*.mp4 "$R7r/trailer/final/"*.srt "$R7r/trailer/final/"*thumbnail*.png; do
+  [[ "$f" == *master* ]] && continue   # masters stay in renders/ (preservation copies)
   [[ -e "$f" ]] && c "$f" "$out/04_Media/Trailer/"
 done
 for f in "$R7r/endings/"TheLastLight_Ending_*.mp4; do
   [[ "$f" == *_master.mp4 ]] || c "$f" "$out/04_Media/Endings/"
 done
 [[ -d "$R7r/screens/final" ]] && cp -cR "$R7r/screens/final/" "$out/04_Media/Screenshots/"
-for f in "$R7r/gameplay/"*.mp4; do [[ -e "$f" ]] && c "$f" "$out/04_Media/Gameplay/"; done
+c "$here/SCREENSHOTS.md" "$out/04_Media/Screenshots/" 2>/dev/null || true
+for f in "$here/trailer/VO_SCRIPT.md" "$here/trailer/SHOT_LIST.md" "$here/trailer/CUE_SHEET.md"; do c "$f" "$out/04_Media/Trailer/"; done
+for f in "$R7r/gameplay/"*.mp4; do [[ "$f" == *master* ]] || c "$f" "$out/04_Media/Gameplay/"; done
 # 05 licences
 c "$build/THIRD_PARTY_LICENSES.txt" "$out/05_Licenses/" 2>/dev/null || true
 c "$ws/assets/ASSET_LICENSES.md" "$out/05_Licenses/"
