@@ -12,3 +12,10 @@ assets/**/*.zip filter=lfs diff=lfs merge=lfs -text
 projects/games/**/*.ogg filter=lfs diff=lfs merge=lfs -text
 projects/games/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
 projects/games/**/*.wav filter=lfs diff=lfs merge=lfs -text
+# THE LAST LIGHT: the six CC0 (Poly Haven) interior texture sets, 2k PNG copies used by the game; published so a clean clone runs.
+projects/games/*/godot/assets/textures/plastered_wall_02_*.png filter=lfs diff=lfs merge=lfs -text
+projects/games/*/godot/assets/textures/concrete_floor_worn_001_*.png filter=lfs diff=lfs merge=lfs -text
+projects/games/*/godot/assets/textures/oak_veneer_01_*.png filter=lfs diff=lfs merge=lfs -text
+projects/games/*/godot/assets/textures/dark_wooden_planks_*.png filter=lfs diff=lfs merge=lfs -text
+projects/games/*/godot/assets/textures/green_metal_rust_*.png filter=lfs diff=lfs merge=lfs -text
+projects/games/*/godot/assets/textures/metal_plate_02_*.png filter=lfs diff=lfs merge=lfs -text
