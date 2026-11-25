@@ -1,12 +1,12 @@
 <div align="center">
 
-[![The Last Light: фар в буря, Външни Хебриди, 1971 г. Кликнете за трейлъра.](docs/jury/img/trailer_thumbnail_1280.jpg)](docs/jury/trailer/TheLastLight_Trailer_web.mp4)
+[![The Last Light: фар в буря, Външни Хебриди, 1971 г. Кликнете за трейлъра.](docs/jury/img/trailer_thumbnail_1280.jpg)](https://dani-aisystems.github.io/the-last-light/trailer.html)
 
 # The Last Light
 
 **Нощта на 14 срещу 15 ноември 1971 г. над фар във Външните Хебриди бушува буря. Вие сте главният пазач Калъм Маккей и поддържате светлината, докато по радиото глас назовава траулер, потънал под този фар преди осемнайсет години.**
 
-[**Гледай трейлъра**](docs/jury/trailer/TheLastLight_Trailer_web.mp4) · [**Изтегли играта**](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0) · [**Документация за конкурса**](competitions/john-atanasoff/README.md) · [**Разгледай изходния код**](projects/games/last_light/godot)
+[**Гледай трейлъра**](https://dani-aisystems.github.io/the-last-light/trailer.html) · [**Изтегли играта**](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0) · [**Документация за конкурса**](competitions/john-atanasoff/README.md) · [**Разгледай изходния код**](projects/games/last_light/godot)
 
 *Наративна игра от първо лице. Автор: Daniel Yanchev. Участие в Националния есенен турнир по информационни технологии „Джон Атанасов“ 2026/27.*
 
@@ -31,7 +31,7 @@
 
 | Ако искате | Отворете |
 |---|---|
-| Да разберете играта за минута | [Трейлър, 1:17](docs/jury/trailer/TheLastLight_Trailer_web.mp4) |
+| Да разберете играта за минута | [Трейлър, 1:17](https://dani-aisystems.github.io/the-last-light/trailer.html) |
 | Да я изиграете | [Издание v1.0.0](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0) и инструкциите по-долу |
 | Да прочетете конкурсната документация | [Материали за „Джон Атанасов“](competitions/john-atanasoff/README.md): [документация, 23 стр.](competitions/john-atanasoff/documentation/The_Last_Light_documentation_BG.pdf), [за печат, 5 стр.](competitions/john-atanasoff/documentation/The_Last_Light_documentation_print_5pages_BG.pdf), [диплянка](competitions/john-atanasoff/documentation/Leaflet_BG.pdf), [регламент](competitions/john-atanasoff/rules/Регламент%202026-2027.pdf) |
 | Да разгледате техническата реализация | [Техническа реализация](#техническа-реализация) по-долу и [Godot проектът](projects/games/last_light/godot) |

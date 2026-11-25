@@ -30,7 +30,7 @@
 |---|---|
 | Изпълнима игра (macOS, Windows) | [Издание v1.0.0](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0) |
 | Пълен изходен код (zip с контролна сума) | [Издание v1.0.0](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0), файл `TheLastLight-source.zip` |
-| Трейлър, 1:17 | [Гледай трейлъра](../../docs/jury/trailer/TheLastLight_Trailer_web.mp4) |
+| Трейлър, 1:17 | [Гледай трейлъра](https://dani-aisystems.github.io/the-last-light/trailer.html) |
 | Снимки от играта | [docs/jury/img](../../docs/jury/img) |
 | Работни файлове на изданието (QA записи, README на английски, трейлър материали) | [projects/games/last_light/release/R7](../../projects/games/last_light/release/R7) |
 
