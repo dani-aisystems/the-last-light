@@ -3,8 +3,8 @@
 # (cp -c: no extra disk space); nothing is re-encoded here. Re-run safely: it refuses to overwrite.
 #   assemble.sh            -> projects/games/last_light/build/R7/TheLastLight_R7/
 set -euo pipefail
-ws="/Users/daniel/Documents/Projects OS/Tools : Software/Blender Dev"
 here="$(cd "$(dirname "$0")" && pwd)"
+ws="$(cd "$here/../../../../.." && pwd)"
 R7r="$ws/renders/last_light/r7"
 build="$ws/projects/games/last_light/build"
 out="$build/R7/TheLastLight_R7"

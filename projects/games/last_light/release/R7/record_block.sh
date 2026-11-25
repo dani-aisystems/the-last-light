@@ -6,7 +6,7 @@
 set -uo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 root="$(cd "$here/../../../../.." && pwd)"
-ws="/Users/daniel/Documents/Projects OS/Tools : Software/Blender Dev"
+ws="$root"
 R7="$ws/renders/last_light/r7"
 what="${1:-all}"
 
