@@ -1,0 +1,6 @@
+story_test exit=0
+run_tests exit=0
+opening_test exit=0
+regress_test exit=1
+pytest exit=0
+DONE

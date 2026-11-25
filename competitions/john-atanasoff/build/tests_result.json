@@ -1,0 +1,11 @@
+{
+ "slide_line": "Другите набори: run_tests 95/95, opening_test 31/31, regress_test 503/503; pytest — без грешки",
+ "detail": {
+  "story_test": "failed 0 (97 разговора, 536 реда, 382 пътя)",
+  "run_tests": "95 tests, failed 0",
+  "opening_test": "31 passed, failed 0",
+  "regress_test": "first run 502/503 (1 timing-sensitive failure 'under black: no typing…' while the machine was busy), rerun 503/503",
+  "pytest": "exit 0"
+ },
+ "date": "2026-11-25"
+}

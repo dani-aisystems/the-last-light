@@ -16,7 +16,7 @@ Then, just before midnight, a voice on Channel 16 gives the name of a trawler th
 - You work the radio and radar: confirm a vessel's position, give turn, speed and hold orders, and bring each boat through the safe channel.
 - You read what the room holds: the station log, a 1957 letter, a 1954 inquiry extract, photographs, tide tables, a forecast (15 documents).
 - You talk, and you choose what to say. There are about 110 reply options across the six chapters.
-- Four endings. Play time: about [[R6_PLAY_TIME]].
+- Four endings. Estimated time for one playthrough: about 65–110 minutes (typically about 80), excluding the credits (about 1–2 minutes more; Esc skips them).
 
 **What is distinctive.**
 

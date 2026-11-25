@@ -11,7 +11,7 @@ home through the reefs by radio.
 Then a voice on Channel 16 gives a call sign that was lost with eight men in 1953: the night
 this same light went dark for eleven minutes. Before dawn, someone will climb the stair.
 
-Four endings. Play time: about [MEASURED IN R6] minutes. Progress saves automatically;
+Four endings. Estimated time for one playthrough: about 65–110 minutes (typically about 80), excluding the credits (about 1–2 minutes more; Esc skips them). Progress saves automatically;
 Continue on the title screen resumes.
 
 

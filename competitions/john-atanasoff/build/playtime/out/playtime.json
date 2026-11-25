@@ -1,0 +1,118 @@
+{
+ "mandatory_steps": 37,
+ "routes": {
+  "lie_saved": {
+   "ending": "nothing_to_report",
+   "bot_mid_s": 3575,
+   "lines_s": 1944,
+   "picks": 43,
+   "scenarios": {
+    "low": {
+     "bot_timeline_s": 3460,
+     "human_s": 313,
+     "extras_s": 97,
+     "total_s": 3870,
+     "total_min": 64.5
+    },
+    "mid": {
+     "bot_timeline_s": 3575,
+     "human_s": 1204,
+     "extras_s": 115,
+     "total_s": 4894,
+     "total_min": 81.6
+    },
+    "high": {
+     "bot_timeline_s": 4138,
+     "human_s": 2117,
+     "extras_s": 154,
+     "total_s": 6409,
+     "total_min": 106.8
+    }
+   },
+   "per_chapter_s": {
+    "1": 783,
+    "2": 603,
+    "3": 893,
+    "4": 362,
+    "5": 498,
+    "6": 434
+   }
+  },
+  "truth_saved": {
+   "ending": "correction",
+   "bot_mid_s": 3643,
+   "lines_s": 2001,
+   "picks": 44,
+   "scenarios": {
+    "low": {
+     "bot_timeline_s": 3528,
+     "human_s": 313,
+     "extras_s": 97,
+     "total_s": 3938,
+     "total_min": 65.6
+    },
+    "mid": {
+     "bot_timeline_s": 3643,
+     "human_s": 1204,
+     "extras_s": 115,
+     "total_s": 4962,
+     "total_min": 82.7
+    },
+    "high": {
+     "bot_timeline_s": 4206,
+     "human_s": 2117,
+     "extras_s": 154,
+     "total_s": 6477,
+     "total_min": 107.9
+    }
+   },
+   "per_chapter_s": {
+    "1": 785,
+    "2": 610,
+    "3": 888,
+    "4": 363,
+    "5": 499,
+    "6": 495
+   }
+  }
+ },
+ "headline": {
+  "low_min": 64.5,
+  "mid_min": 82.2,
+  "high_min": 107.9,
+  "rounded_range_min": [
+   65,
+   110
+  ],
+  "typical_min": 80,
+  "technical_floor_min": 59.6,
+  "credits_s": [
+   60,
+   80,
+   100
+  ]
+ },
+ "sentence_bg": "Ориентировъчно време за едно изиграване: около 65–110 минути (типично около 80), без кредитите (още около 1–2 минути; пропускат се с Esc).",
+ "breakdown_mid_truth_saved": [
+  {
+   "part": "Диалог",
+   "min": 33.4
+  },
+  {
+   "part": "Избор на отговор",
+   "min": 5.9
+  },
+  {
+   "part": "Чакане и механика (ботът)",
+   "min": 21.5
+  },
+  {
+   "part": "Задачи, документи, обаждания",
+   "min": 20.1
+  },
+  {
+   "part": "Карти и край",
+   "min": 1.9
+  }
+ ]
+}

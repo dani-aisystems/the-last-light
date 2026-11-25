@@ -17,5 +17,5 @@
 | G | R30 deterministic | **RESOLVED** | `godot/tests/regress_test.gd`, `tests/r30_repeat.gd` | Old logic fails 50/50 at a ≥ 150 ms stall; fixed, 200/200 pass. regress 10× 503/503. |
 | H | Windows export | **EXPORTED, NOT RUN-TESTED** | `01_Build/Windows/TheLastLight-Windows.zip` (236.5 MB) | Official templates, SHA-512 verified; PE32+; pck 929 files. |
 | I | Integration and final gate | **DONE** | `build/R7/TheLastLight_R7/` (with SHA256SUMS) | Suites green on `release-r7`; the no-game-change diff is empty. |
-| R6 | Daniel's timed playthrough | **BLOCKED (Daniel)** | `[[R6_PLAY_TIME]]` in the READMEs and docx | |
+| R6 | Daniel's timed playthrough | **PARTIAL**: computed estimate in the READMEs (method: `competitions/john-atanasoff/build/playtime/METHOD.md`); the stopwatch run and the docx line stay with Daniel | READMEs filled; docx `[[R6_PLAY_TIME]]` untouched (official originals) | |
 | P | Defence presentation (listed among the files to upload) | **NOT DONE** (not in the R7 brief) | | Offered. |

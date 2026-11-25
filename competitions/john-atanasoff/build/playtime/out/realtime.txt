@@ -1,0 +1,24 @@
+REALTIME route=truth_saved choice=8.0 mul=1.00 ended=true ending=correction sim_seconds=3643 per_chapter={"1":785,"2":610,"3":888,"4":363,"5":499,"6":495} lines=330 chars=24413 modelled_line_s=2001 picks=44
+REALTIME route=lie_saved choice=8.0 mul=1.00 ended=true ending=nothing_to_report sim_seconds=3575 per_chapter={"1":783,"2":603,"3":893,"4":362,"5":498,"6":434} lines=323 chars=23590 modelled_line_s=1944 picks=43
+REALTIME_STUCK chapter=6 beat=standby objective= sim: gen=0 mode=2 batt=0 fuel=0
+REALTIME route=truth_lost choice=8.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":784,"2":609,"3":887,"4":362,"5":497,"6":3857} lines=301 chars=22188 modelled_line_s=1818 picks=40
+REALTIME_STUCK chapter=6 beat=standby objective= sim: gen=0 mode=2 batt=0 fuel=0
+REALTIME route=truth_lost choice=8.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":784,"2":609,"3":888,"4":362,"5":497,"6":3857} lines=301 chars=22188 modelled_line_s=1818 picks=40
+REALTIME_STUCK chapter=6 beat=standby objective= sim: gen=0 mode=2 batt=0 fuel=0
+REALTIME route=truth_lost choice=8.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":781,"2":605,"3":884,"4":362,"5":496,"6":3868} lines=301 chars=22188 modelled_line_s=1818 picks=40
+REALTIME_STUCK chapter=6 beat=standby objective= sim: gen=0 mode=2 batt=0 fuel=0
+REALTIME route=lie_lost choice=8.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":782,"2":600,"3":886,"4":363,"5":498,"6":3867} lines=301 chars=22188 modelled_line_s=1818 picks=40
+REALTIME_STUCK chapter=6 beat=free objective= sim: gen=0 mode=1 batt=0 fuel=0
+REALTIME route=truth_saved choice=5.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":748,"2":579,"3":879,"4":352,"5":479,"6":3959} lines=298 chars=22005 modelled_line_s=1803 picks=40
+REALTIME_STUCK chapter=6 beat=free objective= sim: gen=0 mode=1 batt=0 fuel=0
+REALTIME route=truth_saved choice=5.0 mul=1.00 ended=false ending=? sim_seconds=7000 per_chapter={"1":750,"2":582,"3":873,"4":353,"5":481,"6":3958} lines=298 chars=22005 modelled_line_s=1803 picks=40
+REALTIME route=truth_saved choice=5.0 mul=1.00 ended=true ending=correction sim_seconds=3528 per_chapter={"1":750,"2":576,"3":873,"4":353,"5":480,"6":492} lines=330 chars=24413 modelled_line_s=2001 picks=44
+REALTIME route=truth_saved choice=15.0 mul=1.00 ended=true ending=correction sim_seconds=3891 per_chapter={"1":858,"2":658,"3":926,"4":383,"5":541,"6":522} lines=331 chars=24478 modelled_line_s=2006 picks=44
+REALTIME_STUCK chapter=6 beat=free objective= sim: gen=0 mode=1 batt=0 fuel=0
+REALTIME route=truth_saved choice=8.0 mul=1.50 ended=false ending=? sim_seconds=7000 per_chapter={"1":970,"2":752,"3":1055,"4":430,"5":677,"6":3113} lines=300 chars=22126 modelled_line_s=2703 picks=40
+REALTIME_STUCK chapter=6 beat=free objective= sim: gen=0 mode=1 batt=0 fuel=0
+REALTIME route=truth_saved choice=8.0 mul=1.50 ended=false ending=? sim_seconds=7000 per_chapter={"1":969,"2":754,"3":1059,"4":429,"5":678,"6":3108} lines=300 chars=22126 modelled_line_s=2703 picks=40
+REALTIME_STUCK chapter=6 beat=free objective= sim: gen=0 mode=1 batt=0 fuel=0
+REALTIME route=truth_saved choice=8.0 mul=1.50 ended=false ending=? sim_seconds=7000 per_chapter={"1":958,"2":751,"3":1056,"4":429,"5":678,"6":3125} lines=300 chars=22126 modelled_line_s=2703 picks=40
+REALTIME route=truth_saved choice=8.0 mul=2.00 ended=true ending=correction sim_seconds=5327 per_chapter={"1":1210,"2":886,"3":1206,"4":491,"5":864,"6":668} lines=334 chars=24614 modelled_line_s=4015 picks=44
+DONE

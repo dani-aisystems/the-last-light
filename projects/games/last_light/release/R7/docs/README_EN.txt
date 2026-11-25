@@ -29,7 +29,7 @@ The experience.
   photographs, tide tables, a forecast (15 documents).
 - You talk, and you choose what to say. There are about 110 reply options across the six
   chapters.
-- Four endings. Play time: about [[R6_PLAY_TIME]].
+- Four endings. Estimated time for one playthrough: about 65–110 minutes (typically about 80), excluding the credits (about 1–2 minutes more; Esc skips them).
 
 What is distinctive.
 - The story and the simulation depend on each other. With no power there is no radio and no

@@ -32,6 +32,9 @@
 | Пълен изходен код (zip с контролна сума) | [Издание v1.0.0](https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0), файл `TheLastLight-source.zip` |
 | Трейлър, 1:17 | [Гледай трейлъра](https://dani-aisystems.github.io/the-last-light/trailer.html) |
 | Снимки от играта | [docs/jury/img](../../docs/jury/img) |
+| Начална страница на Pages | [dani-aisystems.github.io/the-last-light](https://dani-aisystems.github.io/the-last-light/) |
+| Време за игра (метод, скриптове, резултат) | [build/playtime/METHOD.md](build/playtime/METHOD.md) |
+| Проверка как отговор от глава 3 променя репликите в глава 6 | [build/morag_probe.gd](build/morag_probe.gd), резултат [morag_probe.json](build/playtime/out/morag_probe.json) |
 | Работни файлове на изданието (QA записи, README на английски, трейлър материали) | [projects/games/last_light/release/R7](../../projects/games/last_light/release/R7) |
 
 ## Съответствие с изискванията на регламента
