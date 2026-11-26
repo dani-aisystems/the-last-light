@@ -21,6 +21,7 @@ __pycache__/
 *.pdf
 # The tournament regulation and the public copies of the submission documents are published on purpose.
 !competitions/john-atanasoff/**/*.pdf
+!docs/presentation/The_Last_Light_zashtita.pdf
 docs/handoff/
 # Godot (THE LAST LIGHT)
 projects/games/*/godot/.godot/

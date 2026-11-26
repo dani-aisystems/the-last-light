@@ -41,7 +41,7 @@
 
 ## Защита
 
-[Офлайн презентация (ZIP)](The_Last_Light_zashtita_offline.zip) · [PDF, 13 страници](presentation/The_Last_Light_zashtita.pdf) · [сценарий и клавиши](presentation/RUN_OF_SHOW.md) · [бележки за говорене](presentation/SPEAKER_NOTES.md) · [план и въпроси за журито](plans/STORYBOARD.md). Разархивирайте ZIP-а и отворете `index.html`; PDF е статичен резерв.
+[Отвори презентацията онлайн](https://dani-aisystems.github.io/the-last-light/presentation/) · [PDF, 13 страници](https://dani-aisystems.github.io/the-last-light/presentation/The_Last_Light_zashtita.pdf) · [Офлайн презентация (ZIP)](The_Last_Light_zashtita_offline.zip) · [сценарий и клавиши](presentation/RUN_OF_SHOW.md) · [бележки за говорене](presentation/SPEAKER_NOTES.md) · [план и въпроси за журито](plans/STORYBOARD.md). Онлайн версията се отваря директно в браузъра. За офлайн представяне разархивирайте ZIP-а и отворете `index.html`; PDF е статичен резерв.
 
 Оценяването за направление 3 е 20 / 25 / 35 / 20 точки; лимитът е 15 минути с въпросите (регламент, стр. 5 и 9). Слайд 6 показва разделяне на логика и визуализация; слайдове 4, 7–9 свързват видим резултат с конкретна проверка.
 

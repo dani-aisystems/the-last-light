@@ -7,6 +7,12 @@ https://github.com/dani-aisystems/the-last-light
 Pages: начало, трейлър и връзки към играта и защитата
 https://dani-aisystems.github.io/the-last-light/
 
+Презентация — отваря се директно в браузър, без изтегляне
+https://dani-aisystems.github.io/the-last-light/presentation/
+
+PDF на презентацията — директен преглед, 13 страници
+https://dani-aisystems.github.io/the-last-light/presentation/The_Last_Light_zashtita.pdf
+
 Игра за изтегляне (macOS / Windows), издание v1.0.0
 https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0
 

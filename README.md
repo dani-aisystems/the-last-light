@@ -14,7 +14,7 @@
 
 R7 работи локално за един играч. Радиовръзките са игрова симулация; изданието няма мрежов сървър или синхронизация между играчи.
 
-[Офлайн защита (ZIP)](competitions/john-atanasoff/The_Last_Light_zashtita_offline.zip) · [PDF на защитата](competitions/john-atanasoff/presentation/The_Last_Light_zashtita.pdf) · [Pages](https://dani-aisystems.github.io/the-last-light/)
+[Отвори защитата онлайн](https://dani-aisystems.github.io/the-last-light/presentation/) · [Офлайн защита (ZIP)](competitions/john-atanasoff/The_Last_Light_zashtita_offline.zip) · [PDF на защитата](https://dani-aisystems.github.io/the-last-light/presentation/The_Last_Light_zashtita.pdf) · [Pages](https://dani-aisystems.github.io/the-last-light/)
 
 ## За играта
 
