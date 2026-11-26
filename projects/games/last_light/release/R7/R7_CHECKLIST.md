@@ -18,4 +18,4 @@
 | H | Windows export | **EXPORTED, NOT RUN-TESTED** | `01_Build/Windows/TheLastLight-Windows.zip` (236.5 MB) | Official templates, SHA-512 verified; PE32+; pck 929 files. |
 | I | Integration and final gate | **DONE** | `build/R7/TheLastLight_R7/` (with SHA256SUMS) | Suites green on `release-r7`; the no-game-change diff is empty. |
 | R6 | Daniel's timed playthrough | **PARTIAL**: computed estimate in the READMEs (method: `competitions/john-atanasoff/build/playtime/METHOD.md`); the stopwatch run and the docx line stay with Daniel | READMEs filled; docx `[[R6_PLAY_TIME]]` untouched (official originals) | |
-| P | Defence presentation (listed among the files to upload) | **NOT DONE** (not in the R7 brief) | | Offered. |
+| P | Defence presentation (listed among the files to upload) | **DONE (26.11.2026)**: direction 3, offline HTML/ZIP and 13-page PDF, verified with network disabled in the test browser; Drive files updated in place | `competitions/john-atanasoff/presentation/`, `qa/VERIFY_2026-11-26.md` | Game build remains R7; GitHub social-preview upload is separately blocked by browser control. |
