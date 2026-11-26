@@ -85,7 +85,7 @@
    110
   ],
   "typical_min": 80,
-  "technical_floor_min": 59.6,
+  "modelled_bot_min_min": 59.6,
   "credits_s": [
    60,
    80,

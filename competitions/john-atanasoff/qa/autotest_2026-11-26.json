@@ -1,0 +1,32 @@
+{
+  "command": [
+    "tools/godot",
+    "--headless",
+    "--path",
+    "projects/games/last_light/godot",
+    "--",
+    "--autotest=90",
+    "--bot=expert",
+    "--autotest-out=<temporary>/autotest.json"
+  ],
+  "status": "exited",
+  "exit_status": 0,
+  "wall_s": 91.0,
+  "result_exists": true,
+  "result": {
+    "battery": 88.5,
+    "clock": "18:39",
+    "dark_seconds": 0.0,
+    "fps": 144.0,
+    "fuel": 37.2,
+    "lost": 0,
+    "result": "running",
+    "saved": 0,
+    "score": 0,
+    "seed": 73687,
+    "ships_seen": 1,
+    "ships_total": 0,
+    "time": 90.0,
+    "wall_seconds": 90.0
+  }
+}

@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Last Light — защита</title>
+<link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 ───────── Дилемата -->
+<section class="slide s1" data-sec="40">
+  <img class="bg" src="assets/img/05_storm_tower.jpg" alt="">
+  <div class="scrim l"></div>
+  <div class="kicker">Глава 3 · посред нощта · радио, канал 16</div>
+  <div class="radio">
+    <img src="assets/img/morag_neutral.png" alt="Морaг Фрейзър, радист в бреговата охрана">
+    <div>
+      <div class="who">Morag Fraser<small>Stornoway Coastguard</small></div>
+      <p class="q">“Eighteen minutes, Callum. They hanged Alasdair Ross’s name on eighteen minutes.”</p>
+      <p class="gloss">„Осемнайсет минути, Калъм. Заради осемнайсет минути окачиха вината на Аласдер Рос.“</p>
+    </div>
+  </div>
+  <div class="ask">Вие сте Калъм.<br>Какво отговаряте?</div>
+  <div class="opts step" data-step="1">
+    <div class="opt"><b>1</b><p class="q">“The log says oh-two-ten. The log is right.”</p><p class="gloss">„В дневника пише 02:10. Дневникът е верен.“</p></div>
+    <div class="opt"><b>2</b><p class="q">“Morag, it was eighteen years ago. What does it matter now?”</p><p class="gloss">„Морaг, било е преди осемнайсет години. Какво значение има сега?“</p></div>
+    <div class="opt"><b>3</b><p class="q">“I was there. The light was out before she struck.”</p><p class="gloss">„Бях там. Светлината беше угаснала, преди корабът да удари скалите.“</p></div>
+  </div>
+  <div class="src">Текст от играта (ch3.dlg, разговор ch3_notes_b) · портретът е на автора, направен с ChatGPT</div>
+  <aside class="notes">Ще започна с въпрос, не с игра. Вие сте пазач на фар през 1971 година, нощта е бурна. Радиото оживява и Морaг от бреговата охрана ви казва: според дневника на баща ви лампата е угаснала в 02:10 — след като корабът е ударил скалите. А вие знаете, че не е така. Осемнайсет минути, заради които името на един човек е съсипано. [КЛИК] Ето трите отговора, които играта ви дава. Прочетете ги. Какво казвате? [пауза 5 секунди] Каквото и да кажете, играта ще го запомни. Но първо — накратко какво е тя.</aside>
+</section>
+
+<!-- 2 ───────── Какво е играта -->
+<section class="slide s2" data-sec="40">
+  <img class="bg" src="assets/img/01_title_menu.jpg" alt="Заглавният екран на играта: фарът, лъчът и дъждът">
+  <div class="scrim b"></div>
+  <div class="kicker">„Джон Атанасов“ · направление 3 „Разпределени приложения“</div>
+  <div class="title"><h1>Една нощ. Един фар. Едно радио.</h1></div>
+  <div class="bar">
+    <div class="stat step" data-step="1"><div class="n">6</div><div class="l">глави — от здрача до 06:30</div></div>
+    <div class="stat step" data-step="2"><div class="n">≈110</div><div class="l">отговора на радиото</div></div>
+    <div class="stat step" data-step="3"><div class="n">4</div><div class="l">различни края</div></div>
+  </div>
+  <div class="src">Build R7 · v1.0.0 · Godot 4.7 · Blender · един играч, офлайн</div>
+  <aside class="notes">The Last Light е наративна игра от първо лице. Вие сте Калъм, пазач на фара North Point във Външните Хебриди, нощта на 14 срещу 15 ноември 1971 година. [КЛИК] Шест глави — от здрача до шест и половина сутринта. [КЛИК] Около сто и десет отговора, които давате по радиото. [КЛИК] И четири различни края. Играта е направена в Godot, а сцената и моделите — в Blender. Текстът в играта е на английски, затова на слайдовете ще виждате оригинала и превод под него. Нека ви покажа как звучи тази нощ.</aside>
+</section>
+
+<!-- 3 ───────── Трейлър -->
+<section class="slide s3" data-sec="30">
+  <div class="kicker">Трейлър · откъс 22 секунди</div>
+  <div class="title"><h1>„Знам какво пишеше в дневника… Аз го написах.“</h1></div>
+  <div class="vid">
+    <video preload="auto" poster="assets/img/trailer_poster.jpg" controls>
+      <source src="assets/video/trailer_excerpt.mp4" type="video/mp4">
+    </video>
+    <img src="assets/img/trailer_poster.jpg" alt="Страница от станционния дневник, 1953">
+    <div class="subs" id="subs"></div>
+  </div>
+  <div class="cap">Откъс от трейлъра (0:18–0:40 от 1:17) · гласът е генериран с ElevenLabs; в самата игра няма озвучаване</div>
+  <aside class="notes">[КЛИК — пуска се клипът, 22 секунди. Ако видеото не тръгне: казвам репликата сам и продължавам.] Това е пазачът, който преди осемнайсет години е записал в дневника, че светлината е горяла. Именно този дневник Морaг ми цитира по радиото. А сега — как е устроена една нощ на фара.</aside>
+</section>
+
+<!-- 4 ───────── Фарът и радиото -->
+<section class="slide s4" data-sec="60">
+  <div class="kicker">Как се играе</div>
+  <div class="title"><h1>Без ток радиото мълчи — и историята чака</h1></div>
+  <div class="cards">
+    <div class="card step" data-step="1"><img src="assets/img/03_lamps_come_up.jpg" alt="Лампите се включват"><p>Първо дежурствата: генератор, батерии, лампа.</p></div>
+    <div class="card step" data-step="2"><img src="assets/img/04_radio_morag.jpg" alt="Радиото, радарът и картата"><p>След това радиото: шест заповеди към корабите.</p></div>
+    <div class="card step" data-step="3"><img src="assets/img/05_storm_tower.jpg" alt="Фарът в бурята"><p>Навън — бурята. Лъчът е всичко, което корабът има.</p></div>
+  </div>
+  <div class="proof step" data-step="4">Автоматичен тест (story_test): без ток радиото не пуска разказа — dead_radio_play=false</div>
+  <div class="src">Кадри от играта (build R7)</div>
+  <aside class="notes">Фарът и радиото тук не са декор, а самата игра. [КЛИК] Първо трябва да има ток: пускате генератора, зареждате батериите, включвате лампата. [КЛИК] Чак тогава радиото работи. От него давате заповеди на корабите — шест команди, например „завий наляво на 30 градуса“ — и ги водите по радара покрай скалите. [КЛИК] А навън е бурята, и лъчът е единственото, което корабът има. [КЛИК] Ако токът падне, радиото замлъква и историята изчаква — това го проверява автоматичен тест. Именно между тези задачи идва въпросът на Морaг: играчът е зает с лампата и с корабите, и точно тогава трябва да реши какво да каже. Затова изборът тежи — не е меню, а момент, в който нещо друго също гори.</aside>
+</section>
+
+<!-- 5 ───────── Избор → следа -->
+<section class="slide s5" data-sec="70">
+  <div class="kicker">Какво се случва при един отговор</div>
+  <div class="title"><h1>Всеки отговор оставя следа</h1></div>
+  <pre class="code"><span class="c"># ch3.dlg — реплика на играча</span>
+<span class="k">*</span> I was there. The light was out
+  before she struck. <span class="k">-&gt;</span> admit
+
+<span class="k">= admit</span>
+<span class="f">! set</span> admitted_to_morag=1
+<span class="f">! add</span> rel.morag 2
+MORAG: ...Oh, Callum.</pre>
+  <table class="tbl step" data-step="1">
+    <tr><th>Отговор</th><th>Флаг</th><th>Морaг</th></tr>
+    <tr><td>„Дневникът е верен“</td><td class="m">lied_to_morag</td><td class="r neg">−2</td></tr>
+    <tr><td>„Какво значение има сега?“</td><td class="m">deflected_morag</td><td class="r neg">−1</td></tr>
+    <tr><td>„Бях там“</td><td class="m">admitted_to_morag</td><td class="r pos">+2</td></tr>
+  </table>
+  <div class="cap2 step" data-step="2">Отговорът променя флаг и отношение. По-късно те участват в избора на реплика.</div>
+  <div class="src">Реален код от projects/games/last_light/godot/data/story/ch3.dlg</div>
+  <aside class="notes">Ето как изглежда изборът в данните на играта — това е реален код, не схема. Отговорът „I was there“ води към етикет „admit“. Той прави две неща: слага флаг — admitted_to_morag, и добавя две точки към отношението с Морaг. [КЛИК] Другите два отговора слагат други флагове и намаляват отношението — с две и с една точка. [КЛИК] В този миг нищо друго не се променя — Морaг само отговаря. Следата остава в паметта на играта и последицата идва много по-късно — в друга глава, при друг разговор, когато играчът вече е забравил какво е казал.</aside>
+</section>
+
+<!-- 6 ───────── Как е реализирано -->
+<section class="slide s6" data-sec="70">
+  <div class="kicker">Проектиране · логика и визуализация</div>
+  <div class="title"><h1>Играта помни, без код за всяка реплика</h1></div>
+  <div class="flow">
+    <div class="box"><h2>Данни</h2><p><code>ch3.dlg / ch6.dlg</code><br>Отговори, действия и условия.</p></div>
+    <div class="arrow">→</div>
+    <div class="box"><h2>Логика</h2><p><code>DialogueRunner</code><br>Изпълнява избора и условията.</p></div>
+    <div class="arrow">→</div>
+    <div class="box"><h2>Състояние</h2><p><code>StoryState</code><br>Пази флагове и отношение към Morag.</p></div>
+    <div class="arrow">→</div>
+    <div class="box"><h2>Визуализация</h2><p><code>StoryPresenter</code><br><code>DialogueUI</code><br>Показват избрания текст.</p></div>
+  </div>
+  <pre class="code step" data-step="1"><span class="c"># ch6.dlg — сутринта, същият разговор за всички играчи</span>
+<span class="k">[if has_flag("admitted_to_morag")]</span> MORAG: You told me first. In the dark, with the set half dead. I'll remember that.
+<span class="k">[if relation("morag") &gt;= 2]</span> MORAG: Kitchen table, Callum. I'll put the kettle on. Stornoway out.</pre>
+  <div class="metric step" data-step="2">Същата логика работи <b>без интерфейс</b> в <code>morag_probe.gd</code></div>
+  <div class="src">R7: dialogue_runner.gd · story_state.gd · story_presenter.gd · dialogue_ui.gd</div>
+  <aside class="notes">Как играта помни и как отделям логиката от екрана? Разговорите са данни в текстови файлове. DialogueRunner изпълнява избора и условията, а StoryState пази флаговете и отношението. StoryPresenter свързва тази логика с DialogueUI, който показва текста и връща избрания отговор. [КЛИК] Ето два истински реда от разсъмването: единият проверява признанието, другият — общото отношение. [КЛИК] Мога да изпълня същия разговор без графичен интерфейс и да проверя получения текст. Това е разделяне на модули в едно локално приложение. Сега ще видим резултата за играча.</aside>
+</section>
+
+<!-- 7 ───────── Разсъмване -->
+<section class="slide s7" data-sec="60">
+  <div class="kicker">Глава 6 · разсъмване · 06:30</div>
+  <div class="title"><h1>Едно и също изречение — три различни отговора</h1></div>
+  <div class="callum"><small>Контролирана проверка: начално отношение 0, спасен Iona Star; еднакъв избор сутринта:</small>“Stornoway, North Point. Amend my station log, entry of fifteenth November 1953. Over.”</div>
+  <div class="cols" data-hide="4">
+    <div class="col step" data-step="1"><div class="tag neg">Излъгах в глава 3<span>lied_to_morag · −2</span></div><p class="q">“You told me at half past one that the log was right. I’ll not say anything about that on the air.”</p><p class="gloss">„Каза ми, че дневникът е верен. Няма да го казвам по ефира.“</p></div>
+    <div class="col step" data-step="2"><div class="tag neg">Отбегнах<span>deflected_morag · −1</span></div><p class="q">“You asked me what it mattered, after eighteen years. Well. Now you know.”</p><p class="gloss">„Попита ме какво значи, след осемнайсет години. Е, сега знаеш.“</p></div>
+    <div class="col hot step" data-step="3"><div class="tag pos">Признах<span>admitted_to_morag · +2</span></div><p class="q">“You told me first. In the dark, with the set half dead. I’ll remember that.” … “Kitchen table, Callum. I’ll put the kettle on.”</p><p class="gloss">„Ти ми каза пръв. В тъмното, с почти мъртво радио.“ … „На кухненската маса, Калъм.“</p></div>
+  </div>
+  <div class="banner step" data-step="4"><div class="t">А ако призная в глава 3, но сутринта мълча (“Nothing to report”), Морaг казва:</div><p class="q">“Hours ago you told me the light was out before she struck. I’ll not put that in my log, Callum. You’ll have to.”</p><p class="gloss">„Преди часове ми каза, че светлината е угаснала преди удара. Няма да го пиша в моя дневник, Калъм. Ще трябва ти.“</p></div>
+  <div class="src">Изведено от диалоговия код на играта със зададени избори (build/morag_probe.gd)</div>
+  <aside class="notes">В игровата нощ вече е разсъмнало. Тук проверката започва от нулево отношение към Морaг и спасен кораб. Играчът сутринта поправя дневника и в трите случая. [КЛИК] При ранна лъжа тя помни лъжата. [КЛИК] При отбягване връща въпроса „какво значение има“. [КЛИК] При признание казва „Ти ми каза пръв“. Поканата на кухненската маса има отделно условие: общо отношение поне две. Други разговори също го променят. [КЛИК] Ако съм признал, но сутринта мълча, тя ме подканя сам да запиша истината. Ранният избор променя репликите. Нека отделим това от избора на финал.</aside>
+</section>
+
+<!-- 8 ───────── Четири края -->
+<section class="slide s8" data-sec="45">
+  <div class="kicker">Краят</div>
+  <div class="title"><h1>Два избора, четири края</h1></div>
+  <table class="mx">
+    <tr><th class="row"></th><th>Корабът «Iona Star» е спасен</th><th>Корабът е загубен</th></tr>
+    <tr><th class="row">Докладвам истината</th><td class="step" data-step="1">Correction<small>„Поправка“</small></td><td class="step" data-step="2">Heard Together<small>„Чути заедно“</small></td></tr>
+    <tr><th class="row">Мълча</th><td class="step" data-step="3">Nothing to Report<small>„Нищо за докладване“</small></td><td class="step" data-step="4">Light Exhibited Throughout<small>„Светлината е горяла цяла нощ“</small></td></tr>
+  </table>
+  <div class="endimg step" data-step="2"><img src="assets/img/08_ending_heard_together.jpg" alt="Крайна сцена Heard Together"><p>Край „Heard Together“ — кадър от играта (панелите са изображения на автора)</p></div>
+  <div class="mxnote step" data-step="5">Финалът = истина на разсъмване × съдба на Iona Star. Ранният флаг за Morag променя реплики; сам по себе си не избира финал.</div>
+  <div class="src">Резултат на story_test: и четирите края са достигнати от бот</div>
+  <aside class="notes">Финалът зависи от две стойности: докладвах ли истината на разсъмване и спасен ли е Iona Star. [КЛИК] Истина и спасен кораб — Correction. [КЛИК] Истина и загубен кораб — Heard Together. [КЛИК] Мълчание и спасен кораб — Nothing to Report. [КЛИК] Мълчание и загубен кораб — Light Exhibited Throughout. [КЛИК] Ранното признание пред Морaг само по себе си не определя финала. Четирите комбинации са достигнати от автоматичен играч; кадърът вдясно е от изданието. А как проверявам, че тези резултати работят?</aside>
+</section>
+
+<!-- 9 ───────── Проверка -->
+<section class="slide s9" data-sec="50">
+  <div class="kicker">Проверка</div>
+  <div class="title"><h1>Какво е доказано — и какво не беше</h1></div>
+  <div class="two">
+    <div class="ok step" data-step="1"><h2>Доказано с тест</h2><ul>
+      <li>97 разговора, 536 реда — <code>0 проблема</code></li>
+      <li>382 пътя през диалозите — без задънена улица</li>
+      <li>7 пълни преминавания с бот стигат и до четирите края</li>
+      <li>{{OTHER_TESTS}}</li>
+    </ul></div>
+    <div class="no step" data-step="2"><h2>Не беше покрито — добавих</h2><ul>
+      <li>Тестовете не проверяваха <b>точните реплики</b> на Морaг в глава 6</li>
+      <li>Допълнителна проверка: 5 случая → 5 различни резултата <code>morag_probe.gd</code></li>
+      <li>Не е тествано: Windows build; пълно ръчно изиграване с хронометър</li>
+    </ul></div>
+  </div>
+  <div class="src">Резултат от пускане на 25.11.2026 · tools/godot --headless … story_test.gd</div>
+  <aside class="notes">Как знам, че работи? [КЛИК] Автоматичният тест обхожда всичките триста осемдесет и два пътя през диалозите — деветдесет и седем разговора, нула проблема — и седем пълни преминавания с бот стигат до всичките четири края. [КЛИК] Но има нещо, което тестовете не проверяваха: точните реплики на Морaг. Затова добавих проверка с AI помощ, която изпълнява разговора с различни избори и показва кой ред се избира — същата, от която са репликите на предишния слайд. Честно казано, не съм тествал Windows версията и не съм изиграл играта от край до край с хронометър — затова времето, което ще ви кажа, е изчислено.</aside>
+</section>
+
+<!-- 10 ───────── Авторство -->
+<section class="slide s10" data-sec="45">
+  <div class="kicker">Откровено за инструментите</div>
+  <div class="title"><h1>Какво е мое и с какво е направено</h1></div>
+  <table class="who2">
+    <tr class="step" data-step="1"><td>Идея, посока, решения</td><td>Мои. Записани са в DECISIONS.md.</td></tr>
+    <tr class="step" data-step="1"><td>Код и Blender pipeline</td><td>С Claude Code като AI асистент, под мое ръководство и проверка<small>Тестовете и записаните решения са начинът да проверявам какво е направено.</small></td></tr>
+    <tr class="step" data-step="2"><td>Портрети и крайни кадри</td><td>ChatGPT — изображения, които аз подготвих по общ шаблон</td></tr>
+    <tr class="step" data-step="2"><td>Музика</td><td>Suno (платен план) — 42 заготовки, подбрани от мен</td></tr>
+    <tr class="step" data-step="3"><td>Глас в трейлъра</td><td>ElevenLabs (безплатен план). В играта няма озвучаване.</td></tr>
+    <tr class="step" data-step="3"><td>Текстури, тела, звуци</td><td>CC0 (Poly Haven, Blender Studio, Freesound); лицензите са описани в хранилището</td></tr>
+  </table>
+  <div class="src">Източници: DECISIONS.md (Q11, Q13, Q16, Q27, Q28) · assets/ASSET_LICENSES.md</div>
+  <aside class="notes">Искам да съм откровен за инструментите. [КЛИК] Идеята, посоката и решенията са мои и са записани в един файл с решения. Кодът и Blender pipeline са направени с Claude Code като AI асистент, под мое ръководство и проверка — затова разчитам на тестове и на записани решения. [КЛИК] Портретите на радиото и деветте крайни кадъра са изображения, които аз подготвих с ChatGPT по общ шаблон. Музиката е генерирана със Suno — подбрах я от четиридесет и две заготовки. [КЛИК] Гласът в трейлъра е от ElevenLabs; в самата игра няма озвучаване. Текстурите, телата и звуците са с CC0 лиценз и са описани в хранилището. Искам журито да може да провери всяко от тези твърдения, затова ги подкрепям със записани решения, а не с думи.</aside>
+</section>
+
+<!-- 11 ───────── Време за игра -->
+<section class="slide s11" data-sec="30">
+  <div class="kicker">Колко трае една нощ</div>
+  <div class="big">{{PT_RANGE}}<small>Типично около 80 мин · изчислена оценка от два маршрута със спасен кораб · без кредити (+1–2 мин)</small></div>
+  <div class="bars step" data-step="1">{{PT_BAR}}</div>
+  <div class="unc step" data-step="2">{{PT_UNC}}</div>
+  <div class="src">Метод и скриптове: competitions/john-atanasoff/build/playtime/METHOD.md</div>
+  <aside class="notes">{{PT_NOTES}}</aside>
+</section>
+
+<!-- 12 ───────── Връщане -->
+<section class="slide s12" data-sec="35">
+  <img class="bg" src="assets/img/07_dawn.jpg" alt="Постът на разсъмване">
+  <div class="scrim"></div>
+  <div class="ask">Какво отговорихте в началото?</div>
+  <div class="opts2 step" data-step="1">
+    <div><b>1</b>“The log is right.”</div>
+    <div><b>2</b>“What does it matter now?”</div>
+    <div><b>3</b>“I was there.”</div>
+  </div>
+  <div class="final step" data-step="2">В The Last Light това, което кажеш на радиото в полунощ, фарът ти го връща на разсъмване.</div>
+  <div class="src">Кадър от играта (build R7): постът на разсъмване</div>
+  <aside class="notes">Сега се върнете към началото. Какво отговорихте? [КЛИК — трите отговора] Каквото и да е, в играта то не е забравено: на разсъмване радиото ще ви го върне. [КЛИК] The Last Light е игра, в която това, което кажеш на радиото в полунощ, фарът ти го връща на разсъмване.</aside>
+</section>
+
+<!-- 13 ───────── Въпроси -->
+<section class="slide s13" data-sec="20">
+  <div class="kicker">Благодаря</div>
+  <div class="title"><h1>Въпроси?</h1></div>
+  <div class="links">
+    <div><span>Играта</span> <code>github.com/dani-aisystems/the-last-light</code></div>
+    <div><span>Трейлър</span> <code>dani-aisystems.github.io/the-last-light/trailer.html</code></div>
+    <div><span>Издание</span> <code>…/releases/tag/v1.0.0</code></div>
+    <div><span>Проверка</span> <code>build/morag_probe.gd · build/playtime/</code></div>
+  </div>
+  <div class="thanks">Благодаря за вниманието.</div>
+  <aside class="notes">Благодаря. С удоволствие ще отговоря на въпроси. [Резерв: 4–5 минути. Кратки отговори — в plans/STORYBOARD.md.]</aside>
+</section>
+
+</div></div>
+<div id="timer"></div>
+<div id="notes"></div>
+<script src="js/deck.js"></script>
+</body>
+</html>

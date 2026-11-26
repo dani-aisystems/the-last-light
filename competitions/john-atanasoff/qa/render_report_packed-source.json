@@ -1,0 +1,184 @@
+{
+ "viewport": [
+  1920,
+  1080
+ ],
+ "slides": [
+  {
+   "slide": 1,
+   "steps": 1,
+   "states": [
+    "s01_step0.png",
+    "s01_step1.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "SMALL: Stornoway Coastguard"
+  },
+  {
+   "slide": 2,
+   "steps": 3,
+   "states": [
+    "s02_step0.png",
+    "s02_step1.png",
+    "s02_step2.png",
+    "s02_step3.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "kicker: „Джон Атанасов“ · направление 3 „Разпред"
+  },
+  {
+   "slide": 3,
+   "steps": 1,
+   "states": [
+    "s03_step0.png",
+    "s03_step1.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "num: 3 / 13"
+  },
+  {
+   "slide": 4,
+   "steps": 4,
+   "states": [
+    "s04_step0.png",
+    "s04_step1.png",
+    "s04_step2.png",
+    "s04_step3.png",
+    "s04_step4.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Кадри от играта (build R7)"
+  },
+  {
+   "slide": 5,
+   "steps": 2,
+   "states": [
+    "s05_step0.png",
+    "s05_step1.png",
+    "s05_step2.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Реален код от projects/games/last_light/"
+  },
+  {
+   "slide": 6,
+   "steps": 2,
+   "states": [
+    "s06_step0.png",
+    "s06_step1.png",
+    "s06_step2.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: R7: dialogue_runner.gd · story_state.gd "
+  },
+  {
+   "slide": 7,
+   "steps": 4,
+   "states": [
+    "s07_step0.png",
+    "s07_step1.png",
+    "s07_step2.png",
+    "s07_step3.png",
+    "s07_step4.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "SPAN: lied_to_morag · −2"
+  },
+  {
+   "slide": 8,
+   "steps": 5,
+   "states": [
+    "s08_step0.png",
+    "s08_step1.png",
+    "s08_step2.png",
+    "s08_step3.png",
+    "s08_step4.png",
+    "s08_step5.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Резултат на story_test: и четирите края "
+  },
+  {
+   "slide": 9,
+   "steps": 2,
+   "states": [
+    "s09_step0.png",
+    "s09_step1.png",
+    "s09_step2.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Резултат от пускане на 25.11.2026 · tool"
+  },
+  {
+   "slide": 10,
+   "steps": 3,
+   "states": [
+    "s10_step0.png",
+    "s10_step1.png",
+    "s10_step2.png",
+    "s10_step3.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Източници: DECISIONS.md (Q11, Q13, Q16, "
+  },
+  {
+   "slide": 11,
+   "steps": 2,
+   "states": [
+    "s11_step0.png",
+    "s11_step1.png",
+    "s11_step2.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Метод и скриптове: competitions/john-ata"
+  },
+  {
+   "slide": 12,
+   "steps": 2,
+   "states": [
+    "s12_step0.png",
+    "s12_step1.png",
+    "s12_step2.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "src: Кадър от играта (build R7): постът на ра"
+  },
+  {
+   "slide": 13,
+   "steps": 0,
+   "states": [
+    "s13_step0.png"
+   ],
+   "issues": [],
+   "min_font_design_px": 26,
+   "min_font_el": "num: 13 / 13"
+  }
+ ],
+ "network_requests": [],
+ "broken_images": [],
+ "fonts": [
+  "Inter 400 normal",
+  "Inter 700 normal",
+  "Literata 400 normal"
+ ],
+ "video": {
+  "ready": 4,
+  "dur": 22,
+  "w": 1920,
+  "h": 1080,
+  "tracks": 0
+ },
+ "pdf": "The_Last_Light_zashtita.pdf"
+}

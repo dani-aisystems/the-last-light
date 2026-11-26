@@ -1,0 +1,15 @@
+THE LAST LIGHT — за журито, v1.0.0 / R7
+Направление 3 „Разпределени приложения“
+
+GitHub: изходен код, README и конкурсни материали
+https://github.com/dani-aisystems/the-last-light
+
+Pages: начало, трейлър и връзки към играта и защитата
+https://dani-aisystems.github.io/the-last-light/
+
+Игра за изтегляне (macOS / Windows), издание v1.0.0
+https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0
+
+Презентацията (ZIP) и PDF са в папка „4_Презентация“.
+Разархивирайте ZIP и отворете index.html — без интернет.
+R7 е локална игра за един играч; радиото е симулация.

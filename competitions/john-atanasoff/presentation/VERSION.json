@@ -1,0 +1,29 @@
+{
+  "deck_version": "d8ea010381e9",
+  "game_build": "R7",
+  "game_release": "v1.0.0",
+  "sources": {
+    "presentation/index.template.html": "c65a673c3a903b0e2d7e6926f73d48f302cf243e0f5058c109dcc6184bfec6c7",
+    "presentation/css/deck.css": "69fdb49999eac2cafa98505a032b7a7808991df73f9d555d1aa941f3d0a02865",
+    "presentation/js/deck.js": "0075bdf803bcd946744dc064189e74f48d781584a7f8cb0a2ebaae04a1a27a62",
+    "build/playtime/out/deck_tokens.json": "9e848b82ffa17c66460a097586b107da49c33c9bea0e22e2d8f9e25b74b2d819",
+    "build/tests_result.json": "32386b0a4dc8d9250d25cd6b908e4a147e2f2f06017c619f76465d908d91eacb",
+    "presentation/assets/fonts/Inter-Bold.ttf": "169bcaccf1254550bd2f3a425dab288597d925a383a3623cad8a5987ce7fa2c3",
+    "presentation/assets/fonts/Inter-OFL.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+    "presentation/assets/fonts/Inter-Regular.ttf": "6d282528bdfdfda2b9a6e85206b1376ae00373bf39ef6e534cc4dd1b4b690ccc",
+    "presentation/assets/fonts/Literata-MediumItalic.ttf": "37943448caee3b05f2a484bb97442d854374d5fffefac451adac31d2972fa2b4",
+    "presentation/assets/fonts/Literata-OFL.txt": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e",
+    "presentation/assets/fonts/Literata-Regular.ttf": "316a7f0440ba4f95926a72dff6c939487ba2c1bcd4f153c3edc5e5123506d0bc",
+    "presentation/assets/img/01_title_menu.jpg": "a64002f22ddf5271b01d09fff78554f2530c129a2f55855becaefb873bedf0be",
+    "presentation/assets/img/02_watch_room_dusk.jpg": "425a8fe9de738f3d325ba595ae99dcbe962b9c9d22bb155b62a9bacd6070fdd7",
+    "presentation/assets/img/03_lamps_come_up.jpg": "b8196ef8cc6b5c3ad22d28b27c1780c8e9732d7dcddc42269aa63f67f550a774",
+    "presentation/assets/img/04_radio_morag.jpg": "26575e0569afa512b2d2e37b8e635052c5528df886a99dda1e8b656eee931da0",
+    "presentation/assets/img/05_storm_tower.jpg": "842e5b7f1f90547963ed5052455f6d788ab29ced698ce468266d62203d16b20c",
+    "presentation/assets/img/06_man_at_the_door.jpg": "32232ab998f6554b794614c513fb1da124f85d7c4535bec6d0423f5f73cfe0cb",
+    "presentation/assets/img/07_dawn.jpg": "a4cd2c83ba82bb56e539ca56f342fbe88d6df8cdf374d945d7c63b21900f9eb7",
+    "presentation/assets/img/08_ending_heard_together.jpg": "20cb63e30247d9d01e1300326c1894301ceca7423dd89ad7f020b0279816fc9c",
+    "presentation/assets/img/morag_neutral.png": "76bb9dffcdd65f19742ef9aba9cbeba645f5ff0fd541dbb2e4bc9d378a663bbc",
+    "presentation/assets/img/trailer_poster.jpg": "125bb7b961bee0185d7e717649a54da1a545e6202b5df711cdfee8dc1afda769",
+    "presentation/assets/video/trailer_excerpt.mp4": "1501def97817d9e582d24732348a59658e1afd34d6b90edba33c832a2f666e23"
+  }
+}

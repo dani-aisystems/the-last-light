@@ -107,7 +107,7 @@ def main():
     hi_r = int(round(max(highs) / 5) * 5)
     mid_r = int(round(statistics.mean(mids) / 5) * 5)
     result["headline"] = {"low_min": min(lows), "mid_min": round(statistics.mean(mids), 1), "high_min": max(highs),
-                          "rounded_range_min": [lo_r, hi_r], "typical_min": mid_r, "technical_floor_min": round(min(floor_bot), 1),
+                          "rounded_range_min": [lo_r, hi_r], "typical_min": mid_r, "modelled_bot_min_min": round(min(floor_bot), 1),
                           "credits_s": list(CREDITS_S)}
 
     def hm(m):
@@ -136,12 +136,12 @@ def main():
             "PT_BAR": f'<div class="bar1">{bar}</div><div class="legend">{legend}</div>',
             "PT_UNC": ("Най-голяма неопределеност: колко време ще отнемат задачите при първо запознаване "
                        f"(за {steps} задължителни стъпки допускам {STEP_S["low"]}–{STEP_S["high"]} с на стъпка) и колко ще се бави играчът с избора на отговор. "
-                       "Диалогът е точен — редовете се сменят сами, не могат да се прескочат."),
+                       "Редовете се сменят сами; времето им е моделирано с приближение за страниците."),
             "PT_NOTES": ("Последно — колко трае една нощ. Не съм я изиграл с хронометър, затова числото е изчислено. "
                          f"Пуснах автоматичен играч, който минава кампанията с пълните чакания и с времето на всеки ред по формулата на играта — "
-                         f"това са около {round(min(floor_bot))} минути без нито един човешки забавяне, защото редовете не могат да се прескочат. "
+                         f"това дава около {round(min(floor_bot))} минути за двата завършени маршрута със спасен кораб, преди човешкото забавяне. "
                          f"[КЛИК] Добавям времето за задачи, документи и първо запознаване и получавам диапазон от около {lo_r} до {hi_r} минути, "
-                         "без кредитите. [КЛИК] Най-голямата неопределеност е колко време ще отнемат задачите на нов играч."),
+                         "без кредитите. Двата маршрута със загубен кораб не са завършени с пълните чакания. [КЛИК] Най-голямата неопределеност е колко време ще отнемат задачите на нов играч."),
         }
         (OUT / "deck_tokens.json").write_text(json.dumps(tokens, ensure_ascii=False, indent=1))
 
@@ -152,7 +152,7 @@ def main():
     for name, r in result["routes"].items():
         s = r["scenarios"]
         md.append(f"| {name} | {r['ending']} | {r['bot_mid_s'] / 60:.1f} мин | {s['low']['total_min']} | {s['mid']['total_min']} | {s['high']['total_min']} |")
-    md += ["", f"Технически минимум при правилата на играта (без човешко забавяне): ≈ {result['headline']['technical_floor_min']} мин.", ""]
+    md += ["", f"Най-кратък моделиран бот маршрут от двата завършени със спасен кораб: ≈ {result['headline']['modelled_bot_min_min']} мин. Не е глобален минимум за всички маршрути.", ""]
     if "breakdown_mid_truth_saved" in result:
         md.append("Разбивка, представителен маршрут (истина + спасен кораб), средно:")
         md += [f"- {b['part']}: {b['min']} мин" for b in result["breakdown_mid_truth_saved"]]

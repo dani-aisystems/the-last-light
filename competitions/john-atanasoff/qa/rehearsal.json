@@ -1,0 +1,169 @@
+{
+ "steps": [],
+ "errors": [],
+ "network_requests": [],
+ "forward_states": 44,
+ "expected_states": 44,
+ "back_presses_to_start": 43,
+ "video": {
+  "started_ok": true,
+  "wall_seconds_to_end": 22.2,
+  "subtitle_track_removed_inline_captions": true,
+  "caption_during_video": "Знам какво пишеше в дневника… Аз го написах.",
+  "duration": 22
+ },
+ "after_video_next": {
+  "cur": 3,
+  "step": 0,
+  "max": 4,
+  "total": 13
+ },
+ "video_reset_on_back": {
+  "t": 0,
+  "paused": true
+ },
+ "home": {
+  "cur": 0,
+  "step": 0,
+  "max": 1,
+  "total": 13
+ },
+ "answers_hidden_initially": true,
+ "all_three_answers_before_selection": true,
+ "end": {
+  "cur": 12,
+  "step": 0,
+  "max": 0,
+  "total": 13
+ },
+ "enter_step": {
+  "cur": 0,
+  "step": 1,
+  "max": 1,
+  "total": 13
+ },
+ "stage_click_next": {
+  "cur": 1,
+  "step": 0,
+  "max": 3,
+  "total": 13
+ },
+ "timer_visible": true,
+ "fullscreen_entered": false,
+ "fullscreen_exited": true,
+ "notes_visible": true,
+ "slides": [
+  {
+   "slide": 1,
+   "budget_s": 40,
+   "words": 87,
+   "speak_s_fast": 37,
+   "speak_s_slow": 42
+  },
+  {
+   "slide": 2,
+   "budget_s": 40,
+   "words": 86,
+   "speak_s_fast": 37,
+   "speak_s_slow": 41
+  },
+  {
+   "slide": 3,
+   "budget_s": 30,
+   "words": 33,
+   "speak_s_fast": 14,
+   "speak_s_slow": 16
+  },
+  {
+   "slide": 4,
+   "budget_s": 60,
+   "words": 113,
+   "speak_s_fast": 48,
+   "speak_s_slow": 54
+  },
+  {
+   "slide": 5,
+   "budget_s": 70,
+   "words": 93,
+   "speak_s_fast": 40,
+   "speak_s_slow": 45
+  },
+  {
+   "slide": 6,
+   "budget_s": 70,
+   "words": 80,
+   "speak_s_fast": 34,
+   "speak_s_slow": 38
+  },
+  {
+   "slide": 7,
+   "budget_s": 60,
+   "words": 85,
+   "speak_s_fast": 36,
+   "speak_s_slow": 41
+  },
+  {
+   "slide": 8,
+   "budget_s": 45,
+   "words": 75,
+   "speak_s_fast": 32,
+   "speak_s_slow": 36
+  },
+  {
+   "slide": 9,
+   "budget_s": 50,
+   "words": 99,
+   "speak_s_fast": 42,
+   "speak_s_slow": 48
+  },
+  {
+   "slide": 10,
+   "budget_s": 45,
+   "words": 120,
+   "speak_s_fast": 51,
+   "speak_s_slow": 58
+  },
+  {
+   "slide": 11,
+   "budget_s": 30,
+   "words": 92,
+   "speak_s_fast": 39,
+   "speak_s_slow": 44
+  },
+  {
+   "slide": 12,
+   "budget_s": 35,
+   "words": 44,
+   "speak_s_fast": 19,
+   "speak_s_slow": 21
+  },
+  {
+   "slide": 13,
+   "budget_s": 20,
+   "words": 7,
+   "speak_s_fast": 3,
+   "speak_s_slow": 3
+  }
+ ],
+ "speech_assumption_wpm": [
+  125,
+  140
+ ],
+ "speech_is_estimated": true,
+ "total_words": 1014,
+ "auto_parts_s": {
+  "video_s": 22.2,
+  "pauses_s": 10,
+  "click_s": 86,
+  "setup_s": 15
+ },
+ "total_s": {
+  "fast": 565.2,
+  "slow": 620.2,
+  "budget_sum": 595
+ },
+ "reserve_for_questions_s": {
+  "fast": 334.79999999999995,
+  "slow": 279.79999999999995
+ }
+}

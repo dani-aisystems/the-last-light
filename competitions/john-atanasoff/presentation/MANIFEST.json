@@ -1,0 +1,31 @@
+{
+  "deck_version": "d8ea010381e9",
+  "sha256": {
+    "index.html": "1714e2376cc0a452af52b87f60eea0abddf114603802ffabc99bdb1f6dd62984",
+    "index.template.html": "c65a673c3a903b0e2d7e6926f73d48f302cf243e0f5058c109dcc6184bfec6c7",
+    "README_START.txt": "5080a7d66b34b3e604d21192b32bca3977c8601bd5d7e579017dcb1a18fe499b",
+    "SPEAKER_NOTES.md": "eb27b26ce6ae301d7d7950f7e648f4d13c9d6c624f60b38ce2e8a874e144bab5",
+    "RUN_OF_SHOW.md": "b5a5e3b10d37fd1c2cd1bcd6e7f76c04980031fdeaeaa48e8fb5c7b22c58af60",
+    "VERSION.json": "300a476211f4962f3e8be7ae6698552b76506918fa1f27698fb9abe51c798372",
+    "The_Last_Light_zashtita.pdf": "28ac467051d308e88a9b5a696f7c3d7e3d68b0cd3271cdc7edf14a1b42184707",
+    "assets/fonts/Inter-Bold.ttf": "169bcaccf1254550bd2f3a425dab288597d925a383a3623cad8a5987ce7fa2c3",
+    "assets/fonts/Inter-OFL.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+    "assets/fonts/Inter-Regular.ttf": "6d282528bdfdfda2b9a6e85206b1376ae00373bf39ef6e534cc4dd1b4b690ccc",
+    "assets/fonts/Literata-MediumItalic.ttf": "37943448caee3b05f2a484bb97442d854374d5fffefac451adac31d2972fa2b4",
+    "assets/fonts/Literata-OFL.txt": "8742963604cd89dc81437811a850018fc03b2bfad686d7422c8235967c87614e",
+    "assets/fonts/Literata-Regular.ttf": "316a7f0440ba4f95926a72dff6c939487ba2c1bcd4f153c3edc5e5123506d0bc",
+    "assets/img/01_title_menu.jpg": "a64002f22ddf5271b01d09fff78554f2530c129a2f55855becaefb873bedf0be",
+    "assets/img/02_watch_room_dusk.jpg": "425a8fe9de738f3d325ba595ae99dcbe962b9c9d22bb155b62a9bacd6070fdd7",
+    "assets/img/03_lamps_come_up.jpg": "b8196ef8cc6b5c3ad22d28b27c1780c8e9732d7dcddc42269aa63f67f550a774",
+    "assets/img/04_radio_morag.jpg": "26575e0569afa512b2d2e37b8e635052c5528df886a99dda1e8b656eee931da0",
+    "assets/img/05_storm_tower.jpg": "842e5b7f1f90547963ed5052455f6d788ab29ced698ce468266d62203d16b20c",
+    "assets/img/06_man_at_the_door.jpg": "32232ab998f6554b794614c513fb1da124f85d7c4535bec6d0423f5f73cfe0cb",
+    "assets/img/07_dawn.jpg": "a4cd2c83ba82bb56e539ca56f342fbe88d6df8cdf374d945d7c63b21900f9eb7",
+    "assets/img/08_ending_heard_together.jpg": "20cb63e30247d9d01e1300326c1894301ceca7423dd89ad7f020b0279816fc9c",
+    "assets/img/morag_neutral.png": "76bb9dffcdd65f19742ef9aba9cbeba645f5ff0fd541dbb2e4bc9d378a663bbc",
+    "assets/img/trailer_poster.jpg": "125bb7b961bee0185d7e717649a54da1a545e6202b5df711cdfee8dc1afda769",
+    "assets/video/trailer_excerpt.mp4": "1501def97817d9e582d24732348a59658e1afd34d6b90edba33c832a2f666e23",
+    "css/deck.css": "69fdb49999eac2cafa98505a032b7a7808991df73f9d555d1aa941f3d0a02865",
+    "js/deck.js": "0075bdf803bcd946744dc064189e74f48d781584a7f8cb0a2ebaae04a1a27a62"
+  }
+}
