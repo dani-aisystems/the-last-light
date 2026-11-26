@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-26",
+  "files": [
+    {
+      "name": "pdf",
+      "id": "1x4eiDUa26r1MV2SQdvrmgUv82J3p2Cyc",
+      "anonymous": true,
+      "bytes": 2434400,
+      "sha256": "87f09a6ea85f78b4e0e3abc44dc39f203b9b15957dee970c6c150c22a3a68f28",
+      "matches_local": true
+    },
+    {
+      "name": "zip",
+      "id": "1P6_WRsMdWHXUGaaJNQbTokgGn6_NvaLu",
+      "anonymous": true,
+      "bytes": 8815406,
+      "sha256": "cebc5c8b0c0cf909a3f5f16f901ae13fda5050e342438bf2e05495d77291bdd6",
+      "matches_local": true
+    },
+    {
+      "name": "links",
+      "id": "13WJWyhNq9N_HUAgzvuLBY28rihhcpFqe",
+      "anonymous": true,
+      "bytes": 1244,
+      "sha256": "f7b841e28d1253ed79866c4c0814dabac4e5cffe34c5d4a20b259420ca3256f8",
+      "matches_local": true
+    }
+  ],
+  "same_file_ids": true,
+  "sharing": "anyone/reader preserved; verified by connector metadata"
+}
