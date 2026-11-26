@@ -1,0 +1,169 @@
+{
+  "verified_date": "2026-11-26",
+  "presentation_commit": "96f29e085f2d11cc46b7ff5dc5ddbfcb7f5fc89d",
+  "previous_local_commit_published": "0ccc427e33ad13a849e602eacc06222e802cace7",
+  "pages_deployment": {
+    "run_id": 45767967448,
+    "conclusion": "success",
+    "homepage": "https://dani-aisystems.github.io/the-last-light/",
+    "github_website_matches": true
+  },
+  "github_anonymous_readback": [
+    {
+      "path": "README.md",
+      "bytes": 19614,
+      "sha256": "a7340e5751fa15384c316ff07295a1b1a407444f878321634e49c9c5c9bf998b",
+      "anonymous_match": true
+    },
+    {
+      "path": "competitions/john-atanasoff/README.md",
+      "bytes": 7222,
+      "sha256": "ed18ca109cc0adf8f1b0546d3073f8ac8ef738f770de0776d49601709cb49a15",
+      "anonymous_match": true
+    },
+    {
+      "path": "competitions/john-atanasoff/presentation/The_Last_Light_zashtita.pdf",
+      "bytes": 2622467,
+      "sha256": "28ac467051d308e88a9b5a696f7c3d7e3d68b0cd3271cdc7edf14a1b42184707",
+      "anonymous_match": true
+    },
+    {
+      "path": "competitions/john-atanasoff/The_Last_Light_zashtita_offline.zip",
+      "bytes": 8586823,
+      "sha256": "0cffa85ccee1ea16800a1d1190f75143d99f3b62ada3c4ad96a30d38e195e8af",
+      "anonymous_match": true
+    },
+    {
+      "path": "docs/index.html",
+      "bytes": 3937,
+      "sha256": "fb5cfe89459ae62a996e50a407cccd5ffebca78acac0ef04ca3487da8f7c6e0c",
+      "anonymous_match": true
+    }
+  ],
+  "pages_links": [
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/",
+      "status": 200,
+      "bytes": 3937,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/img/TheLastLight_05_storm_tower_1280.jpg",
+      "status": 200,
+      "mime": "image/jpeg"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/raw/refs/heads/main/competitions/john-atanasoff/The_Last_Light_zashtita_offline.zip",
+      "status": 200,
+      "mime": "application/zip"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/blob/main/competitions/john-atanasoff/presentation/The_Last_Light_zashtita.pdf",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/trailer.html",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/tree/main/competitions/john-atanasoff",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/blob/main/competitions/john-atanasoff/build/playtime/METHOD.md",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/img/social_preview_1280x640.png",
+      "status": 200,
+      "mime": "image/png"
+    },
+    {
+      "site_open_graph_matches": true,
+      "sha256": "ffea1f72a6ec145e84078ee4f4cd2508c765a94a1a3e6b742e37d9815f09c8ba"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/trailer.html",
+      "status": 200,
+      "bytes": 1871,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/trailer/TheLastLight_Trailer_web.mp4",
+      "status": 200,
+      "mime": "video/mp4"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/trailer/TheLastLight_Trailer_web.mp4",
+      "status": 200,
+      "mime": "video/mp4"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/trailer/TheLastLight_Trailer.bg.srt",
+      "status": 200,
+      "mime": "application/x-subrip"
+    },
+    {
+      "url": "https://dani-aisystems.github.io/the-last-light/jury/trailer/TheLastLight_Trailer.en.srt",
+      "status": 200,
+      "mime": "application/x-subrip"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/releases/tag/v1.0.0",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light/tree/main/competitions/john-atanasoff",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://github.com/dani-aisystems/the-last-light",
+      "status": 200,
+      "mime": "text/html; charset=utf-8"
+    }
+  ],
+  "drive": {
+    "zip": {
+      "id": "1P6_WRsMdWHXUGaaJNQbTokgGn6_NvaLu",
+      "same_id": true,
+      "anyone_role": "reader",
+      "sha256": "0cffa85ccee1ea16800a1d1190f75143d99f3b62ada3c4ad96a30d38e195e8af"
+    },
+    "pdf": {
+      "id": "1x4eiDUa26r1MV2SQdvrmgUv82J3p2Cyc",
+      "same_id": true,
+      "anyone_role": "reader",
+      "sha256": "28ac467051d308e88a9b5a696f7c3d7e3d68b0cd3271cdc7edf14a1b42184707"
+    },
+    "links_file": {
+      "id": "13WJWyhNq9N_HUAgzvuLBY28rihhcpFqe",
+      "parent": "1XRQm26M8ZhX-wRXMmWwbzdsg2eswkXMy",
+      "anyone_role": "reader",
+      "anonymous_bytes_match": true
+    }
+  },
+  "release_notes_readback_matches": true,
+  "release_tag_and_assets_unchanged": true,
+  "github_social_preview": {
+    "usesCustomOpenGraphImage": false,
+    "ui_blocker": "Computer Use server error -10005: noWindowsAvailable",
+    "prepared_file": "docs/jury/img/social_preview_1280x640.png"
+  },
+  "site_open_graph_image_verified_separately": true
+}
