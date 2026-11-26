@@ -1,4 +1,4 @@
-// THE LAST LIGHT — презентация за защита. Без библиотеки, без интернет.
+// THE LAST LIGHT · презентация за защита. Без библиотеки, без интернет.
 // Клавиши: → / Space / клик = напред (следваща стъпка, после слайд) · ← = назад · Home/End · F цял екран
 //          N бележки за говорене · T таймер · Esc спира видеото / затваря бележките · #5 в адреса отваря слайд 5
 (function () {
@@ -22,6 +22,10 @@
     slides.forEach((s, i) => s.classList.toggle('on', i === cur));
     slides[cur].querySelectorAll('[data-step]').forEach(e => e.classList.toggle('vis', +e.dataset.step <= step));
     slides[cur].querySelectorAll('[data-hide]').forEach(e => e.classList.toggle('gone', step >= +e.dataset.hide));
+    slides[cur].querySelectorAll('[data-only]').forEach(e => e.classList.toggle('only-off', step !== +e.dataset.only));
+    slides[cur].querySelectorAll('[data-case]').forEach(e => e.classList.toggle('selected', step === +e.dataset.case));
+    slides[cur].classList.toggle('playing', !!slides[cur].querySelector('video') && step >= 1);
+    slides[cur].classList.toggle('demonstrated', step >= 1);
     slides.forEach((s, i) => { if (i !== cur) s.querySelectorAll('video').forEach(v => v.pause()); });
     const vid = slides[cur].querySelector('video');
     if (vid) {
@@ -31,7 +35,7 @@
     const n = slides[cur].querySelector('.notes');
     notesEl.innerHTML = '<div class="h">Слайд ' + (cur + 1) + ' / ' + slides.length + ' · ' + (slides[cur].dataset.sec || '') + ' с</div>' + (n ? n.innerHTML : '');
     history.replaceState(null, '', '#' + (cur + 1));
-    document.title = 'The Last Light — защита (' + (cur + 1) + '/' + slides.length + ')';
+    document.title = 'The Last Light · защита (' + (cur + 1) + '/' + slides.length + ')';
   }
   function next() {
     if (step < maxStep(cur)) step++;
@@ -61,6 +65,7 @@
   }
   window.addEventListener('keydown', e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest('a,button,input,textarea,select,video') && ['Enter', ' '].includes(e.key)) return;
     switch (e.key) {
       case 'ArrowRight': case 'ArrowDown': case 'PageDown': case ' ': case 'Enter': e.preventDefault(); startTimer(); next(); break;
       case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace': e.preventDefault(); prev(); break;
@@ -72,7 +77,7 @@
       case 'Escape': notesEl.classList.remove('on'); slides[cur].querySelectorAll('video').forEach(v => v.pause()); break;
     }
   });
-  stage.addEventListener('click', e => { if (e.target.closest('video')) return; startTimer(); next(); });
+  stage.addEventListener('click', e => { if (e.target.closest('video,a,button,input,textarea,select')) return; startTimer(); next(); });
   slides.forEach((s, i) => { const num = document.createElement('div'); num.className = 'num'; num.textContent = (i + 1) + ' / ' + slides.length; s.appendChild(num); });
   window.addEventListener('resize', fit);
   fit();

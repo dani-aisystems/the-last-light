@@ -11,12 +11,22 @@ tpl = (ROOT / "presentation/index.template.html").read_text()
 tokens = json.loads((ROOT / "build/playtime/out/deck_tokens.json").read_text())
 tests = json.loads((ROOT / "build/tests_result.json").read_text())
 tokens["OTHER_TESTS"] = tests["slide_line"]
+playtime = json.loads((ROOT / "build/playtime/out/playtime.json").read_text())
+rows = []
+for key, label in [("low", "Бързо запознаване"), ("mid", "Средно допускане"), ("high", "Повече търсене")]:
+    r = playtime["routes"]["truth_saved"]["scenarios"][key]
+    base = r["bot_timeline_s"] / 60
+    extra = (r["human_s"] + r["extras_s"]) / 60
+    num = lambda v: f"{v:.1f}".replace(".", ",")
+    rows.append(f'<div class="time-row"><div class="label">{label}</div><div class="bar"><span class="base" style="width:{base*9.4:.2f}px">{num(base)}</span><span class="extra" style="width:{extra*9.4:.2f}px">{num(extra)}</span></div><div class="total">{num(r["total_min"])} мин</div></div>')
+tokens["PT_SCENARIOS"] = "\n".join(rows)
 for k, v in tokens.items():
     tpl = tpl.replace("{{%s}}" % k, v)
 assert "{{" not in tpl, [l for l in tpl.splitlines() if "{{" in l]
 inputs = [ROOT / "presentation/index.template.html", ROOT / "presentation/css/deck.css",
           ROOT / "presentation/js/deck.js", ROOT / "build/playtime/out/deck_tokens.json",
           ROOT / "build/tests_result.json"]
+inputs += [ROOT / "build/build_deck.py", ROOT / "build/playtime/out/playtime.json"]
 inputs += sorted(p for p in (ROOT / "presentation/assets").rglob("*") if p.is_file())
 sources = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
 version = hashlib.sha256(json.dumps(sources, sort_keys=True).encode()).hexdigest()[:12]
@@ -38,6 +48,6 @@ class Notes(HTMLParser):
         if tag == 'aside' and self.active:
             self.rows.append(''.join(self.parts).strip()); self.active = False
 n = Notes(); n.feed(tpl)
-text = '# Бележки за говорене — The Last Light, R7\n\nНаправление 3 „Разпределени приложения“. Клавиш N показва тези бележки върху същия екран; не го включвайте пред журито.\n\n'
+text = '# Бележки за говорене · The Last Light, R7\n\nНаправление 3 „Разпределени приложения“. Клавиш N показва тези бележки върху същия екран; не го включвайте пред журито.\n\n'
 text += '\n\n'.join(f'## Слайд {i}\n\n{s}' for i, s in enumerate(n.rows, 1)) + '\n'
 (ROOT / 'presentation/SPEAKER_NOTES.md').write_text(text)

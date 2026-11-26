@@ -1,13 +1,15 @@
 {
-  "deck_version": "d8ea010381e9",
+  "deck_version": "08dd9aed54fb",
   "game_build": "R7",
   "game_release": "v1.0.0",
   "sources": {
-    "presentation/index.template.html": "c65a673c3a903b0e2d7e6926f73d48f302cf243e0f5058c109dcc6184bfec6c7",
-    "presentation/css/deck.css": "69fdb49999eac2cafa98505a032b7a7808991df73f9d555d1aa941f3d0a02865",
-    "presentation/js/deck.js": "0075bdf803bcd946744dc064189e74f48d781584a7f8cb0a2ebaae04a1a27a62",
+    "presentation/index.template.html": "355793ce6934abd8822c7628f047ee2d13db99e7b3e58ebf49640245046db857",
+    "presentation/css/deck.css": "ec0031087203a000fda8d3ad9793169dd7dd19efb59ac0d6d99b9c7ea9c36870",
+    "presentation/js/deck.js": "4cce9e30c2796b90addc6db93204b4a6f1d282733b37ed23bd1b218be3be0cb5",
     "build/playtime/out/deck_tokens.json": "9e848b82ffa17c66460a097586b107da49c33c9bea0e22e2d8f9e25b74b2d819",
     "build/tests_result.json": "32386b0a4dc8d9250d25cd6b908e4a147e2f2f06017c619f76465d908d91eacb",
+    "build/build_deck.py": "f44bcfdb46b1f4d52d6dc68360cbd49d38331fc71fbe7900d53a3803570e284f",
+    "build/playtime/out/playtime.json": "6745a626985a93bb2bcac3129a8f154b99ca5fad61be0e106b8d9210d7efeea6",
     "presentation/assets/fonts/Inter-Bold.ttf": "169bcaccf1254550bd2f3a425dab288597d925a383a3623cad8a5987ce7fa2c3",
     "presentation/assets/fonts/Inter-OFL.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
     "presentation/assets/fonts/Inter-Regular.ttf": "6d282528bdfdfda2b9a6e85206b1376ae00373bf39ef6e534cc4dd1b4b690ccc",
@@ -23,6 +25,8 @@
     "presentation/assets/img/07_dawn.jpg": "a4cd2c83ba82bb56e539ca56f342fbe88d6df8cdf374d945d7c63b21900f9eb7",
     "presentation/assets/img/08_ending_heard_together.jpg": "20cb63e30247d9d01e1300326c1894301ceca7423dd89ad7f020b0279816fc9c",
     "presentation/assets/img/morag_neutral.png": "76bb9dffcdd65f19742ef9aba9cbeba645f5ff0fd541dbb2e4bc9d378a663bbc",
+    "presentation/assets/img/radio_powered.jpg": "55885b76e77ebb4be0ef84d4d590ffac861921c87bfa343f7d736d53de69b102",
+    "presentation/assets/img/radio_unpowered.jpg": "589634d037453d79bafeb4009e93e04836d236c0f996f7e72d590e2f02c4123c",
     "presentation/assets/img/trailer_poster.jpg": "125bb7b961bee0185d7e717649a54da1a545e6202b5df711cdfee8dc1afda769",
     "presentation/assets/video/trailer_excerpt.mp4": "1501def97817d9e582d24732348a59658e1afd34d6b90edba33c832a2f666e23"
   }

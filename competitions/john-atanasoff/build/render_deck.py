@@ -83,7 +83,7 @@ with sync_playwright() as p:
     report["video"] = pg.evaluate("(()=>{const v=document.querySelector('video');return {ready:v.readyState,dur:v.duration,w:v.videoWidth,h:v.videoHeight,tracks:v.textTracks.length}})()")
     if not a.no_pdf:
         pdfp = a.deck.resolve() / "The_Last_Light_zashtita.pdf"
-        pg.evaluate("document.title = 'The Last Light — R7 — ' + document.querySelector('meta[name=deck-version]').content")
+        pg.evaluate("document.title = 'The Last Light · R7 · ' + document.querySelector('meta[name=deck-version]').content")
         pg.emulate_media(media="print")
         pg.pdf(path=str(pdfp), width="1920px", height="1080px", print_background=True, margin={"top": "0", "bottom": "0", "left": "0", "right": "0"})
         report["pdf"] = pdfp.name

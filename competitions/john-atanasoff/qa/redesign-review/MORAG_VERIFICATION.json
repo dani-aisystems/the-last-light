@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-26",
+  "passed": 5,
+  "total": 5,
+  "log_sha256": "03cff9940eaa3e598d53b93e6a53901d31ae02db3ffc36c36e94c4a1c033d998",
+  "checks": [
+    {
+      "case": "no_ch3_call",
+      "pass": true,
+      "expected_line": null,
+      "actual_lines": [
+        "North Point, Stornoway. Lifeboat reports on scene. Wind veering westerly. It's over, Callum. Over.",
+        "I've a log to close for tonight. And an old one I never closed. Is there anything North Point wishes to report? Over.",
+        "...North Point, Stornoway. Received and logged. Every word.",
+        "Stornoway out."
+      ],
+      "relation": 0,
+      "flag": null
+    },
+    {
+      "case": "lie_to_morag",
+      "pass": true,
+      "expected_line": "You told me at half past one that the log was right. I'll not say anything about that on the air.",
+      "actual_lines": [
+        "North Point, Stornoway. Lifeboat reports on scene. Wind veering westerly. It's over, Callum. Over.",
+        "I've a log to close for tonight. And an old one I never closed. Is there anything North Point wishes to report? Over.",
+        "...North Point, Stornoway. Received and logged. Every word.",
+        "You told me at half past one that the log was right. I'll not say anything about that on the air.",
+        "Stornoway out."
+      ],
+      "relation": -2,
+      "flag": "lied_to_morag"
+    },
+    {
+      "case": "deflect",
+      "pass": true,
+      "expected_line": "You asked me what it mattered, after eighteen years. Well. Now you know.",
+      "actual_lines": [
+        "North Point, Stornoway. Lifeboat reports on scene. Wind veering westerly. It's over, Callum. Over.",
+        "I've a log to close for tonight. And an old one I never closed. Is there anything North Point wishes to report? Over.",
+        "...North Point, Stornoway. Received and logged. Every word.",
+        "You asked me what it mattered, after eighteen years. Well. Now you know.",
+        "Stornoway out."
+      ],
+      "relation": -1,
+      "flag": "deflected_morag"
+    },
+    {
+      "case": "admit",
+      "pass": true,
+      "expected_line": "You told me first. In the dark, with the set half dead. I'll remember that.",
+      "actual_lines": [
+        "North Point, Stornoway. Lifeboat reports on scene. Wind veering westerly. It's over, Callum. Over.",
+        "I've a log to close for tonight. And an old one I never closed. Is there anything North Point wishes to report? Over.",
+        "...North Point, Stornoway. Received and logged. Every word.",
+        "You told me first. In the dark, with the set half dead. I'll remember that.",
+        "Kitchen table, Callum. I'll put the kettle on. Stornoway out."
+      ],
+      "relation": 2,
+      "flag": "admitted_to_morag"
+    },
+    {
+      "case": "admit_then_silence",
+      "pass": true,
+      "expected_line": "I'll not put that in my log, Callum. You'll have to.",
+      "actual_lines": [
+        "North Point, Stornoway. Lifeboat reports on scene. Wind veering westerly. It's over, Callum. Over.",
+        "I've a log to close for tonight. And an old one I never closed. Is there anything North Point wishes to report? Over.",
+        "...Hours ago you told me the light was out before she struck.",
+        "I'll not put that in my log, Callum. You'll have to.",
+        "...Roger, North Point. Nothing to report.",
+        "Stornoway out."
+      ],
+      "relation": 2,
+      "flag": "admitted_to_morag"
+    }
+  ]
+}

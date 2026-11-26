@@ -1,13 +1,13 @@
 {
-  "deck_version": "d8ea010381e9",
+  "deck_version": "08dd9aed54fb",
   "sha256": {
-    "index.html": "1714e2376cc0a452af52b87f60eea0abddf114603802ffabc99bdb1f6dd62984",
-    "index.template.html": "c65a673c3a903b0e2d7e6926f73d48f302cf243e0f5058c109dcc6184bfec6c7",
-    "README_START.txt": "5080a7d66b34b3e604d21192b32bca3977c8601bd5d7e579017dcb1a18fe499b",
-    "SPEAKER_NOTES.md": "eb27b26ce6ae301d7d7950f7e648f4d13c9d6c624f60b38ce2e8a874e144bab5",
-    "RUN_OF_SHOW.md": "b5a5e3b10d37fd1c2cd1bcd6e7f76c04980031fdeaeaa48e8fb5c7b22c58af60",
-    "VERSION.json": "300a476211f4962f3e8be7ae6698552b76506918fa1f27698fb9abe51c798372",
-    "The_Last_Light_zashtita.pdf": "28ac467051d308e88a9b5a696f7c3d7e3d68b0cd3271cdc7edf14a1b42184707",
+    "index.html": "6910f6e04cde594b37e3841f7c0363f8baba2933967b75ed10320ecb9656ef29",
+    "index.template.html": "355793ce6934abd8822c7628f047ee2d13db99e7b3e58ebf49640245046db857",
+    "README_START.txt": "a16cae89782b07779d41b5947ef6e6fc5c6b0b61c1c465d89aaf595eb0ea6643",
+    "SPEAKER_NOTES.md": "e812018d43ac2d823d764e4c5d6341a132c4364040669cb764d782d0229cfbfd",
+    "RUN_OF_SHOW.md": "6b161f21db575c8b1be7c9a48a2b7ebdc16ec17f9a5d70ac6a25a9299e75ce98",
+    "VERSION.json": "695b46b6668efb7a009bc40c9c9e1c027f822850b20e4fb8491477adaf43e13e",
+    "The_Last_Light_zashtita.pdf": "87f09a6ea85f78b4e0e3abc44dc39f203b9b15957dee970c6c150c22a3a68f28",
     "assets/fonts/Inter-Bold.ttf": "169bcaccf1254550bd2f3a425dab288597d925a383a3623cad8a5987ce7fa2c3",
     "assets/fonts/Inter-OFL.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
     "assets/fonts/Inter-Regular.ttf": "6d282528bdfdfda2b9a6e85206b1376ae00373bf39ef6e534cc4dd1b4b690ccc",
@@ -23,9 +23,11 @@
     "assets/img/07_dawn.jpg": "a4cd2c83ba82bb56e539ca56f342fbe88d6df8cdf374d945d7c63b21900f9eb7",
     "assets/img/08_ending_heard_together.jpg": "20cb63e30247d9d01e1300326c1894301ceca7423dd89ad7f020b0279816fc9c",
     "assets/img/morag_neutral.png": "76bb9dffcdd65f19742ef9aba9cbeba645f5ff0fd541dbb2e4bc9d378a663bbc",
+    "assets/img/radio_powered.jpg": "55885b76e77ebb4be0ef84d4d590ffac861921c87bfa343f7d736d53de69b102",
+    "assets/img/radio_unpowered.jpg": "589634d037453d79bafeb4009e93e04836d236c0f996f7e72d590e2f02c4123c",
     "assets/img/trailer_poster.jpg": "125bb7b961bee0185d7e717649a54da1a545e6202b5df711cdfee8dc1afda769",
     "assets/video/trailer_excerpt.mp4": "1501def97817d9e582d24732348a59658e1afd34d6b90edba33c832a2f666e23",
-    "css/deck.css": "69fdb49999eac2cafa98505a032b7a7808991df73f9d555d1aa941f3d0a02865",
-    "js/deck.js": "0075bdf803bcd946744dc064189e74f48d781584a7f8cb0a2ebaae04a1a27a62"
+    "css/deck.css": "ec0031087203a000fda8d3ad9793169dd7dd19efb59ac0d6d99b9c7ea9c36870",
+    "js/deck.js": "4cce9e30c2796b90addc6db93204b4a6f1d282733b37ed23bd1b218be3be0cb5"
   }
 }
